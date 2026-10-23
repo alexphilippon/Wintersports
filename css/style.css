@@ -744,3 +744,19 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 .slmine__box { margin: .5rem 0 .7rem; padding: .6rem .8rem; border: 2px solid var(--pine, #2f7a4f); border-radius: 10px; background: rgba(47, 122, 79, .1); display: grid; gap: .3rem; }
 .slmine { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; }
 .slmine__l { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--encre-douce); min-width: 6.4rem; }
+
+/* ---------- Au portillon (deadline imminente) ---------- */
+.gate__kicker { margin: 0 0 .1rem; font: 800 .78rem var(--display); letter-spacing: .22em; text-transform: uppercase; color: var(--brique); }
+.gate__title { font-size: 1.7rem; line-height: 1.1; margin: 0 2rem .5rem 0; }
+.gate__lead { margin: 0 0 .8rem; color: var(--encre-douce); }
+.gate__list { list-style: none; margin: 0 0 1rem; padding: 0; border-top: 1px solid var(--filet); }
+.gate__race { display: grid; grid-template-columns: 5.4rem 1fr; gap: .5rem; padding: .55rem 0; border-bottom: 1px solid var(--filet); align-items: center; }
+.gate__when { font-weight: 700; color: var(--nuit); font-size: .9rem; }
+.gate__what strong { display: block; }
+.gate__what .gender { margin-left: 0; }
+.gate__go { width: 100%; margin: 0 0 .9rem; font-size: 1.05rem; padding: .75rem 1rem; }
+.gate__snooze { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem; margin-bottom: .8rem; font-size: .9rem; }
+.gate__chip { border: 1.5px solid var(--nuit); background: transparent; color: var(--nuit); border-radius: 999px; padding: .3rem .8rem; font-weight: 600; font-size: .86rem; cursor: pointer; }
+.gate__chip:hover { background: var(--nuit); color: var(--neige); }
+.gate__quiet { display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; font-size: .86rem; }
+.gate__hint { margin: .5rem 0 0; font-size: .8rem; }

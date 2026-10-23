@@ -139,7 +139,7 @@
     store.onAuth((u) => { state.authReady = true; state.user = u; state.me = u ? u.uid : null; introRules(); if (isAdmin() && !state.contactsOn) { state.contactsOn = true; store.listenContacts((m) => { state.contacts = m; scheduleRender(); }); } if (!state.demo) { state.authError = ''; scheduleRender(); } });
     store.listen({
       players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id, photo: x.photo || '', blocked: !!x.photoBlocked })).sort((a, b) => a.name.localeCompare(b.name, 'fr')); scheduleRender(); },
-      picks: (m) => { state.raw.picks = m; recompute(); },
+      picks: (m) => { state.raw.picks = m; state.picksReady = true; recompute(); },
       results: (m) => { state.raw.results = m; recompute(); },
       overrides: (m) => { state.overrides = m; recompute(); },
       aliases: (m) => { state.aliases = m; recompute(); },
@@ -998,6 +998,7 @@
   function render() {
     $('#tabs').closest('nav').hidden = !state.user && !state.demo;
     renderTabs(); renderUserbar(); renderPanel(); syncSim();
+    setTimeout(gateCheck, 400);
     const f = document.querySelector('.atelier'); if (f) f.hidden = !(state.demo || store.mode === 'local');
   }
 
@@ -1159,9 +1160,78 @@
     render();
   }
 
+
+  /* ---------- « Au portillon » : mode deadline imminente ----------
+     La veille de la deadline d'une session, à partir de 21 h, une fenêtre rappelle les choix qu'il reste à faire.
+     Préférences enregistrées dans ce navigateur : { off: true } (plus jamais), { skip: { session: true } }, { until: { session: ms } } (reporté). */
+  const GATE_KEY = 'skigame.gate';
+  const gateGet = () => { try { return JSON.parse(localStorage.getItem(GATE_KEY) || '{}') || {}; } catch (e) { return {}; } };
+  const gateSet = (o) => { try { localStorage.setItem(GATE_KEY, JSON.stringify(o)); } catch (e) { /* ignoré */ } };
+  function gateStart(dl) {
+    const [y, m, d] = FMT_YMD.format(dl).split('-').map(Number);
+    return G.parisInstant(new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10), '21:00');
+  }
+  /** Session à rappeler maintenant (ouverte, fenêtre commencée, choix manquants, pas reportée), sinon null. */
+  function gatePending() {
+    if (!state.user && !state.demo) return null;
+    if (!state.demo && !state.picksReady) return null;
+    const g = gateGet(); if (g.off) return null;
+    const t = now().getTime();
+    for (const s of allSessions()) {
+      if (G.sessionState(s, now()) !== 'ouverte') continue;
+      const dl = G.sessionDeadline(s);
+      if (t < gateStart(dl).getTime()) continue;
+      if ((g.skip || {})[s.id] || ((g.until || {})[s.id] || 0) > t) continue;
+      const todo = active(sortedRaces(s)).filter((r) => !lockedRace(r) && !(myPicks()[r.id] || {}).a);
+      if (todo.length) return { session: s, dl, todo };
+    }
+    return null;
+  }
+  const leftText = (ms) => { const m = Math.max(1, Math.round(ms / 60000)), h = Math.floor(m / 60); return h ? `${h}\u00a0h${m % 60 ? '\u00a0' + String(m % 60).padStart(2, '0') : ''}` : `${m}\u00a0min`; };
+  /** Prochain 7 h 30 (heure de Paris). */
+  function wakeUp() {
+    const today = FMT_YMD.format(now()), c = G.parisInstant(today, '07:30');
+    if (c > now()) return c;
+    const [y, m, d] = today.split('-').map(Number);
+    return G.parisInstant(new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10), '07:30');
+  }
+  function gateCheck() {
+    const m = $('#modal'); if (!m || !m.hidden) return;
+    const g = gatePending(); if (!g) return;
+    const { session, dl, todo } = g, sid = session.id;
+    const left = dl - now();
+    const opts = [['1 h', 60 * 60e3], ['2 h', 2 * 60 * 60e3], ['demain au réveil', wakeUp() - now()]].filter(([, ms]) => ms > 60e3 && ms < left - 20 * 60e3);
+    // fermer la fenêtre sans choisir = rappel dans 30 min
+    const cur = gateGet(); cur.until = Object.assign({}, cur.until, { [sid]: now().getTime() + 30 * 60e3 }); gateSet(cur);
+    const list = todo.map((r) => `<li class="gate__race"><span class="gate__when">${esc(dayOf(r.date))}</span><span class="gate__what"><strong>${fl(placeLabel(r))}</strong> <span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</span></li>`).join('');
+    openModal(`<div class="gate"><p class="gate__kicker">Au portillon</p>
+      <h2 class="gate__title">${todo.length > 1 ? `${todo.length} choix t’attendent` : 'Un choix t’attend'}</h2>
+      <p class="gate__lead">Deadline <strong>${esc(dlShort(dl))}</strong>, dans ${esc(leftText(left))}. Ensuite, les choix sont verrouillés.</p>
+      <ul class="gate__list">${list}</ul>
+      <button type="button" class="btn btn--brique gate__go" data-gate-go="${sid}">Je choisis maintenant</button>
+      ${opts.length ? `<div class="gate__snooze"><span>Me le rappeler dans</span>${opts.map(([l, ms]) => `<button type="button" class="gate__chip" data-gate-snooze="${sid}|${Math.round(ms)}">${l}</button>`).join('')}</div>` : ''}
+      <div class="gate__quiet"><button type="button" class="linkbtn" data-gate-skip="${sid}">Ne plus me le rappeler pour cette session</button><button type="button" class="linkbtn" data-gate-off>Ne plus jamais afficher ce rappel</button></div>
+      <p class="hint gate__hint">Je gère seul·e : tu pourras le réactiver dans Mes réglages.</p></div>`);
+  }
+  document.addEventListener('click', (e) => {
+    const go = e.target.closest('[data-gate-go]');
+    if (go) {
+      const s = allSessions().find((x) => String(x.id) === go.dataset.gateGo); closeModal(); if (!s) return;
+      setTab(s.id === 'X' || s === D.WORLDS ? 'w' : String(s.desk));
+      setTimeout(() => { const c = document.getElementById('s-' + s.id); if (c) c.scrollIntoView({ block: 'start' }); }, 60);
+      return;
+    }
+    const sn = e.target.closest('[data-gate-snooze]');
+    if (sn) { const [sid, ms] = sn.dataset.gateSnooze.split('|'); const g = gateGet(); g.until = Object.assign({}, g.until, { [sid]: now().getTime() + Number(ms) }); gateSet(g); closeModal(); return; }
+    const sk = e.target.closest('[data-gate-skip]');
+    if (sk) { const g = gateGet(); g.skip = Object.assign({}, g.skip, { [sk.dataset.gateSkip]: true }); gateSet(g); closeModal(); return; }
+    if (e.target.closest('[data-gate-off]')) { const g = gateGet(); g.off = true; gateSet(g); closeModal(); }
+  });
+
   setInterval(() => {
     const c = $('#countdown');
     if (c) c.innerHTML = countdownText(new Date(c.dataset.dl));
+    gateCheck();
   }, 30000);
 
   /* ---------- Démarrage ---------- */
