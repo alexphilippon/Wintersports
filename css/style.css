@@ -884,3 +884,6 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 .session { position: relative; margin-bottom: 2.8rem; }
 .forfait { margin-bottom: 3.2rem; }
 @media (prefers-reduced-motion: no-preference) { .session::after, .forfait::after { transform-origin: top center; } }
+
+/* Plus de boules de neige à la jonction du talon (les stalactites suffisent) */
+.forfait__stub::before, .forfait__stub::after { display: none !important; }
