@@ -47,7 +47,8 @@
     const { state, G, D, esc } = C;
     const now = state.sim || new Date();
     const up = [...D.SESSIONS, D.WORLDS].sort((a, b) => G.sessionDeadline(a) - G.sessionDeadline(b)).find((s) => G.sessionState(s, now) !== 'terminée');
-    let html = '';
+    const fresh = C.newPlayers();
+    let html = fresh.length ? `<div class="adm__msg">🔔 ${fresh.length > 1 ? 'Nouveaux joueurs inscrits' : 'Nouveau joueur inscrit'} : <strong>${fresh.map((p) => esc(p.name)).join(', ')}</strong> <button type="button" class="btn btn--ghost" data-adm="players-seen">Marquer comme vu</button></div>` : '';
     if (up) {
       const races = C.active(C.sortedRaces(up));
       const rows = state.players.map((p) => {
@@ -203,6 +204,7 @@
     const b = e.target.closest('[data-adm]'); if (!b) return;
     const act = b.dataset.adm;
     const r = A.race ? C.G.raceOf(A.race) : null;
+    if (act === 'players-seen') { C.markPlayersSeen(); return; }
     if (act === 'analyse' && r) {
       A.text = $('#adm-text').value; A.parsed = parseResults(A.text, r.gender); A.msg = ''; C.rerender();
     } else if (act === 'save-result' && r && A.parsed) {

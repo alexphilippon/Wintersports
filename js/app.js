@@ -77,6 +77,9 @@
   const info = (text) => `<button type="button" class="info" data-info="${esc(text)}" aria-label="Aide : ${esc(text)}">i</button>`;
   const norm = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const myPicks = () => state.picks[state.me] || (state.picks[state.me] = {});
+  const seenIds = () => { try { return JSON.parse(localStorage.getItem('skigame.seenPlayers') || '[]'); } catch (e) { return []; } };
+  const newPlayers = () => { const seen = new Set(seenIds()); return state.players.filter((p) => p.id !== state.me && !seen.has(p.id)); };
+  const markPlayersSeen = () => { try { localStorage.setItem('skigame.seenPlayers', JSON.stringify(state.players.map((p) => p.id))); } catch (e) { /* ignoré */ } render(); };
   const isAdmin = () => !!state.user && !state.demo && (store.mode === 'local' || (!!CONFIG.adminEmail && state.user.email.toLowerCase() === CONFIG.adminEmail.toLowerCase()));
 
   const allSessions = () => [...D.SESSIONS, D.WORLDS].sort((a, b) => G.sessionDeadline(a) - G.sessionDeadline(b));
@@ -469,7 +472,7 @@
       { id: 'w', label: 'Mondiaux', note: '4 au 14 févr.' },
       { id: '3', label: 'Desk 3', note: `${shortOf(D.DESKS[2].from)} au ${shortOf(D.DESKS[2].to)}` },
       { id: 'gen', label: 'Classement général', note: '' },
-    ].concat(isAdmin() ? [{ id: 'adm', label: 'Admin', note: 'organisateur' }] : []);
+    ].concat(isAdmin() ? [{ id: 'adm', label: 'Admin', note: newPlayers().length ? `🔔 ${plural(newPlayers().length, 'nouveau joueur', 'nouveaux joueurs')}` : 'organisateur' }] : []);
   }
   const TAB_IDS = ['next', '1', '2', 'w', '3', 'gen', 'adm'];
   function renderTabs() {
@@ -839,7 +842,7 @@
   }, 30000);
 
   /* ---------- Démarrage ---------- */
-  const adminCtx = () => ({ state, G, D, store, LIST, ATH, esc, norm, at, F_DAY, hourText, dlShort, shortOf, placeLabel, discLabel, genderLabel, nameOf, avatarOf, sortedRaces, lockedRace, active, canon, rerender: render, fail, isAdmin });
+  const adminCtx = () => ({ state, G, D, store, LIST, ATH, esc, norm, at, F_DAY, hourText, dlShort, shortOf, placeLabel, discLabel, genderLabel, nameOf, avatarOf, sortedRaces, lockedRace, active, canon, newPlayers, markPlayersSeen, rerender: render, fail, isAdmin });
   const q = new URLSearchParams(location.search);
   const h = location.hash.replace('#', '');
   if (TAB_IDS.includes(h)) state.tab = h;
