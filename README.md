@@ -73,3 +73,4 @@ Sur ton ordinateur : `npm i sharp` puis `node tools/fetch-photos.js` remplit `im
 `node tools/results.js course.json` ajoute une course à `data/results.json` (lu par le site en plus de Firestore, qui reste prioritaire).
 Il refuse d'écrire tant qu'un DNS n'est pas confirmé (`"dns":[{"bib":N,"confirmed":true}]`).
 Tirage au sort (titulaire et remplaçant absents) : calculé par le site, reproductible, graine = `course|joueur|temps du vainqueur`, parmi les 30 premiers dossards du départ (manche 1 en GS/SL), hors skieurs déjà grillés par le joueur dans le desk et hors non-partants. Test : `node tests/results.test.js` (Sölden 2025).
+Correspondance course du jeu -> `raceid` FIS : `data/fis-races.json` (généré par `node tools/fis-map.js` depuis `tools/fis-races.txt`).

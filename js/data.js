@@ -24,8 +24,8 @@ M|8|Beaver Creek|2026-12-05|SG
 M|9|Beaver Creek|2026-12-06|GS
 M|10|Val d'Isère|2026-12-12|GS
 M|11|Val d'Isère|2026-12-13|SL
-M|12|Val Gardena|2026-12-18|DH
-M|13|Val Gardena|2026-12-19|SG
+M|12|Val Gardena|2026-12-18|SG
+M|13|Val Gardena|2026-12-19|DH
 M|14|Alta Badia|2026-12-20|GS
 M|15|Alta Badia|2026-12-21|SL
 M|16|Madonna di Campiglio|2026-12-23|SL
@@ -54,7 +54,7 @@ M|38|Åre|2027-03-13|GS
 M|39|Åre|2027-03-14|SL
 M|40|Sun Valley|2027-03-20|DH
 M|41|Sun Valley|2027-03-21|SG
-M|42|Sun Valley|2027-03-23|GS
+M|42|Sun Valley|2027-03-24|GS
 M|43|Sun Valley|2027-03-25|SL
 W|1|Sölden|2026-10-24|GS
 W|2|Levi|2026-11-14|SL
