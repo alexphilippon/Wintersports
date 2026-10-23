@@ -760,3 +760,54 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 .gate__chip:hover { background: var(--nuit); color: var(--neige); }
 .gate__quiet { display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; font-size: .86rem; }
 .gate__hint { margin: .5rem 0 0; font-size: .8rem; }
+
+/* ---------- Mon compte réduit, fiche joueur, réglages ---------- */
+.btn--sm { padding: .35rem .85rem; font-size: .88rem; }
+.acct__sum { display: block; font-size: .85rem; color: var(--encre-douce); margin-top: .1rem; }
+.acct__namebtn { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.acct__namebtn:hover { text-decoration-style: solid; }
+.acct__btns { display: flex; gap: .5rem; flex: none; }
+@media (max-width: 759px) { .acct__btns { width: 100%; display: grid; grid-template-columns: 1fr 1fr; } }
+.pn--btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.pn--btn:hover > span:last-child { text-decoration: underline; }
+
+.fiche__head { display: flex; align-items: center; gap: .9rem; margin-bottom: .8rem; padding-right: 2rem; }
+.fiche__name { font-size: 1.6rem; margin: 0; line-height: 1.1; }
+.fiche__name em { font-size: .9rem; font-weight: 500; color: var(--encre-douce); }
+.fiche__sum { margin: .15rem 0 0; color: var(--encre-douce); }
+.fiche .acct__board { margin-bottom: 1rem; }
+.ftiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin-bottom: .9rem; }
+.ftile { border: 2px solid var(--nuit); border-radius: 10px; padding: .5rem .6rem; background: var(--neige); display: flex; flex-direction: column; }
+.ftile b { font: 800 1.5rem/1.1 var(--display); color: var(--nuit); }
+.ftile span { font-size: .75rem; color: var(--encre-douce); }
+.fbest { margin: 0 0 .8rem; padding: .55rem .8rem; background: rgba(224, 177, 58, .22); border-radius: 8px; }
+.fbest span { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--encre-douce); }
+.fbest strong { font: 800 1.3rem var(--display); color: var(--brique); margin-right: .3rem; }
+.fh { font-size: 1rem; margin: 1rem 0 .4rem; }
+.fchart { color: var(--brique); border: 1.5px solid var(--filet); border-radius: 8px; padding: .4rem; background: var(--neige); }
+.fsp { display: block; width: 100%; height: 64px; }
+.fcols { display: grid; grid-template-columns: 1fr; gap: 0 1.2rem; }
+@media (min-width: 640px) { .fcols { grid-template-columns: 1fr 1fr; } }
+.fbars { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.fbars li { display: grid; grid-template-columns: 6.2rem 1fr 2.6rem; gap: .5rem; align-items: center; font-size: .88rem; }
+.fbars__b { height: .7rem; background: var(--filet); border-radius: 99px; overflow: hidden; }
+.fbars__b i { display: block; height: 100%; background: var(--brique); border-radius: 99px; }
+.fbars b { text-align: right; }
+.flasts { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--filet); }
+.flast { display: grid; grid-template-columns: 1fr auto; gap: .1rem .6rem; padding: .45rem 0; border-bottom: 1px solid var(--filet); font-size: .9rem; }
+.flast__a { grid-column: 1; } .flast__p { grid-column: 2; grid-row: 1 / span 2; align-self: center; text-align: right; }
+.flast__p em { font-style: normal; color: var(--encre-douce); margin-right: .3rem; }
+.fiche__foot { margin: 1rem 0 0; }
+
+.set { padding: .8rem 0; border-top: 1px solid var(--filet); }
+.set h3 { font-size: 1rem; margin: 0 0 .5rem; }
+.set__row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .3rem 0; }
+.set__row strong { display: block; }
+.set__check { display: flex; gap: .6rem; align-items: flex-start; margin-bottom: .4rem; }
+.set__check input { margin-top: .25rem; }
+.set__links { display: flex; flex-wrap: wrap; gap: .5rem; }
+.set--desk { display: none; }
+@media (min-width: 760px) { .set--desk { display: block; } }
+.set__themes { display: flex; gap: .6rem; }
+.set__themes button { width: 2.2rem; height: 2.2rem; border-radius: 50%; padding: 0; cursor: pointer; border: 3px solid transparent; box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .3); }
+.set__themes button[aria-pressed='true'] { border-color: var(--nuit); box-shadow: 0 0 0 2px var(--neige), inset 0 0 0 1.5px rgba(0, 0, 0, .3); }

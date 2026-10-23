@@ -39,7 +39,6 @@
     // données brutes du stockage
     raw: { picks: {}, results: {} },
     file: null, draws: {}, // résultats officiels lus dans data/results.json, tirages calculés
-    acctOpen: false,       // « Mon compte » déployé (sur mobile, replié par défaut)
     startlists: null,      // start lists FIS lues dans data/startlists.json (voir tools/startlist.js)
     addl: { M: [], W: [] }, // skieurs ajoutés depuis une start list (data/extra-athletes.json, voir tools/add-missing.js)
     overrides: {}, extra: [], aliases: {},
@@ -669,9 +668,9 @@
       <p>Général (gros globe), par desk, et un petit globe par discipline (descente, super-G, géant, slalom).</p>
     </div>`;
   }
-  function openModal(html) {
+  function openModal(html, cls) {
     const m = $('#modal');
-    m.innerHTML = `<div class="modal__card" role="dialog" aria-modal="true"><button type="button" class="modal__x" data-close aria-label="Fermer">×</button>${html}</div>`;
+    m.innerHTML = `<div class="modal__card${cls ? ' ' + cls : ''}" role="dialog" aria-modal="true"><button type="button" class="modal__x" data-close aria-label="Fermer">×</button>${html}</div>`;
     m.hidden = false; document.body.classList.add('noscroll');
     const f = m.querySelector('textarea, button:not(.modal__x)'); if (f) f.focus({ preventScroll: true });
   }
@@ -887,7 +886,7 @@
     const init = esc((p.name || '?').trim()[0] ? (p.name || '?').trim()[0].toUpperCase() : '?');
     return `<span class="pav pav--${size || 'sm'}" aria-hidden="true">${p.photo ? `<img src="${p.photo}" alt="">` : `<span>${init}</span>`}</span>`;
   }
-  const pname = (p) => `<span class="pn">${pav(p, 'xs')}<span>${esc(p.name)}</span></span>`;
+  const pname = (p) => `<button type="button" class="pn pn--btn" data-player="${esc(p.id)}" title="Voir la fiche">${pav(p, 'xs')}<span>${esc(p.name)}</span></button>`;
   const PH = { img: null, zoom: 1, x: 0, y: 0 };
   function photoModal() {
     const me = playerOf(state.me);
@@ -949,28 +948,108 @@
       <rect x="12" y="45" width="24" height="7" rx="2" fill="#1b2b44"/><rect x="17" y="40" width="14" height="6" fill="#2b3f5f"/>
       <circle cx="24" cy="22" r="19" fill="url(#${id})" stroke="#1b2b44" stroke-width="1.6"/><path d="M12 14c4-6 10-8 15-7" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".85"/></svg>`;
   }
-  function myRanks() {
+  function myRanks(pid) {
     const R = state.results, n = state.players.length;
     if (!Object.keys(R).length || !n) return null;
-    const rankOf = (fn) => { const r = rankRows((pk) => ({ total: fn(pk) })).find((x) => x.p.id === state.me); return r ? { rank: r.rank, pts: r.v.total } : null; };
+    const rankOf = (fn) => { const r = rankRows((pk) => ({ total: fn(pk) })).find((x) => x.p.id === (pid || state.me)); return r ? { rank: r.rank, pts: r.v.total } : null; };
     return { n, gen: rankOf((pk) => G.generalScore(pk, R).total), discs: ['DH', 'SG', 'GS', 'SL'].map((c) => Object.assign({ c }, rankOf((pk) => G.disciplineScore(c, pk, R)))) };
   }
+  const globeBoard = (rk) => {
+    const nth = (r) => (r ? `${ordinal(r.rank)}` : '–');
+    const DN = { DH: 'Descente', SG: 'Super-G', GS: 'Géant', SL: 'Slalom' };
+    return `<div class="acct__board">
+      <div class="gl gl--big">${globeSvg('big')}<span class="gl__t"><b>${rk ? nth(rk.gen) : '–'}</b><span>Gros globe</span><em>${rk && rk.gen ? rk.gen.pts + ' pts' : 'pas encore de course'}</em></span></div>
+      <div class="gl-row">${['DH', 'SG', 'GS', 'SL'].map((c, i) => `<div class="gl gl--sm">${globeSvg('sm')}<span class="gl__t"><b>${rk ? nth(rk.discs[i]) : '–'}</b><span>${DN[c]}</span></span></div>`).join('')}</div>
+    </div>`;
+  };
+  /** Cartouche « Mon compte » : l'essentiel seulement ; le détail est dans la fiche et les réglages. */
   function accountBar() {
     const name = state.user.name || '';
     const rk = myRanks();
-    const nth = (r) => (r ? `${ordinal(r.rank)}` : '–');
-    const DN = { DH: 'Descente', SG: 'Super-G', GS: 'Géant', SL: 'Slalom' };
-    const board = `<div class="acct__board">
-      <button type="button" class="gl gl--big" data-tab="gen" title="Voir les classements">${globeSvg('big')}<span class="gl__t"><b>${rk ? nth(rk.gen) : '–'}</b><span>Gros globe</span><em>${rk && rk.gen ? rk.gen.pts + ' pts' : 'pas encore de course'}</em></span></button>
-      <div class="gl-row">${['DH', 'SG', 'GS', 'SL'].map((c, i) => `<button type="button" class="gl gl--sm" data-tab="gen" title="Petit globe de ${DN[c].toLowerCase()}">${globeSvg('sm')}<span class="gl__t"><b>${rk ? nth(rk.discs[i]) : '–'}</b><span>${DN[c]}</span></span></button>`).join('')}</div>
-    </div>`;
-    const me0 = playerOf(state.me), me0Btn = state.demo ? '' : `<button type="button" class="linkbtn" data-photo>${me0.photo ? 'Changer ma photo' : 'Ajouter ma photo'}</button>`;
-    const links = state.demo ? '' : `<span class="acct__links"><button type="button" class="linkbtn" data-auth="rename">Changer mon nom</button><button type="button" class="linkbtn" data-auth="out">Me déconnecter</button></span>`;
     const me = playerOf(state.me);
-    const sum = rk && rk.gen ? `<span class="acct__sum">${nth(rk.gen)} au général · ${rk.gen.pts} pts</span>` : '';
-    const tog = `<button type="button" class="acct__tog" data-acct-toggle aria-expanded="${state.acctOpen}" aria-label="${state.acctOpen ? 'Replier Mon compte' : 'Déployer Mon compte'}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
-    return `<div class="acct${state.acctOpen ? ' acct--open' : ''}"><div class="acct__who"><span class="acct__avw"><button type="button" class="acct__avb" data-photo aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" ${state.demo ? 'disabled' : ''}>${pav(Object.assign({}, me, { name }), 'lg')}</button>${state.demo ? '' : `<button type="button" class="acct__cam" data-photo title="${me.blocked ? 'Photo retirée par l’organisateur' : me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 8h3l1.6-2h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>`}</span>
-      <div class="acct__id"><span class="acct__hi">Mon compte</span><strong class="acct__name">${esc(name)}</strong>${sum}${links}</div>${tog}</div>${board}</div>`;
+    const sum = rk && rk.gen ? `${ordinal(rk.gen.rank)} au général · ${rk.gen.pts} pts` : 'Pas encore de course jouée';
+    const cam = state.demo ? '' : `<button type="button" class="acct__cam" data-photo title="${me.blocked ? 'Photo retirée par l’organisateur' : me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 8h3l1.6-2h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>`;
+    return `<div class="acct"><div class="acct__who"><span class="acct__avw"><button type="button" class="acct__avb" data-photo aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" ${state.demo ? 'disabled' : ''}>${pav(Object.assign({}, me, { name }), 'lg')}</button>${cam}</span>
+      <div class="acct__id"><span class="acct__hi">Mon compte</span><button type="button" class="acct__name acct__namebtn" data-player="${esc(state.me)}" title="Voir ma fiche">${esc(name)}</button><span class="acct__sum">${esc(sum)}</span></div></div>
+      <div class="acct__btns"><button type="button" class="btn btn--sm" data-player="${esc(state.me)}">Ma fiche</button><button type="button" class="btn btn--sm btn--ghost" data-settings>Mes réglages</button></div></div>`;
+  }
+
+  /* ---------- Fiche d'un joueur : statistiques avancées (courses terminées seulement, donc publiques) ---------- */
+  function playerRows(pid) {
+    const R = state.results, picks = state.picks[pid] || {}, rows = [];
+    allSessions().forEach((sn) => sortedRaces(sn).forEach((r) => {
+      if (r.cancelled || !R[r.id]) return;
+      const pk = picks[r.id], has = !!(pk && pk.a);
+      const eff = has ? G.effectiveAthlete(pk, R, r.id) : null;
+      const e = eff ? R[r.id].find((x) => x.ath === eff) : null;
+      rows.push({ r, has, eff, e, pts: has ? (G.scoreRace(r, pk, R) || 0) : 0, how: !has ? '' : pk.d && eff === pk.d ? 'tiré au sort' : pk.b && eff === pk.b ? 'remplaçant' : '' });
+    }));
+    return rows;
+  }
+  function sparkline(rows) {
+    const vals = []; let t = 0; rows.forEach((x) => { t += x.pts; vals.push(t); });
+    if (vals.length < 2) return '';
+    const W = 300, H = 64, max = Math.max(...vals, 1);
+    const pts = vals.map((v, i) => `${(i / (vals.length - 1) * (W - 8) + 4).toFixed(1)},${(H - 6 - v / max * (H - 14)).toFixed(1)}`).join(' ');
+    return `<svg class="fsp" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Points cumulés course après course"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  }
+  function ficheModal(pid) {
+    const p = state.players.find((x) => x.id === pid) || (pid === state.me && state.user ? { id: pid, name: state.user.name || '', photo: '' } : null);
+    if (!p) return;
+    const R = state.results, picks = state.picks[pid] || {}, rows = playerRows(pid), played = rows.filter((x) => x.has);
+    const rk = myRanks(pid), total = G.generalScore(picks, R).total;
+    const nb = (n) => String(n);
+    const scored = played.filter((x) => x.pts > 0), podium = played.filter((x) => x.e && !x.e.status && x.e.rank <= 3), wins = played.filter((x) => x.e && !x.e.status && x.e.rank === 1);
+    let streak = 0, run = 0; played.forEach((x) => { run = x.pts > 0 ? run + 1 : 0; streak = Math.max(streak, run); });
+    const best = played.slice().sort((a, b) => b.pts - a.pts)[0];
+    const avg = played.length ? Math.round(played.reduce((a, x) => a + x.pts, 0) / played.length * 10) / 10 : 0;
+    const byAth = {}; played.forEach((x) => { if (x.eff) byAth[x.eff] = (byAth[x.eff] || 0) + x.pts; });
+    const top = Object.entries(byAth).sort((a, b) => b[1] - a[1]).slice(0, 3).filter((x) => x[1] > 0);
+    const bars = (items) => { const mx = Math.max(1, ...items.map((i) => i[1])); return `<ul class="fbars">${items.map(([l, v, c]) => `<li><span class="fbars__l">${esc(l)}</span><span class="fbars__b"><i style="width:${Math.round(v / mx * 100)}%;${c ? 'background:' + c : ''}"></i></span><b>${v}</b></li>`).join('')}</ul>`; };
+    const gs = G.generalScore(picks, R);
+    const desks = D.DESKS.map((d, i) => [d.name, gs.desks[i]]).concat([['Mondiaux', gs.worlds]]);
+    const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => [c === 'SG' ? 'Super-G' : D.DISC[c].fr, G.disciplineScore(c, picks, R)]);
+    const tile = (v, l) => `<div class="ftile"><b>${v}</b><span>${l}</span></div>`;
+    const lastRows = rows.slice(-6).reverse().map((x) => {
+      const how = !x.has ? '<span class="none">Pas de choix</span>' : `${esc(nameOf(x.eff))}${x.how ? ` <em class="sub">${x.how}</em>` : ''}`;
+      const res = !x.has ? '' : x.e ? (x.e.status || ordinal(x.e.rank)) : '';
+      return `<li class="flast"><span class="flast__r"><strong>${fl(placeLabel(x.r))}</strong> <span class="sub">${esc(genderLabel(x.r))}, ${esc(discLabel(x.r))}</span></span><span class="flast__a">${how}</span><span class="flast__p">${res ? `<em>${esc(res)}</em> ` : ''}<b>+${x.pts}</b></span></li>`;
+    }).join('');
+    const body = !rows.length ? '<p class="hint">Aucune course terminée pour l’instant : les statistiques apparaîtront après la première.</p>' : `
+      <div class="ftiles">${tile(avg, 'pts par course jouée')}${tile(played.length ? Math.round(scored.length / played.length * 100) + ' %' : '–', 'courses qui marquent')}${tile(nb(podium.length), 'podiums')}${tile(nb(wins.length), 'victoires')}${tile(nb(streak), 'meilleure série')}${tile(nb(rows.length - played.length), 'courses sans choix')}</div>
+      ${best && best.pts > 0 ? `<p class="fbest"><span>Meilleur coup</span><strong>+${best.pts}</strong> ${esc(nameOf(best.eff))}, ${esc(placeLabel(best.r))} ${esc(discLabel(best.r))} (${esc(genderLabel(best.r))})</p>` : ''}
+      <h3 class="fh">Évolution</h3><div class="fchart">${sparkline(rows) || '<span class="hint">Pas encore assez de courses.</span>'}</div>
+      <div class="fcols"><div><h3 class="fh">Par desk</h3>${bars(desks)}</div><div><h3 class="fh">Par discipline</h3>${bars(discs)}</div></div>
+      ${top.length ? `<h3 class="fh">Skieurs les plus rentables</h3>${bars(top.map(([id, v]) => [nameOf(id), v]))}` : ''}
+      <h3 class="fh">Dernières courses</h3><ul class="flasts">${lastRows}</ul>`;
+    openModal(`<div class="fiche"><header class="fiche__head">${pav(Object.assign({}, p), 'lg')}<div><h2 class="fiche__name">${esc(p.name)}${pid === state.me ? ' <em>(toi)</em>' : ''}</h2>
+      <p class="fiche__sum">${rk && rk.gen ? `${esc(ordinal(rk.gen.rank))} au général · ${total} pts` : 'Pas encore de classement'}</p></div></header>
+      ${globeBoard(rk)}${body}
+      ${pid === state.me ? '<p class="fiche__foot"><button type="button" class="btn btn--ghost btn--sm" data-settings>Mes réglages</button></p>' : ''}</div>`, 'modal__card--wide');
+  }
+
+  /* ---------- Mes réglages ---------- */
+  function settingsModal() {
+    const me = playerOf(state.me), g = gateGet();
+    const snoozed = Object.keys(g.skip || {}).length + Object.keys(g.until || {}).length > 0;
+    const email = state.user && state.user.email ? esc(state.user.email) : '';
+    const th = document.documentElement.getAttribute('data-theme') || 'sapin';
+    const dot = (k, l) => `<button type="button" class="th--${k}" data-theme-set="${k}" aria-pressed="${th === k}" title="${l}" aria-label="Ambiance ${l}"></button>`;
+    openModal(`<h2>Mes réglages</h2>
+      <section class="set"><h3>Mon profil</h3>
+        <div class="set__row"><span>Nom affiché<strong>${esc(state.user.name || '')}</strong></span>${state.demo ? '' : '<button type="button" class="btn btn--ghost btn--sm" data-auth="rename">Changer</button>'}</div>
+        <div class="set__row"><span>Photo de profil</span>${state.demo ? '' : `<button type="button" class="btn btn--ghost btn--sm" data-photo>${me.photo ? 'Changer' : 'Ajouter'}</button>`}</div>
+        ${email ? `<div class="set__row"><span>Adresse e-mail<strong>${email}</strong></span></div>` : ''}
+      </section>
+      <section class="set"><h3>Rappel « Au portillon »</h3>
+        <label class="set__check"><input type="checkbox" id="set-gate"${g.off ? '' : ' checked'}><span>Me prévenir la veille de la deadline, dès 21 h, s’il me reste des choix à faire</span></label>
+        ${snoozed ? '<button type="button" class="linkbtn" data-gate-reset>Réafficher les rappels reportés ou masqués</button>' : ''}
+        <p class="hint">Réglage enregistré dans ce navigateur : à refaire sur un autre appareil.</p>
+      </section>
+      <section class="set set--desk"><h3>Ambiance du site</h3><div class="set__themes">${dot('sapin', 'Sapin')}${dot('glace', 'Glace')}${dot('nuit', 'Nuit')}</div></section>
+      <section class="set"><h3>Aide et compte</h3>
+        <div class="set__links"><button type="button" class="btn btn--ghost btn--sm" data-rules>Revoir les règles</button><button type="button" class="btn btn--ghost btn--sm" data-ideas>Boîte à idées</button>${state.demo ? '' : '<button type="button" class="btn btn--ghost btn--sm" data-auth="out">Me déconnecter</button>'}</div>
+      </section>`);
   }
   function renderPanel() {
     const t = state.tab;
@@ -1092,7 +1171,11 @@
   document.addEventListener('click', (e) => {
     const rc = e.target.closest('[data-racecard]');
     if (rc) { SHARE.open(rc.dataset.racecard); return; }
-    if (e.target.closest('[data-acct-toggle]')) { state.acctOpen = !state.acctOpen; renderUserbar(); return; }
+    const pl = e.target.closest('[data-player]');
+    if (pl) { ficheModal(pl.dataset.player); return; }
+    if (e.target.closest('[data-settings]')) { settingsModal(); return; }
+    if (e.target.closest('[data-gate-reset]')) { const g = gateGet(); delete g.skip; delete g.until; gateSet(g); settingsModal(); return; }
+    if (e.target.closest('#modal [data-auth="out"]')) closeModal();
     const slp = e.target.closest('[data-slpick]');
     if (slp) { const [rid, slot, ath] = slp.dataset.slpick.split('|'); onPick({ dataset: { race: rid, slot }, value: ath, id: 'sl' }).then(() => startListModal(rid, true)); return; }
     const slc = e.target.closest('[data-slclear]');
@@ -1226,6 +1309,11 @@
     const sk = e.target.closest('[data-gate-skip]');
     if (sk) { const g = gateGet(); g.skip = Object.assign({}, g.skip, { [sk.dataset.gateSkip]: true }); gateSet(g); closeModal(); return; }
     if (e.target.closest('[data-gate-off]')) { const g = gateGet(); g.off = true; gateSet(g); closeModal(); }
+  });
+
+  document.addEventListener('change', (e) => {
+    if (e.target.id !== 'set-gate') return;
+    const g = gateGet(); if (e.target.checked) delete g.off; else g.off = true; gateSet(g);
   });
 
   setInterval(() => {
