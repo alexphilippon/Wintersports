@@ -350,11 +350,19 @@
     const n = live.filter((r) => (myPicks()[r.id] || {}).a).length;
     const open = live.some((r) => !lockedRace(r));
     const mine = G.sessionScore(session, myPicks(), state.results);
-    return `<article class="session" id="s-${session.id}">
+    // Session terminée : au-dessus de la moyenne des joueurs = chaude (flammes), en dessous = froide (stalactites)
+    let mood = '', avgTxt = '';
+    if (G.sessionState(session, now()) === 'terminée' && state.players.length > 1) {
+      const all = state.players.map((p) => G.sessionScore(session, state.picks[p.id] || {}, state.results));
+      const avg = all.reduce((a, b) => a + b, 0) / all.length;
+      mood = mine > avg ? ' session--hot' : mine < avg ? ' session--cold' : '';
+      avgTxt = `, moyenne des joueurs ${Math.round(avg)} pts`;
+    }
+    return `<article class="session${mood}" id="s-${session.id}">
       <header class="session__head">
         <div>
           <h3 class="session__name">${fl(session.name)}</h3>
-          <p class="session__meta">${indexLabel ? indexLabel + ', ' : ''}deadline ${dlShort(dl)}</p>
+          <p class="session__meta">${indexLabel ? indexLabel + ', ' : ''}deadline ${dlShort(dl)}${avgTxt}</p>
         </div>
         <div class="session__side">${stateBadge(session)}${open
     ? `<span class="count${n === live.length ? ' count--ok' : ''}">${n}/${live.length} choisis</span>${remindBtn(session)}`
