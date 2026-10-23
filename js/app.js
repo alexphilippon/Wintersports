@@ -363,6 +363,40 @@
       <tfoot><tr><th scope="row">Total de la session</th>${totals}</tr></tfoot>
     </table></div>`;
   }
+  /* ---------- Tendances : jauges indicatives, une fois la deadline passée ---------- */
+  function trendsAny(key) { return scopeSessions(key).some((s) => sortedRaces(s).some((r) => !r.cancelled && lockedRace(r))); }
+  function gauge(ath, pct, extra) {
+    return `<li class="gauge"><span class="gauge__who">${avatarOf(ath, 'sm')}<span class="gauge__n">${esc(nameOf(ath))}${extra || ''}</span></span><span class="gauge__bar" role="img" aria-label="${pct} %"><i style="width:${Math.max(pct, 3)}%"></i></span><b class="gauge__v">${pct} %</b></li>`;
+  }
+  /** Part des joueurs ayant pris chaque skieur, sur un ensemble de courses verrouillées : { ath: part } triée, et le nombre de joueurs pris en compte. */
+  function shareOf(races, perRace) {
+    const hit = {}, who = new Set();
+    state.players.forEach((p) => {
+      const seen = new Set();
+      races.forEach((r) => { const pk = (state.picks[p.id] || {})[r.id]; if (pk && pk.a) { seen.add(pk.a); who.add(p.id); } });
+      seen.forEach((id) => { hit[id] = (hit[id] || 0) + 1; });
+    });
+    const n = who.size;
+    return { n, list: Object.keys(hit).map((id) => ({ id, pct: Math.round(100 * hit[id] / n), k: hit[id] })).sort((x, y) => y.k - x.k || nameOf(x.id).localeCompare(nameOf(y.id), 'fr')) };
+  }
+  function trendsView(key, onlySession, topCum) {
+    const sessions = scopeSessions(key);
+    const live = sessions.flatMap((s) => sortedRaces(s)).filter((r) => !r.cancelled && lockedRace(r));
+    if (!live.length) return '<p class="empty">Les tendances apparaissent à la deadline de la première session.</p>';
+    const cum = shareOf(live).list.slice(0, topCum || 8);
+    const g = (id) => (ATH[id] ? ` <span class="gender gender--${ATH[id].gender}">${ATH[id].gender === 'M' ? 'H' : 'F'}</span>` : '');
+    let html = `<p class="hint">Indicatif et partiel : on ne montre que les skieurs les plus pris.</p>
+      <div class="trend"><h3 class="subtitle">Les skieurs les plus pris depuis le début ${info(key === 0 ? 'Part des joueurs qui ont déjà choisi ce skieur sur les courses des Mondiaux dont la deadline est passée.' : 'Part des joueurs qui ont déjà choisi ce skieur au moins une fois dans ce desk, sur les sessions dont la deadline est passée. Mise à jour à chaque deadline.')}</h3>
+      <ul class="gauges">${cum.map((x) => gauge(x.id, x.pct, g(x.id))).join('')}</ul></div>`;
+    const pend = (onlySession ? [onlySession] : sessions).flatMap((s) => sortedRaces(s)).filter((r) => !r.cancelled && lockedRace(r) && !state.results[r.id]);
+    if (pend.length) {
+      html += `<div class="trend"><h3 class="subtitle">Sur les courses à venir de la session</h3>${pend.map((r) => {
+        const top = shareOf([r]).list.slice(0, 3);
+        return `<div class="trend__race"><p class="trend__t">${fl(placeLabel(r))} <span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)} <span class="sub">${esc(dayOf(r.date))}</span></p><ul class="gauges">${top.map((x) => gauge(x.id, x.pct)).join('') || '<li class="none">Aucun choix</li>'}</ul></div>`;
+      }).join('')}</div>`;
+    }
+    return html;
+  }
   function recapView(key) {
     const sessions = scopeSessions(key);
     const done = sessions.filter(locked);
@@ -440,13 +474,14 @@
     const chosen = sessions.reduce((n, s) => n + active(G.sessionRaces(s)).filter((r) => (myPicks()[r.id] || {}).a).length, 0);
     const title = isW ? 'Championnats du monde' : dk.name;
     const meta = isW ? `Crans-Montana, 4 au 14 février, ${total} courses` : `${shortOf(dk.from)} au ${shortOf(dk.to)}, ${total} courses`;
-    const tabs = [['mine', 'Mon desk'], ['recap', 'Récap des joueurs'], ['taken', 'Athlètes pris']].map(([id, label]) =>
+    const tabs = [['mine', 'Mon desk'], ['recap', 'Récap des joueurs'], ['taken', 'Athlètes pris']].concat(trendsAny(key) ? [['trend', 'Tendances']] : []).map(([id, label]) =>
       `<button type="button" role="tab" class="seg__btn" aria-selected="${sub === id}" data-sub="${id}" data-key="${key}">${label}</button>`).join('');
     let body;
     if (sub === 'mine') {
       body = (isW ? worldsBox() : '') + sessions.map((s, i) => sessionCard(s, isW ? '' : `session ${i + 1} sur ${sessions.length}`)).join('')
         + '<p class="hint">Heures de départ provisoires.</p>';
     } else if (sub === 'recap') body = (isW ? worldsBox() : '') + recapView(key);
+    else if (sub === 'trend' && trendsAny(key)) body = trendsView(key);
     else body = takenView(key);
     return `<section>
       <header class="deskhead">
@@ -494,7 +529,7 @@
         </div>
         <div class="forfait__stub">${stub}</div>
       </article>
-      ${open ? '' : `<h3 class="subtitle">Choix de tous les joueurs</h3>${recapTable(up)}`}
+      ${open ? '' : `<h3 class="subtitle">Tendances</h3>${trendsView(up.id === 'X' ? 0 : up.desk, up, 5)}<h3 class="subtitle">Choix de tous les joueurs</h3>${recapTable(up)}`}
     </section>`;
   }
   function countdownText(dl) {
