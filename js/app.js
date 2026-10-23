@@ -283,7 +283,7 @@
       return `<tr><th scope="row"><span class="rowhead__day">${dayOf(r.date)}</span> ${fl(placeLabel(r))}<br><span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</th>${cells}</tr>`;
     }).join('');
     const totals = state.players.map((p) => `<td class="${p.id === state.me ? 'me' : ''}"><strong>${G.sessionScore(session, state.picks[p.id], state.results)} pts</strong></td>`).join('');
-    return `<div class="tablewrap"><table class="grid">
+    return `<div class="tablewrap"><table class="grid grid--fx grid--fxrecap" style="--n:${state.players.length}">
       <caption>${fl(session.name)}</caption>
       <thead><tr><th scope="col">Course</th>${head}</tr></thead>
       <tbody>${rows}</tbody>
@@ -337,7 +337,7 @@
         return `<tr class="${on ? 'is-taken' : 'is-free'}" data-name="${esc(norm(a.name + ' ' + (a.fis || '') + ' ' + a.nat))}" data-taken="${on ? 1 : 0}"><th scope="row">${avatar(ATH[a.id], on)}<span class="athname">${a.rank ? `<span class="rk">${a.rank}</span> ` : ''}${esc(a.name)} <em class="sub">${esc(a.nat || (a.pending ? 'à régulariser' : ''))}</em></span></th>${cells}</tr>`;
       }).join('');
       const foot = state.players.map((p) => `<td class="${p.id === state.me ? 'me' : ''}"><strong>${totals[g][p.id] || 0} pts</strong></td>`).join('');
-      return `<div class="tablewrap tablewrap--scroll"><table class="grid grid--taken">
+      return `<div class="tablewrap tablewrap--scroll"><table class="grid grid--taken grid--fx" style="--n:${state.players.length}">
         <caption>${g === 'M' ? 'Messieurs' : 'Dames'}, ${taken} sur ${list.length} déjà pris</caption>
         <thead><tr><th scope="col">Skieur</th>${head}</tr></thead><tbody>${rows}</tbody>
         <tfoot><tr><th scope="row">Points rapportés</th>${foot}</tr></tfoot></table></div>`;

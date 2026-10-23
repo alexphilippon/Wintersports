@@ -417,3 +417,11 @@ body.noscroll { overflow: hidden; }
 .pickhelp select { flex: 1; min-width: 0; }
 .pickhelp { gap: .2rem; }
 .freelink { margin: .1rem 0 .2rem; }
+
+/* Colonnes de joueurs de largeur égale, quelle que soit la longueur des pseudos */
+.grid--fx { table-layout: fixed; --first: 14rem; --w: 8.5rem; width: max(100%, calc(var(--first) + var(--n) * var(--w))); }
+.grid--fxrecap { --first: 12rem; --w: 10rem; }
+.grid--fx thead th:first-child, .grid--fx tbody th:first-child, .grid--fx tfoot th:first-child { width: var(--first); min-width: 0; }
+.grid--fx thead th:not(:first-child) { white-space: normal; overflow-wrap: anywhere; hyphens: auto; line-height: 1.15; vertical-align: bottom; }
+.grid--fx td, .grid--fx tfoot th { overflow: hidden; text-overflow: ellipsis; }
+.grid--taken tbody th { min-width: 0; }
