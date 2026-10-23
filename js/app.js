@@ -310,7 +310,7 @@
       : race.moved ? `<span class="flag flag--moved" title="Choix modifiable jusqu’au nouveau départ">Reportée du ${esc(shortOf(race.originalDate))}, départ ${esc(hourText(G.raceStart(race)))}</span>` : '';
     const pick = race.cancelled ? '<span class="none">Course annulée : aucun choix</span>' : lockedRace(race) ? pickSummary(state.me, race) : pickEditor(race, session);
     return `<li class="race${race.cancelled ? ' race--off' : ''}">
-      <div class="race__date"><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_WD.format(d)} ${F_MO.format(d)}</span></div>
+      <div class="race__date race__date--${race.gender}"><span class="race__wd">${F_WD.format(d).replace('.', '')}</span><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_MO.format(d)}</span></div>
       <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong>
         <span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${flag}</span></div>
       <div class="race__pick">${pick}</div>
