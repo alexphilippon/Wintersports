@@ -959,8 +959,8 @@
     const nth = (r) => (r ? `${ordinal(r.rank)}` : '–');
     const DN = { DH: 'DH', SG: 'SG', GS: 'GS', SL: 'SL' };
     return `<div class="acct__board">
-      <div class="gl gl--big">${globeSvg('big')}<span class="gl__t"><b>${rk ? nth(rk.gen) : '–'}</b><span title="Gros globe">GG</span></span></div>
-      <div class="gl-row">${['DH', 'SG', 'GS', 'SL'].map((c, i) => `<div class="gl gl--sm">${globeSvg('sm')}<span class="gl__t"><b>${rk ? nth(rk.discs[i]) : '–'}</b><span>${DN[c]}</span></span></div>`).join('')}</div>
+      <button type="button" class="gl gl--big" data-tab="gen" title="Voir le classement général">${globeSvg('big')}<span class="gl__t"><b>${rk ? nth(rk.gen) : '–'}</b><span title="Gros globe">GG</span></span></button>
+      <div class="gl-row">${['DH', 'SG', 'GS', 'SL'].map((c, i) => `<button type="button" class="gl gl--sm" data-tab="gen" title="Voir le classement général">${globeSvg('sm')}<span class="gl__t"><b>${rk ? nth(rk.discs[i]) : '–'}</b><span>${DN[c]}</span></span></button>`).join('')}</div>
     </div>`;
   };
   /** Cartouche « Mon compte » : identité, tableau des globes (gros seul sur mobile), boutons. */
