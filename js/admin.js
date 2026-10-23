@@ -48,7 +48,7 @@
     const now = state.sim || new Date();
     const up = [...D.SESSIONS, D.WORLDS].sort((a, b) => G.sessionDeadline(a) - G.sessionDeadline(b)).find((s) => G.sessionState(s, now) !== 'terminée');
     const fresh = C.newPlayers();
-    let html = fresh.length ? `<div class="adm__msg">🔔 ${fresh.length > 1 ? 'Nouveaux joueurs inscrits' : 'Nouveau joueur inscrit'} : <strong>${fresh.map((p) => esc(p.name)).join(', ')}</strong> <button type="button" class="btn btn--ghost" data-adm="players-seen">Marquer comme vu</button></div>` : '';
+    let html = fresh.length ? `<div class="adm__msg">🔔 ${fresh.length > 1 ? 'Nouveaux joueurs inscrits' : 'Nouveau joueur inscrit'} : <strong>${fresh.map((p) => esc(p.name) + (state.contacts[p.id] ? ` (${esc(state.contacts[p.id])})` : '')).join(', ')}</strong> <button type="button" class="btn btn--ghost" data-adm="players-seen">Marquer comme vu</button></div>` : '';
     if (up) {
       const races = C.active(C.sortedRaces(up));
       const rows = state.players.map((p) => {
@@ -70,7 +70,7 @@
     html += `<h3 class="subtitle">Choix posés ou modifiés après la deadline</h3>${late.length
       ? `<ul class="adm__list">${late.map((x) => `<li><strong>${esc(x.p.name)}</strong> · ${esc(raceLabel(x.r))} · ${esc(new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'short' }).format(new Date(x.ts)))}</li>`).join('')}</ul>`
       : '<p class="hint">Aucun.</p>'}`;
-    html += `<h3 class="subtitle">Joueurs inscrits (${state.players.length})</h3><p class="hint">${state.players.map((p) => esc(p.name)).join(', ') || 'Personne pour l’instant.'}</p>`;
+    html += `<h3 class="subtitle">Joueurs inscrits (${state.players.length})</h3>${state.players.length ? `<ul class="adm__list">${state.players.map((p) => `<li><strong>${esc(p.name)}</strong> <span class="sub">${state.contacts[p.id] ? esc(state.contacts[p.id]) : 'e-mail non disponible'}</span></li>`).join('')}</ul>` : '<p class="hint">Personne pour l’instant.</p>'}`;
     return html;
   }
 

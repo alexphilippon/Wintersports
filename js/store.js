@@ -47,6 +47,7 @@
       async setAlias(from, to) { if (to) db.aliases[from] = to; else delete db.aliases[from]; persist(); emit('aliases'); },
       async setPlayerName(u, name) { db.players[u] = Object.assign({}, db.players[u], { name }); persist(); emit('players'); emitAuth(); },
       async addIdea(i) { (db.ideas || (db.ideas = [])).push(Object.assign({ id: 'i' + Date.now(), ts: Date.now() }, i)); persist(); if (ideasCb) ideasCb(db.ideas.slice().reverse()); },
+      listenContacts(cb) { const o = {}; db.users.forEach((u) => { o[u.uid] = u.email; }); cb(o); },
       listenIdeas(cb) { ideasCb = cb; cb((db.ideas || []).slice().reverse()); },
     };
     return api;
@@ -66,6 +67,7 @@
         if (!u) { current = null; resolved = true; authCbs.forEach((cb) => cb(null)); return; }
         let name = u.email;
         try { const d = await db.doc('players/' + u.uid).get(); if (d.exists) name = d.data().name || name; } catch (e) { /* pas encore créé */ }
+        try { await db.doc('contacts/' + u.uid).set({ email: u.email, name }, { merge: true }); await db.doc('players/' + u.uid).update({ email: FV.delete() }); } catch (e) { /* ignoré */ }
         current = { uid: u.uid, email: u.email, name }; resolved = true; authCbs.forEach((cb) => cb(current));
       });
     })();
@@ -90,7 +92,7 @@
       onAuth(cb) { authCbs.push(cb); if (resolved) cb(current); },
       async signUp(email, pw, name) {
         await ready;
-        try { const c = await auth.createUserWithEmailAndPassword(email.trim(), pw); await db.doc('players/' + c.user.uid).set({ name: name || email, email: email.trim() }); current = { uid: c.user.uid, email: c.user.email, name: name || email }; authCbs.forEach((cb) => cb(current)); } catch (e) { throw msg(e); }
+        try { const c = await auth.createUserWithEmailAndPassword(email.trim(), pw); await db.doc('players/' + c.user.uid).set({ name: name || email }); await db.doc('contacts/' + c.user.uid).set({ email: email.trim(), name: name || email }); current = { uid: c.user.uid, email: c.user.email, name: name || email }; authCbs.forEach((cb) => cb(current)); } catch (e) { throw msg(e); }
       },
       async signIn(email, pw) { await ready; try { await auth.signInWithEmailAndPassword(email.trim(), pw); } catch (e) { throw msg(e); } },
       async signOut() { await ready; await auth.signOut(); },
@@ -113,6 +115,7 @@
       async updateAthlete(id, patch) { await ready; await db.doc('athletes/' + id).set(patch, { merge: true }); },
       async setAlias(from, to) { await ready; await setField('config/aliases', from, to || null); },
       async addIdea(i) { await ready; await db.collection('ideas').add(Object.assign({}, i, { ts: FV.serverTimestamp() })); },
+      listenContacts(cb) { ready.then(() => db.collection('contacts').onSnapshot((s) => { const o = {}; s.docs.forEach((d) => { o[d.id] = d.data().email || ''; }); cb(o); }, (e) => console.error('Contacts :', e))); },
       listenIdeas(cb) { ready.then(() => db.collection('ideas').orderBy('ts', 'desc').onSnapshot((s) => cb(s.docs.map((d) => { const m = d.data(); return Object.assign({ id: d.id }, m, { ts: m.ts ? ms(m.ts) : Date.now() }); })), (e) => console.error('Idées :', e))); },
       async setPlayerName(uid, name) { await ready; await db.doc('players/' + uid).set({ name }, { merge: true }); if (current && current.uid === uid) { current.name = name; authCbs.forEach((cb) => cb(current)); } },
     };

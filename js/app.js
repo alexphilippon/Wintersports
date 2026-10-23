@@ -38,6 +38,7 @@
     raw: { picks: {}, results: {} },
     overrides: {}, extra: [], aliases: {},
     admin: { race: null, msg: '' },
+    contacts: {}, contactsOn: false, // e-mails des joueurs (admin seulement)
   };
 
   /* ---------- Utilitaires ---------- */
@@ -121,7 +122,7 @@
     scheduleRender();
   }
   function startStore() {
-    store.onAuth((u) => { state.authReady = true; state.user = u; state.me = u ? u.uid : null; introRules(); if (!state.demo) { state.authError = ''; scheduleRender(); } });
+    store.onAuth((u) => { state.authReady = true; state.user = u; state.me = u ? u.uid : null; introRules(); if (isAdmin() && !state.contactsOn) { state.contactsOn = true; store.listenContacts((m) => { state.contacts = m; scheduleRender(); }); } if (!state.demo) { state.authError = ''; scheduleRender(); } });
     store.listen({
       players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id })).sort((a, b) => a.name.localeCompare(b.name, 'fr')); scheduleRender(); },
       picks: (m) => { state.raw.picks = m; recompute(); },

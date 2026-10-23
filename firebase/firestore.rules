@@ -12,6 +12,12 @@ service cloud.firestore {
       allow create, update: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow delete: if isAdmin();
     }
+    // Adresses e-mail : visibles seulement par l'admin et par leur propriétaire.
+    match /contacts/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if signedIn() && request.auth.uid == uid;
+      allow delete: if isAdmin();
+    }
     // Choix : chacun écrit uniquement les siens. (Le masquage avant la deadline est fait par le site.)
     match /picks/{uid} {
       allow read: if signedIn();
