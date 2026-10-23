@@ -440,3 +440,4 @@ body.noscroll { overflow: hidden; }
 .grid--tk .mark { margin: .1rem; }
 .check { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; font-size: .92rem; cursor: pointer; }
 .check input { width: 1.15rem; height: 1.15rem; accent-color: var(--nuit); }
+.grid--tk [hidden] { display: none !important; }
