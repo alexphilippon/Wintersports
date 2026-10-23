@@ -1,7 +1,7 @@
 /* Ski game – interface */
 (function () {
   'use strict';
-  const D = window.SKI_DATA, G = window.SKI_GAME, DEMO = window.SKI_DEMO, BASE = window.SKI_ATHLETES, CONFIG = window.SKI_CONFIG || {};
+  const D = window.SKI_DATA, G = window.SKI_GAME, SHARE = window.SKI_SHARE, DEMO = window.SKI_DEMO, BASE = window.SKI_ATHLETES, CONFIG = window.SKI_CONFIG || {};
   const TZ = 'Europe/Paris';
   const PHOTO_DIR = 'img/athletes/'; // une photo par skieur : img/athletes/<id>.jpg (voir README)
 
@@ -314,7 +314,7 @@
       <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong>
         <span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${flag}</span></div>
       <div class="race__pick">${pick}</div>
-      <div class="race__out">${outcome(race, state.me)}</div>
+      <div class="race__out">${outcome(race, state.me)}${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="linkbtn rcbtn" data-racecard="${race.id}">Détail et export</button>`}</div>
     </li>`;
   }
   function sessionCard(session, indexLabel) {
@@ -353,7 +353,7 @@
         const sc = G.scoreRace(r, pk, state.results);
         return `<td class="${cls}"><div class="cell">${avatarOf(eff, 'sm')}<div class="cell__txt"><span class="who" title="${esc(nameOf(eff))}">${esc(surname(nameOf(eff)))}</span>${eff !== pk.a ? '<span class="sub">Remplaçant</span>' : ''}${sc === null ? '' : `<span class="cellpts ${sc > 0 ? 'on' : 'off'}">${sc > 0 ? '+' : ''}${sc}</span>`}</div></div></td>`;
       }).join('');
-      return `<tr><th scope="row"><span class="rowhead__day">${dayOf(r.date)}</span> ${fl(placeLabel(r))}<br><span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</th>${cells}</tr>`;
+      return `<tr><th scope="row"><span class="rowhead__day">${dayOf(r.date)}</span> ${fl(placeLabel(r))}<br><span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}${r.cancelled || !lockedRace(r) ? '' : `<br><button type="button" class="linkbtn rcbtn" data-racecard="${r.id}">Détail et export</button>`}</th>${cells}</tr>`;
     }).join('');
     const totals = state.players.map((p) => `<td class="${p.id === state.me ? 'me' : ''}"><strong>${G.sessionScore(session, state.picks[p.id], state.results)} pts</strong></td>`).join('');
     return `<div class="tablewrap"><table class="grid grid--fx grid--fxrecap" style="--n:${state.players.length}">
@@ -527,8 +527,8 @@
     const desks = D.DESKS.map((d) => smallRanking(`Classement du ${d.name}`, (pk) => G.deskScore(d.id, pk, R), 'cap--d' + d.id)).join('');
     const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => smallRanking(`Petit globe de ${c === 'SG' ? 'super-G' : D.DISC[c].fr.toLowerCase()}`, (pk) => G.disciplineScore(c, pk, R), 'cap--' + c)).join('');
     const none = Object.keys(R).length === 0 ? '<p class="hint">Aucun résultat pour l’instant.</p>' : '';
-    return `<section class="genpanel"><header class="deskhead"><div><h2>Classement général</h2>
-      <p class="deskhead__meta">Trois desks et les Mondiaux, bonus compris</p></div></header>${none}${main}
+    return `<section class="genpanel"><header class="deskhead"><div><h2>Classements</h2>
+      <p class="deskhead__meta">Général : trois desks et les Mondiaux, bonus compris</p></div></header>${none}${main}
       <h3 class="subtitle">Par desk</h3><div class="grid3">${desks}</div>
       <h3 class="subtitle">Petits globes</h3><div class="grid2">${discs}</div></section>`;
   }
@@ -543,7 +543,7 @@
       { id: '2', label: 'Desk 2', note: `${shortOf(D.DESKS[1].from)} au ${shortOf(D.DESKS[1].to)}` },
       { id: 'w', label: 'Mondiaux', note: '4 au 14 févr.' },
       { id: '3', label: 'Desk 3', note: `${shortOf(D.DESKS[2].from)} au ${shortOf(D.DESKS[2].to)}` },
-      { id: 'gen', label: 'Classement général', note: '' },
+      { id: 'gen', label: 'Classements', note: '' },
     ].concat(isAdmin() ? [{ id: 'adm', label: 'Admin', note: newPlayers().length ? `🔔 ${plural(newPlayers().length, 'nouveau joueur', 'nouveaux joueurs')}` : 'organisateur' }] : []);
   }
   const TAB_IDS = ['next', '1', '2', 'w', '3', 'gen', 'adm'];
@@ -738,8 +738,35 @@
     const el = $('#userbar');
     if (!el) return;
     const ma = $('#mastact'); if (ma) { ma.hidden = !state.user && !state.demo; ma.innerHTML = '<button type="button" class="mastbtn" data-rules>Règles du jeu</button><button type="button" class="mastbtn" data-ideas>Boîte à idées</button>'; }
-    el.hidden = !state.user || state.demo;
-    if (!el.hidden) el.innerHTML = `<span>Connecté : <strong>${esc(state.user.name)}</strong></span> <button type="button" class="linkbtn" data-auth="rename">Changer mon nom</button> <button type="button" class="linkbtn" data-auth="out">Me déconnecter</button>`;
+    el.hidden = !state.user || (state.demo && !state.user);
+    if (!el.hidden) el.innerHTML = accountBar();
+  }
+  /* ---------- Mon compte et tableau de bord ---------- */
+  function globeSvg(kind) {
+    const id = 'g' + kind + Math.random().toString(36).slice(2, 6);
+    const [c1, c2, c3] = kind === 'big' ? ['#fff6d6', '#f1d78a', '#c8962e'] : ['#ffffff', '#d4e6ef', '#8faec0'];
+    return `<svg class="globe globe--${kind}" viewBox="0 0 48 56" aria-hidden="true" focusable="false"><defs><radialGradient id="${id}" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="${c1}"/><stop offset=".55" stop-color="${c2}"/><stop offset="1" stop-color="${c3}"/></radialGradient></defs>
+      <rect x="12" y="45" width="24" height="7" rx="2" fill="#1b2b44"/><rect x="17" y="40" width="14" height="6" fill="#2b3f5f"/>
+      <circle cx="24" cy="22" r="19" fill="url(#${id})" stroke="#1b2b44" stroke-width="1.6"/><path d="M12 14c4-6 10-8 15-7" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".85"/></svg>`;
+  }
+  function myRanks() {
+    const R = state.results, n = state.players.length;
+    if (!Object.keys(R).length || !n) return null;
+    const rankOf = (fn) => { const r = rankRows((pk) => ({ total: fn(pk) })).find((x) => x.p.id === state.me); return r ? { rank: r.rank, pts: r.v.total } : null; };
+    return { n, gen: rankOf((pk) => G.generalScore(pk, R).total), discs: ['DH', 'SG', 'GS', 'SL'].map((c) => Object.assign({ c }, rankOf((pk) => G.disciplineScore(c, pk, R)))) };
+  }
+  function accountBar() {
+    const name = state.user.name || '';
+    const rk = myRanks();
+    const nth = (r) => (r ? `${ordinal(r.rank)}` : '–');
+    const DN = { DH: 'Descente', SG: 'Super-G', GS: 'Géant', SL: 'Slalom' };
+    const board = `<div class="acct__board">
+      <button type="button" class="gl gl--big" data-tab="gen" title="Voir les classements">${globeSvg('big')}<span class="gl__t"><b>${rk ? nth(rk.gen) : '–'}</b><span>Gros globe</span><em>${rk && rk.gen ? rk.gen.pts + ' pts' : 'pas encore de course'}</em></span></button>
+      <div class="gl-row">${['DH', 'SG', 'GS', 'SL'].map((c, i) => `<button type="button" class="gl gl--sm" data-tab="gen" title="Petit globe de ${DN[c].toLowerCase()}">${globeSvg('sm')}<span class="gl__t"><b>${rk ? nth(rk.discs[i]) : '–'}</b><span>${DN[c]}</span></span></button>`).join('')}</div>
+    </div>`;
+    const links = state.demo ? '' : `<span class="acct__links"><button type="button" class="linkbtn" data-auth="rename">Changer mon nom</button><button type="button" class="linkbtn" data-auth="out">Me déconnecter</button></span>`;
+    return `<div class="acct"><div class="acct__who"><span class="acct__av" aria-hidden="true">${esc((name.trim()[0] || '?').toUpperCase())}</span>
+      <div class="acct__id"><span class="acct__hi">Mon compte</span><strong class="acct__name">${esc(name)}</strong>${links}</div></div>${board}</div>`;
   }
   function renderPanel() {
     const t = state.tab;
@@ -858,6 +885,10 @@
   }
 
   document.addEventListener('click', (e) => {
+    const rc = e.target.closest('[data-racecard]');
+    if (rc) { SHARE.open(rc.dataset.racecard); return; }
+    const rcc = e.target.closest('[data-rc-copy]'); if (rcc) { SHARE.copy(rcc.dataset.rcCopy); return; }
+    const rcj = e.target.closest('[data-rc-jpg]'); if (rcj) { SHARE.jpg(rcj.dataset.rcJpg); return; }
     const tab = e.target.closest('[data-tab]');
     if (tab) { setTab(tab.dataset.tab); return; }
     const go = e.target.closest('[data-goto]');
@@ -916,6 +947,7 @@
   }, 30000);
 
   /* ---------- Démarrage ---------- */
+  SHARE.init({ state, G, D, esc, nameOf, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
   const adminCtx = () => ({ state, G, D, store, LIST, ATH, esc, norm, at, F_DAY, hourText, dlShort, shortOf, placeLabel, discLabel, genderLabel, nameOf, avatarOf, sortedRaces, lockedRace, active, canon, newPlayers, markPlayersSeen, rerender: render, fail, isAdmin });
   const q = new URLSearchParams(location.search);
   const h = location.hash.replace('#', '');
