@@ -39,6 +39,7 @@
     // données brutes du stockage
     raw: { picks: {}, results: {} },
     file: null, draws: {}, // résultats officiels lus dans data/results.json, tirages calculés
+    acctOpen: false,       // « Mon compte » déployé (sur mobile, replié par défaut)
     startlists: null,      // start lists FIS lues dans data/startlists.json (voir tools/startlist.js)
     addl: { M: [], W: [] }, // skieurs ajoutés depuis une start list (data/extra-athletes.json, voir tools/add-missing.js)
     overrides: {}, extra: [], aliases: {},
@@ -619,9 +620,23 @@
     ];
   }
   const TAB_IDS = ['next', '1', '2', 'w', '3', 'gen', 'adm'];
+  /** Pictos des onglets (affichés sur mobile à la place des libellés longs). */
+  const TAB_ICO = {
+    next: '<path d="M6 21V4"/><path d="M6 5h11l-2.5 3.5L17 12H6"/>',
+    1: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><text x="12" y="16.6" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor" stroke="none">1</text>',
+    2: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><text x="12" y="16.6" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor" stroke="none">2</text>',
+    3: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><text x="12" y="16.6" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor" stroke="none">3</text>',
+    w: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c3.2 3 3.2 14 0 17c-3.2-3-3.2-14 0-17z"/>',
+    gen: '<path d="M3 20.5h18"/><rect x="9" y="7.5" width="6" height="13"/><rect x="3" y="13" width="6" height="7.5"/><rect x="15" y="15.5" width="6" height="5"/>',
+  };
+  const TAB_SHORT = { next: 'À venir', 1: 'Desk 1', 2: 'Desk 2', w: 'Mondiaux', 3: 'Desk 3', gen: 'Général' };
   function renderTabs() {
-    $('#tabs').innerHTML = tabs().map((t) => `<button type="button" role="tab" class="plate plate--${t.id}" id="tab-${t.id}" data-tab="${t.id}" aria-selected="${state.tab === t.id}">
-      <span class="plate__label">${t.label}</span>${t.note ? `<span class="plate__note">${t.note}</span>` : ''}</button>`).join('');
+    $('#tabs').innerHTML = tabs().map((t) => {
+      const short = t.id === 'next' && /en cours/.test(t.label) ? 'En cours' : TAB_SHORT[t.id];
+      return `<button type="button" role="tab" class="plate plate--${t.id}" id="tab-${t.id}" data-tab="${t.id}" aria-selected="${state.tab === t.id}" aria-label="${esc(t.label + (t.note ? ', ' + t.note : ''))}">
+      <svg class="plate__ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TAB_ICO[t.id]}</svg><span class="plate__short">${short}</span>
+      <span class="plate__label">${t.label}</span>${t.note ? `<span class="plate__note">${t.note}</span>` : ''}</button>`;
+    }).join('');
   }
 
   /* ---------- Règles, boîte à idées, bulles d'aide ---------- */
@@ -923,8 +938,10 @@
     const me0 = playerOf(state.me), me0Btn = state.demo ? '' : `<button type="button" class="linkbtn" data-photo>${me0.photo ? 'Changer ma photo' : 'Ajouter ma photo'}</button>`;
     const links = state.demo ? '' : `<span class="acct__links"><button type="button" class="linkbtn" data-auth="rename">Changer mon nom</button><button type="button" class="linkbtn" data-auth="out">Me déconnecter</button></span>`;
     const me = playerOf(state.me);
-    return `<div class="acct"><div class="acct__who"><span class="acct__avw"><button type="button" class="acct__avb" data-photo aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" ${state.demo ? 'disabled' : ''}>${pav(Object.assign({}, me, { name }), 'lg')}</button>${state.demo ? '' : `<button type="button" class="acct__cam" data-photo title="${me.blocked ? 'Photo retirée par l’organisateur' : me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 8h3l1.6-2h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>`}</span>
-      <div class="acct__id"><span class="acct__hi">Mon compte</span><strong class="acct__name">${esc(name)}</strong>${links}</div></div>${board}</div>`;
+    const sum = rk && rk.gen ? `<span class="acct__sum">${nth(rk.gen)} au général · ${rk.gen.pts} pts</span>` : '';
+    const tog = `<button type="button" class="acct__tog" data-acct-toggle aria-expanded="${state.acctOpen}" aria-label="${state.acctOpen ? 'Replier Mon compte' : 'Déployer Mon compte'}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
+    return `<div class="acct${state.acctOpen ? ' acct--open' : ''}"><div class="acct__who"><span class="acct__avw"><button type="button" class="acct__avb" data-photo aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" ${state.demo ? 'disabled' : ''}>${pav(Object.assign({}, me, { name }), 'lg')}</button>${state.demo ? '' : `<button type="button" class="acct__cam" data-photo title="${me.blocked ? 'Photo retirée par l’organisateur' : me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 8h3l1.6-2h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>`}</span>
+      <div class="acct__id"><span class="acct__hi">Mon compte</span><strong class="acct__name">${esc(name)}</strong>${sum}${links}</div>${tog}</div>${board}</div>`;
   }
   function renderPanel() {
     const t = state.tab;
@@ -1045,6 +1062,7 @@
   document.addEventListener('click', (e) => {
     const rc = e.target.closest('[data-racecard]');
     if (rc) { SHARE.open(rc.dataset.racecard); return; }
+    if (e.target.closest('[data-acct-toggle]')) { state.acctOpen = !state.acctOpen; renderUserbar(); return; }
     const slb = e.target.closest('[data-startlist]');
     if (slb) { startListModal(slb.dataset.startlist); return; }
     const rcc = e.target.closest('[data-rc-copy]'); if (rcc) { SHARE.copy(rcc.dataset.rcCopy); return; }

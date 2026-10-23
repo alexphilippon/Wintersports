@@ -682,3 +682,45 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 .combo__in { padding-right: 2.2rem; }
 .combo__x { position: absolute; top: 50%; right: .4rem; transform: translateY(-50%); width: 1.6rem; height: 1.6rem; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--encre-douce); font-size: 1.3rem; line-height: 1; cursor: pointer; }
 .combo__x:hover, .combo__x:focus-visible { background: var(--brique); color: #fff; }
+
+/* ---------- Mobile (≤ 759 px) : onglets en pictos, « Mon compte » repliable, pas de réglage d'ambiance ---------- */
+.plate__ico, .plate__short, .acct__tog, .acct__sum { display: none; }
+@media (max-width: 759px) {
+  .themesw { display: none; }
+  .tabs__wrap { padding: 0 8px; gap: 0; }
+  .tabs__wrap .tabs__row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; overflow: visible; padding-top: 8px; }
+  .plate { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; padding: .4rem .1rem .35rem; text-align: center; border-top-width: 4px; border-radius: 8px 8px 0 0; min-width: 0; }
+  .plate .plate__label, .plate .plate__note { display: none; }
+  .plate__ico { display: block; flex: none; }
+  .plate__short { display: block; font-size: .6rem; font-weight: 700; line-height: 1.1; white-space: nowrap; letter-spacing: -.01em; }
+
+  .userbar { padding: 10px 10px 0; }
+  .acct { padding: .55rem .7rem; gap: .6rem; border-left-width: 6px; }
+  .acct__who { width: 100%; gap: .65rem; }
+  .acct__avb .pav--lg { width: 2.8rem; height: 2.8rem; font-size: 1.2rem; }
+  .acct__name { font-size: 1.15rem; }
+  .acct__sum { display: block; font-size: .8rem; color: var(--encre-douce); margin-top: .1rem; }
+  .acct__tog { display: grid; place-items: center; flex: none; width: 2.4rem; height: 2.4rem; margin-left: auto; border-radius: 50%; border: 1.5px solid var(--nuit); background: var(--papier, var(--neige)); color: var(--nuit); cursor: pointer; padding: 0; }
+  .acct__tog svg { transition: transform .2s; }
+  .acct--open .acct__tog svg { transform: rotate(180deg); }
+  .acct:not(.acct--open) .acct__board, .acct:not(.acct--open) .acct__links { display: none; }
+  .acct--open .acct__sum { display: none; }
+}
+@media (max-width: 759px) {
+  .grid--general { font-size: .8rem; }
+  .grid--general th, .grid--general td { padding-left: .25rem; padding-right: .25rem; }
+  .grid--general thead th { font-size: .66rem; }
+  .grid--rank .num:first-child { width: 2.4rem; }
+  .grid--rank tbody th { min-width: 0; }
+  .grid--general .total { font-size: 1rem; }
+}
+@media (max-width: 759px) {
+  .masthead { height: 185px; }
+  /* sous-onglets des desks : grille de boutons égaux, sans retour à la ligne inégal */
+  .seg:not(.seg--sm) { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 100%; background: var(--nuit); }
+  .seg:not(.seg--sm) .seg__btn { background: var(--neige); border-left: 0; padding: .6rem .4rem; text-align: center; }
+  .seg:not(.seg--sm) .seg__btn[aria-selected='true'] { background: var(--nuit); }
+  .seg:not(.seg--sm) .seg__btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  /* « Athlètes pris » : colonne des joueurs plus étroite pour voir davantage de skieurs */
+  .grid--tk thead th.tk__corner, .grid--tk tbody th { min-width: 6.8rem; max-width: 6.8rem; }
+}
