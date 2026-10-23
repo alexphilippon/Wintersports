@@ -217,7 +217,6 @@ button, select, input { font: inherit; color: inherit; }
 .cellpts { font-weight: 700; font-size: .85rem; font-variant-numeric: tabular-nums; }
 .cellpts.on, .mark__p.on { color: #17583a; }
 .cellpts.off, .mark__p.off { color: #8b2a1f; }
-.grid--taken tbody th { display: flex; align-items: center; gap: .7rem; min-width: 13.5rem; }
 .grid--taken th, .grid--taken td { padding-left: .6rem; padding-right: .6rem; }
 .grid--taken tbody td { white-space: nowrap; }
 .athname { display: block; }
@@ -424,4 +423,20 @@ body.noscroll { overflow: hidden; }
 .grid--fx thead th:first-child, .grid--fx tbody th:first-child, .grid--fx tfoot th:first-child { width: var(--first); min-width: 0; }
 .grid--fx thead th:not(:first-child) { white-space: normal; overflow-wrap: anywhere; hyphens: auto; line-height: 1.15; vertical-align: bottom; }
 .grid--fx td, .grid--fx tfoot th { overflow: hidden; text-overflow: ellipsis; }
-.grid--taken tbody th { min-width: 0; }
+
+/* Athlètes pris : joueurs en lignes, skieurs en colonnes (ordre du classement), défilement horizontal */
+.grid--tk { width: auto; min-width: 100%; border-collapse: separate; border-spacing: 0; }
+.grid--tk th, .grid--tk td { border-bottom: 1px solid var(--filet); border-right: 1px solid var(--filet); }
+.grid--tk thead th { vertical-align: bottom; text-align: center; white-space: normal; min-width: 6.6rem; max-width: 6.6rem; padding: .55rem .4rem; background: var(--papier); }
+.grid--tk thead th.tk__corner { text-align: left; min-width: 10rem; max-width: 10rem; left: 0; z-index: 4; }
+.grid--tk thead th.sk { display: table-cell; }
+.grid--tk thead th.sk .avatar { display: block; margin: 0 auto .3rem; }
+.grid--tk .sk__n { display: block; font-weight: 600; font-size: .82rem; line-height: 1.15; }
+.grid--tk thead th.is-free { opacity: .8; }
+.grid--tk tbody th { position: sticky; left: 0; z-index: 1; background: var(--neige); min-width: 10rem; max-width: 10rem; font-weight: 400; }
+.grid--tk tbody tr.me th { background: #e3edf4; }
+.grid--tk tbody td { vertical-align: middle; text-align: center; min-width: 6.6rem; height: 3.2rem; }
+.grid--tk td[hidden], .grid--tk th[hidden] { display: none; }
+.grid--tk .mark { margin: .1rem; }
+.check { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; font-size: .92rem; cursor: pointer; }
+.check input { width: 1.15rem; height: 1.15rem; accent-color: var(--nuit); }
