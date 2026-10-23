@@ -515,6 +515,15 @@ body {
 
 /* ---------- Fiche de course ---------- */
 .rcbtn { font-size: .82rem; margin-top: .25rem; }
+.slbtn { display: block; font-size: .82rem; margin-top: .3rem; }
+.combo__hd { padding: .3rem .55rem .2rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--encre-douce); cursor: default; }
+.sl { list-style: none; margin: .6rem 0 0; padding: 0; max-height: 60vh; overflow-y: auto; border-top: 1.5px solid var(--nuit); }
+.sl__row { display: flex; align-items: center; gap: .55rem; padding: .3rem .1rem; border-bottom: 1px solid rgba(27, 43, 68, .15); font-size: .92rem; }
+.sl__bib { min-width: 1.9rem; text-align: right; font-family: var(--display); font-weight: 800; color: var(--nuit); }
+.sl__n { flex: 1; min-width: 0; }
+.sl__nat { color: var(--encre-douce); font-size: .8rem; }
+.sl__tag { font-size: .72rem; color: var(--brique); border: 1px solid var(--brique); border-radius: 999px; padding: 0 .4rem; white-space: nowrap; }
+.sl__row.is-out .sl__n { color: var(--encre-douce); }
 .modal__card--wide { width: min(760px, 100%); }
 .rc__title { font-size: 1.5rem; padding-right: 2rem; } .rc__date { color: var(--encre-douce); margin: .1rem 0 .6rem; }
 .rc__list { list-style: none; margin: .6rem 0 1rem; padding: 0; border-top: 1px solid var(--filet); }

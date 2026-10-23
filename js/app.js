@@ -39,6 +39,7 @@
     // données brutes du stockage
     raw: { picks: {}, results: {} },
     file: null, draws: {}, // résultats officiels lus dans data/results.json, tirages calculés
+    startlists: null,      // start lists FIS lues dans data/startlists.json (voir tools/startlist.js)
     overrides: {}, extra: [], aliases: {},
     admin: { race: null, msg: '' },
     contacts: {}, contactsOn: false, // e-mails des joueurs (admin seulement)
@@ -168,6 +169,18 @@
   const avatarOf = (id, size) => (ATH[id] ? avatar(ATH[id], true, size) : '');
   const nameOf = (id) => (ATH[id] ? ATH[id].name : id);
 
+  /** Start list FIS d'une course (data/startlists.json), ou null si elle n'est pas disponible.
+      Retourne { rows: [{ bib, name, nat, ath }], fetched } ; ath = identifiant du skieur dans le jeu, null s'il n'est pas dans la liste. */
+  const nameKey = (s) => norm(String(s)).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').sort().join(' ');
+  function startListOf(race) {
+    const s = state.startlists && state.startlists.races && state.startlists.races[race.id];
+    if (!s || !s.start || !s.start.length) return null;
+    const byKey = {};
+    (LIST[race.gender] || []).forEach((a) => { byKey[nameKey(a.fis || a.name)] = a.id; });
+    (LIST[race.gender] || []).forEach((a) => { if (!byKey[nameKey(a.name)]) byKey[nameKey(a.name)] = a.id; }); // noms saisis librement (« Prénom Nom »)
+    return { rows: s.start.map((r) => ({ bib: r.bib, name: r.name, nat: r.nat, ath: byKey[nameKey(r.name)] || null })), fetched: s.fetched };
+  }
+
   function winnerOf(raceId) {
     const res = state.results[raceId];
     const w = res && res.find((e) => !e.status && e.rank === 1);
@@ -193,12 +206,18 @@
     const picks = myPicks();
     const used = G.usedInDesk(session.desk, race.gender, picks, race.id, state.results);
     const cur = picks[race.id] || {};
-    const items = LIST[race.gender].slice().sort(bySurname).map((a) => {
+    // Start list disponible : les partants d'abord, par ordre de dossard ; sinon ordre alphabétique, sans numéro.
+    const sl = startListOf(race);
+    const bibOf = {}; if (sl) sl.rows.forEach((r) => { if (r.ath) bibOf[r.ath] = r.bib; });
+    const alpha = LIST[race.gender].slice().sort(bySurname);
+    const ordered = sl ? alpha.filter((a) => bibOf[a.id] !== undefined).sort((x, y) => bibOf[x.id] - bibOf[y.id]).concat(alpha.filter((a) => bibOf[a.id] === undefined)) : alpha;
+    const items = ordered.map((a) => {
       const isCur = cur[slot] === a.id;
       const taken = used.has(a.id);
       const dis = !isCur && (taken || (slot === 'b' && cur.a === a.id));
-      const meta = [a.nat, a.pending ? 'à régulariser' : '', taken && slot === 'a' ? 'déjà pris' : ''].filter(Boolean).join(', ');
-      return { a, isCur, dis, label: listName(a) + (meta ? ` (${meta})` : '') };
+      const out = sl && bibOf[a.id] === undefined;
+      const meta = [a.nat, a.pending ? 'à régulariser' : '', out ? 'hors start list' : '', taken && slot === 'a' ? 'déjà pris' : ''].filter(Boolean).join(', ');
+      return { a, isCur, dis, label: (sl && !out ? bibOf[a.id] + ' · ' : '') + listName(a) + (meta ? ` (${meta})` : '') };
     });
     const curItem = items.find((x) => x.isCur);
     const ph = slot === 'a' ? 'Choisir un skieur (tape quelques lettres)' : 'Remplaçant (facultatif)';
@@ -207,7 +226,7 @@
     return `<div class="combo${slot === 'b' ? ' combo--sub' : ''}" data-race="${race.id}" data-slot="${slot}">
       <input type="text" id="${id}" class="pick${slot === 'b' ? ' pick--sub' : ''} combo__in" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(ph)}" value="${esc(curItem ? curItem.label : '')}" data-cur="${esc(curItem ? curItem.label : '')}"${dis ? ' disabled' : ''}>
       ${curItem && !dis ? `<button type="button" class="combo__x" data-cx aria-label="Retirer ce choix" title="Retirer ce choix">×</button>` : ''}
-      <ul class="combo__list" role="listbox" hidden>${curItem ? '<li role="option" class="combo__opt combo__opt--clear" data-v="">— Aucun —</li>' : ''}${items.map((x) => `<li role="option" class="combo__opt${x.dis ? ' is-off' : ''}${x.isCur ? ' is-cur' : ''}" data-v="${x.a.id}" data-l="${esc(norm(listName(x.a)))}" data-s="${esc(norm(x.a.name + ' ' + (x.a.fis || '') + ' ' + listName(x.a) + ' ' + (x.a.nat || '')))}"${x.dis ? ' aria-disabled="true"' : ''}>${esc(x.label)}</li>`).join('')}</ul>
+      <ul class="combo__list" role="listbox" hidden>${curItem ? '<li role="option" class="combo__opt combo__opt--clear" data-v="">— Aucun —</li>' : ''}${sl ? '<li class="combo__hd" aria-hidden="true">Par ordre de dossard (start list FIS, manche 1)</li>' : ''}${items.map((x) => `<li role="option" class="combo__opt${x.dis ? ' is-off' : ''}${x.isCur ? ' is-cur' : ''}" data-v="${x.a.id}" data-l="${esc(norm(listName(x.a)))}" data-s="${esc(norm(x.a.name + ' ' + (x.a.fis || '') + ' ' + listName(x.a) + ' ' + (x.a.nat || '')))}"${x.dis ? ' aria-disabled="true"' : ''}>${esc(x.label)}</li>`).join('')}</ul>
     </div>`;
   }
   const comboClose = () => document.querySelectorAll('.combo__list').forEach((l) => { l.hidden = true; const i = l.parentElement.querySelector('.combo__in'); if (i) { i.setAttribute('aria-expanded', 'false'); i.value = i.dataset.cur; } });
@@ -317,7 +336,8 @@
     return `<li class="race${race.cancelled ? ' race--off' : ''}">
       <div class="race__date race__date--${race.gender}"><span class="race__wd">${F_WD.format(d).replace('.', '')}</span><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_MO.format(d)}</span></div>
       <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong>
-        <span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${flag}</span></div>
+        <span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${flag}</span>
+        ${race.cancelled || !startListOf(race) ? '' : `<button type="button" class="linkbtn slbtn" data-startlist="${race.id}">Consulter la start list</button>`}</div>
       <div class="race__pick">${pick}</div>
       <div class="race__out">${outcome(race, state.me)}${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="linkbtn rcbtn" data-racecard="${race.id}">Détail et export</button>`}</div>
     </li>`;
@@ -638,6 +658,18 @@
     m.innerHTML = `<div class="modal__card" role="dialog" aria-modal="true"><button type="button" class="modal__x" data-close aria-label="Fermer">×</button>${html}</div>`;
     m.hidden = false; document.body.classList.add('noscroll');
     const f = m.querySelector('textarea, button:not(.modal__x)'); if (f) f.focus({ preventScroll: true });
+  }
+  /** Fenêtre « start list » : dossards, noms et nations lus sur la page FIS ; les skieurs absents de la liste du jeu sont signalés. */
+  function startListModal(raceId) {
+    const race = G.raceOf(raceId), sl = race && startListOf(race);
+    if (!sl) return;
+    const out = sl.rows.filter((r) => !r.ath);
+    const when = sl.fetched ? `${F_DAY.format(new Date(sl.fetched))}, ${F_HOUR.format(new Date(sl.fetched))}` : '';
+    const rows = sl.rows.map((r) => `<li class="sl__row${r.ath ? '' : ' is-out'}"><b class="sl__bib">${r.bib}</b>${r.ath ? avatarOf(r.ath, 'sm') : '<span class="avatar avatar--empty avatar--sm" aria-hidden="true"></span>'}<span class="sl__n">${esc(r.name)}</span><span class="sl__nat">${esc(r.nat)}</span>${r.ath ? '' : '<span class="sl__tag">pas dans la liste du jeu</span>'}</li>`).join('');
+    openModal(`<h2 class="rc__title">Start list</h2>
+      <p class="hint">${esc(placeLabel(race))}, ${esc(genderLabel(race))}, ${esc(discLabel(race))} · manche 1 · ${sl.rows.length} partants<br>Source : page FIS « Start List »${when ? `, relevée le ${esc(when)}` : ''}. Elle peut encore évoluer avant le départ.</p>
+      ${out.length ? `<p class="hint"><strong>${out.length} ${race.gender === 'W' ? 'skieuses' : 'skieurs'} ne sont pas dans la liste du jeu</strong> : ${esc(out.map((r) => r.name).join(', '))}.</p>` : ''}
+      <ol class="sl">${rows}</ol>`);
   }
   function closeModal() { const m = $('#modal'); m.hidden = true; m.dataset.lock = ''; m.innerHTML = ''; document.body.classList.remove('noscroll'); }
   const rulesSeen = () => { try { return !!localStorage.getItem('skigame.rulesSeen'); } catch (e) { return false; } };
@@ -1012,6 +1044,8 @@
   document.addEventListener('click', (e) => {
     const rc = e.target.closest('[data-racecard]');
     if (rc) { SHARE.open(rc.dataset.racecard); return; }
+    const slb = e.target.closest('[data-startlist]');
+    if (slb) { startListModal(slb.dataset.startlist); return; }
     const rcc = e.target.closest('[data-rc-copy]'); if (rcc) { SHARE.copy(rcc.dataset.rcCopy); return; }
     const rcj = e.target.closest('[data-rc-jpg]'); if (rcj) { SHARE.jpg(rcj.dataset.rcJpg); return; }
     const tab = e.target.closest('[data-tab]');
@@ -1088,6 +1122,7 @@
   else {
     rebuildAthletes(); startStore();
     fetch('data/results.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.file = j; recompute(); } }).catch(() => {});
+    fetch('data/startlists.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.startlists = j; scheduleRender(); } }).catch(() => {});
   }
   render();
   window.SKI_APP = { state, render, store };
