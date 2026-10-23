@@ -441,6 +441,9 @@
   }
 
   /* ---------- Athlètes pris ---------- */
+  /** Skieurs majeurs : ceux de la liste des cotes (« victoire seulement »), classés par cote croissante. */
+  const MAJORS = { M: { 'marco-odermatt': 1.4, 'lucas-pinheiro-braathen': 7, 'loic-meillard': 7, 'atle-lie-mcgrath': 8.5, 'henrik-kristoffersen': 18.5, 'franjo-von-allmen': 18.5, 'giovanni-franzoni': 18.5, 'marco-schwarz': 18.5, 'vincent-kriechmayr': 21, 'timon-haugan': 43, 'alexis-monney': 76, 'stefan-rogentin': 76, 'clement-noel': 161, 'alexander-steen-olsen': 161, 'dominik-paris': 161, 'fredrik-moeller': 261, 'raphael-haaser': 351, 'manuel-feller': 441, 'alex-vinatzer': 441, 'ryan-cochran-siegle': 676, 'stefan-brennsteiner': 676, 'linus-strasser': 901, 'filip-zubcic': 901, 'eduard-hallberg': 901, 'paco-rassat': 901, 'zan-kranjec': 901, 'river-radamus': 901 },
+    W: { 'emma-aicher': 1.73, 'mikaela-shiffrin': 3.3, 'camille-rast': 5.5, 'federica-brignone': 10.5, 'sofia-goggia': 12, 'alice-robinson': 12, 'julia-scheib': 21, 'lara-colturi': 27.5, 'paula-moltzan': 43, 'cornelia-huetter': 66, 'laura-pirovano': 66, 'zrinka-ljutic': 76, 'kajsa-vickhoff-lie': 76, 'sara-hector': 76, 'petra-vlhova': 76, 'corinne-suter': 161, 'kira-weidle-winkelmann': 161, 'lauren-macuga': 161, 'breezy-johnson': 161, 'ester-ledecka': 261, 'lindsey-vonn': 261, 'wendy-holdener': 261, 'katharina-liensberger': 351, 'marta-bassino': 441, 'lena-duerr': 901, 'anna-swenn-larsson': 901 } };
   function takenView(key) {
     const sessions = scopeSessions(key);
     const takes = {};   // athId -> playerId -> [{race, sc}]
@@ -463,12 +466,14 @@
       <input type="search" id="ath-q" class="search" placeholder="Chercher un skieur ou une nation" value="${esc(state.tq)}" autocomplete="off">
       <div class="seg seg--sm" role="group" aria-label="Filtrer les skieurs">${[['all', 'Tous'], ['taken', 'Déjà pris'], ['free', 'Encore libres']].map(([id, l]) =>
         `<button type="button" class="seg__btn" data-tf="${id}" aria-pressed="${state.tf === id}">${l}</button>`).join('')}</div>
-      <label class="check"><input type="checkbox" id="ath-major"${state.major ? ' checked' : ''}> Skieurs majeurs ${info('Coché : seuls les 30 premiers du classement 2025-26 (et tous les skieurs déjà choisis) sont affichés. Décoche pour voir tout le monde, puis fais défiler le tableau vers la droite.')}</label>
+      <label class="check"><input type="checkbox" id="ath-major"${state.major ? ' checked' : ''}> Skieurs majeurs ${info('Coché : seuls les favoris (liste des cotes « victoire seulement », classés du plus favori au moins favori) et les skieurs déjà choisis sont affichés. Décoche pour voir tout le monde, puis fais défiler le tableau vers la droite.')}</label>
     </div>`;
     return filters + ['M', 'W'].map((g) => {
-      const list = LIST[g];
+      // Majeurs d'abord, par cote croissante ; les autres ensuite, dans l'ordre habituel
+      const order = Object.keys(MAJORS[g]), odd = (a) => { const k = order.indexOf(a.id); return k < 0 ? Infinity : k; };
+      const list = LIST[g].map((a, i) => [a, i]).sort((x, y) => (odd(x[0]) === odd(y[0]) ? 0 : odd(x[0]) - odd(y[0])) || x[1] - y[1]).map((x) => x[0]);
       const taken = list.filter((a) => takes[a.id]).length;
-      const attrs = (a) => `data-a="${a.id}" data-name="${esc(norm(a.name + ' ' + (a.fis || '') + ' ' + (a.nat || '')))}" data-taken="${takes[a.id] ? 1 : 0}" data-major="${(a.rank && a.rank <= 30) || takes[a.id] ? 1 : 0}"`;
+      const attrs = (a) => `data-a="${a.id}" data-name="${esc(norm(a.name + ' ' + (a.fis || '') + ' ' + (a.nat || '')))}" data-taken="${takes[a.id] ? 1 : 0}" data-major="${MAJORS[g][a.id] !== undefined || takes[a.id] ? 1 : 0}"`;
       const head = list.map((a) => `<th scope="col" class="sk ${takes[a.id] ? 'is-taken' : 'is-free'}" ${attrs(a)}>${avatar(ATH[a.id], !!takes[a.id])}<span class="sk__n">${esc(listName(a))}</span><em class="sub">${esc(a.nat || (a.pending ? 'à régulariser' : ''))}</em></th>`).join('');
       const rows = state.players.map((p) => {
         const cells = list.map((a) => {
