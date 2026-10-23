@@ -310,10 +310,10 @@ button, select, input { font: inherit; color: inherit; }
 
 /* ---------- Logo ---------- */
 .masthead__title { text-shadow: none; line-height: 1; }
-.logo { display: inline-flex; align-items: stretch; transform: skewX(-8deg) rotate(-2deg); transform-origin: left bottom; filter: drop-shadow(4px 4px 0 rgba(0, 0, 0, .35)); }
-.logo__w { font-family: var(--display); font-weight: 800; font-size: clamp(2.6rem, 10.5vw, 5.2rem); letter-spacing: .02em; line-height: 1; padding: .08em .22em .04em; background: var(--brique); color: var(--neige); border: 3px solid var(--neige); }
-.logo__w--b { background: var(--neige); color: var(--nuit); border-left: 0; position: relative; }
-.logo__w--b::after { content: ''; position: absolute; left: 0; right: 0; bottom: -9px; height: 5px; background: repeating-linear-gradient(90deg, var(--ocre) 0 14px, transparent 14px 20px); }
+
+.lg__w { font-family: var(--display); font-weight: 800; font-size: clamp(2.6rem, 10.5vw, 5.2rem); letter-spacing: .02em; line-height: 1; padding: .08em .22em .04em; background: var(--brique); color: var(--neige); border: 3px solid var(--neige); }
+.lg__w--b { background: var(--neige); color: var(--nuit); border-left: 0; position: relative; }
+.lg__w--b::after { content: ''; position: absolute; left: 0; right: 0; bottom: -9px; height: 5px; background: repeating-linear-gradient(90deg, var(--ocre) 0 14px, transparent 14px 20px); }
 .masthead__sub { text-transform: none; letter-spacing: .04em; margin-top: .9rem; font-weight: 500; }
 .mast-actions { position: absolute; z-index: 2; top: 10px; right: 12px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .mast-actions[hidden] { display: none; }
@@ -597,11 +597,11 @@ html[data-theme='nuit'] {
 .masthead__art .mt-back { fill: var(--m-back); } .masthead__art .mt-cap { fill: var(--m-cap); } .masthead__art .mt-mid { fill: var(--m-mid); }
 .masthead__art .mt-front { fill: var(--m-front); } .masthead__art .mt-tree { fill: var(--m-tree); } .masthead__art .ground { fill: var(--m-ground); }
 .masthead__art .flk { fill: var(--m-flake); } .masthead__art .stars { fill: var(--m-flake); opacity: calc(var(--m-star) * .9); }
-.wordmark__skis .sk-rim { stroke: var(--ski-rim); } .wordmark__skis .sk-body { stroke: var(--ski-body); } .wordmark__skis .sk-bind { fill: var(--ski-bind); }
+.lg__skis .sk-rim { stroke: var(--ski-rim); } .lg__skis .sk-body { stroke: var(--ski-body); } .lg__skis .sk-bind { fill: var(--ski-bind); }
 .logo-img { display: none; }
 
 /* ---------- Sélecteur d'ambiance ---------- */
-.themesw { position: absolute; z-index: 2; top: 48px; right: 12px; display: flex; align-items: center; gap: .45rem; padding: .2rem .45rem .2rem .7rem; border-radius: 999px; border: 1.5px solid var(--hd-btn-line); background: var(--hd-btn-bg); color: var(--hd-text); backdrop-filter: blur(2px); font-size: .8rem; font-weight: 600; }
+.themesw { display: flex; align-items: center; gap: .45rem; padding: .2rem .45rem .2rem .7rem; border-radius: 999px; border: 1.5px solid var(--hd-btn-line); background: var(--hd-btn-bg); color: var(--hd-text); backdrop-filter: blur(2px); font-size: .8rem; font-weight: 600; }
 .themesw__dots { display: flex; gap: .3rem; }
 .themesw button { width: 1.55rem; height: 1.55rem; border-radius: 50%; padding: 0; cursor: pointer; border: 2px solid transparent; box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .25); }
 .themesw button[aria-pressed='true'] { border-color: var(--hd-text); box-shadow: 0 0 0 2px var(--hd-bot), inset 0 0 0 1.5px rgba(0, 0, 0, .25); }
@@ -633,3 +633,10 @@ html[data-theme='nuit'] .pav { background: #28457a; color: #fff; border-color: #
 html[data-theme='nuit'] .grid caption, html[data-theme='nuit'] .grid--rank.cap--gen caption { color: #fff; }
 html[data-theme='nuit'] .grid--rank.cap--gen caption { background: linear-gradient(90deg, #1c3052, #2a6a96); }
 html[data-theme='nuit'] .cap--d1 caption, html[data-theme='nuit'] .cap--d2 caption, html[data-theme='nuit'] .cap--d3 caption { color: #fff; }
+
+/* ---------- Logo : X de skis aligné sur SKI GAME + sélecteur d'ambiance ---------- */
+.lg { --sw: 2rem; --gap: calc(var(--wm) * .22); display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: calc(var(--wm) * .14); row-gap: var(--gap); align-items: start; width: fit-content; }
+.lg__skis { grid-row: 1 / 3; grid-column: 1; height: calc(var(--wm) * .78 + var(--gap) + var(--sw)); width: auto; filter: drop-shadow(3px 4px 0 rgba(0, 0, 0, .3)); }
+.masthead__title.lg__t { grid-row: 1; grid-column: 2; margin: 0; font: 400 var(--wm)/.78 'Bungee', Impact, sans-serif; color: var(--logo-fill); letter-spacing: .02em; white-space: nowrap; -webkit-text-stroke: calc(var(--wm) * .13) var(--logo-line); paint-order: stroke fill; filter: drop-shadow(3px 4px 0 rgba(0, 0, 0, .3)); width: auto; }
+.lg__sw { grid-row: 2; grid-column: 2; justify-self: start; height: var(--sw); padding-top: 0; padding-bottom: 0; }
+@media (max-width: 420px) { .lg__sw > span:first-child { display: none; } .lg__sw { padding-left: .45rem; } }

@@ -111,40 +111,44 @@
     const headH = 250, footH = 90;
     let bodyH = lay.reduce((s, l) => s + l.h, 0);
     const H = Math.min(Math.max(headH + bodyH + footH, 1080), 2400);
+    const TH = { sapin: { t: '#2b5f4b', b: '#163629', chev: K.chev, edge: '#e9f0f2', gold: '#f1d78a', head: '#fff', sub: '#d4e6ef', bg: '#fbf8ef', band: '#f3efe2', ink: '#1b2b44', soft: '#675e51', bad: '#a93a2c', foot: '#1f4a3a', footT: '#e9f0f2', ph: '#8faec0' },
+      glace: { t: '#f1f9fd', b: '#a8cfe4', chev: 'rgba(255,255,255,.4)', edge: '#ffffff', gold: '#1d6a9c', head: '#123a55', sub: '#2c5b78', bg: '#fbfdff', band: '#eaf3f9', ink: '#17364d', soft: '#566b79', bad: '#b83a2a', foot: '#1e5a80', footT: '#ffffff', ph: '#a8cfe4' },
+      nuit: { t: '#1c2f55', b: '#0b1322', chev: 'rgba(120,160,230,.18)', edge: '#2f56d6', gold: '#8fb4ff', head: '#ffffff', sub: '#c9d9f5', bg: '#18222f', band: '#1e2b3b', ink: '#e4eaf2', soft: '#9aaabd', bad: '#ff9a8a', foot: '#0b1322', footT: '#cfe0ff', ph: '#3d527f' } };
+    const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
-    g.fillStyle = '#fbf8ef'; g.fillRect(0, 0, W, H);
-    const gr = g.createLinearGradient(0, 0, 0, headH); gr.addColorStop(0, '#2b5f4b'); gr.addColorStop(1, '#163629');
+    g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
+    const gr = g.createLinearGradient(0, 0, 0, headH); gr.addColorStop(0, K.t); gr.addColorStop(1, K.b);
     g.fillStyle = gr; g.fillRect(0, 0, W, headH);
-    g.strokeStyle = 'rgba(143,192,164,.18)'; g.lineWidth = 2; // chevrons sapin
+    g.strokeStyle = K.chev; g.lineWidth = 2; // chevrons sapin
     for (let y = 18; y < headH; y += 30) for (let x = ((y / 30) % 2) * 20; x < W; x += 40) { g.beginPath(); g.moveTo(x, y + 8); g.lineTo(x + 8, y); g.lineTo(x + 16, y + 8); g.stroke(); }
-    g.fillStyle = '#e9f0f2'; g.fillRect(0, headH - 6, W, 6);
-    g.fillStyle = '#f1d78a'; g.font = `800 30px ${FD}`; g.textBaseline = 'alphabetic'; g.fillText('SKI GAME · COUPE DU MONDE 2026-27', padX, 70);
-    g.fillStyle = '#fff'; g.font = `800 62px ${FD}`;
+    g.fillStyle = K.edge; g.fillRect(0, headH - 6, W, 6);
+    g.fillStyle = K.gold; g.font = `800 30px ${FD}`; g.textBaseline = 'alphabetic'; g.fillText('SKI GAME · COUPE DU MONDE 2026-27', padX, 70);
+    g.fillStyle = K.head; g.font = `800 62px ${FD}`;
     const t1 = C.placeLabel(race); g.fillText(t1, padX, 150);
-    g.font = `600 34px ${F}`; g.fillStyle = '#d4e6ef';
+    g.font = `600 34px ${F}`; g.fillStyle = K.sub;
     g.fillText(`${C.genderLabel(race)} · ${C.discLabel(race)} · ${C.dayOf(race.date)}`, padX, 200);
-    g.font = `700 26px ${F}`; g.fillStyle = '#f1d78a';
+    g.font = `700 26px ${F}`; g.fillStyle = K.gold;
     g.textAlign = 'right'; g.fillText(res ? 'Résultat et choix' : 'Qui a pris qui', W - padX, 70); g.textAlign = 'left';
     let y = headH;
     const imgs = await Promise.all(lay.map((l) => loadImg(`img/athletes/${l.r.ath}.jpg`)));
     const extra = H - (headH + bodyH + footH); const gap = extra > 0 ? Math.min(extra / (lay.length + 1), 18) : 0; y += gap;
     lay.forEach((l, i) => {
       const r = l.r, h = l.h, cy = y + h / 2;
-      if (i % 2) { g.fillStyle = '#f3efe2'; g.fillRect(0, y, W, h); }
-      g.fillStyle = r.status ? '#a93a2c' : '#1b2b44'; g.font = `800 34px ${FD}`; g.textAlign = 'center';
+      if (i % 2) { g.fillStyle = K.band; g.fillRect(0, y, W, h); }
+      g.fillStyle = r.status ? K.bad : K.ink; g.font = `800 34px ${FD}`; g.textAlign = 'center';
       g.fillText(r.status ? r.status : r.rank ? String(r.rank) : '', padX + 28, cy + 12); g.textAlign = 'left';
       const ix = padX + 70, rad = 30;
       g.save(); g.beginPath(); g.arc(ix + rad, cy, rad, 0, Math.PI * 2); g.clip();
-      if (imgs[i]) { const im = imgs[i], s = Math.max(rad * 2 / im.width, rad * 2 / im.height); g.drawImage(im, ix, cy - rad, im.width * s, im.height * s * 1); } else { g.fillStyle = '#8faec0'; g.fillRect(ix, cy - rad, rad * 2, rad * 2); }
-      g.restore(); g.strokeStyle = '#1b2b44'; g.lineWidth = 2.5; g.beginPath(); g.arc(ix + rad, cy, rad, 0, Math.PI * 2); g.stroke();
-      g.fillStyle = '#1b2b44'; g.font = `700 29px ${F}`;
+      if (imgs[i]) { const im = imgs[i], s = Math.max(rad * 2 / im.width, rad * 2 / im.height); g.drawImage(im, ix, cy - rad, im.width * s, im.height * s * 1); } else { g.fillStyle = K.ph; g.fillRect(ix, cy - rad, rad * 2, rad * 2); }
+      g.restore(); g.strokeStyle = K.ink; g.lineWidth = 2.5; g.beginPath(); g.arc(ix + rad, cy, rad, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = K.ink; g.font = `700 29px ${F}`;
       const nm = wrap(g, C.nameOf(r.ath), nameW - 10); nm.slice(0, 2).forEach((s, k) => g.fillText(s, nameX, cy + 10 - (nm.length > 1 ? 18 : 0) + k * 36));
-      g.font = `600 28px ${F}`; g.fillStyle = '#675e51';
+      g.font = `600 28px ${F}`; g.fillStyle = K.soft;
       l.lines.forEach((s, k) => g.fillText(s, whoX, cy + 10 - ((l.lines.length - 1) * 18) + k * 36));
       y += h;
     });
-    g.fillStyle = '#1f4a3a'; g.fillRect(0, H - footH, W, footH);
-    g.fillStyle = '#e9f0f2'; g.font = `600 26px ${F}`; g.textAlign = 'center'; g.fillText('skigame-2627.vercel.app', W / 2, H - footH / 2 + 9); g.textAlign = 'left';
+    g.fillStyle = K.foot; g.fillRect(0, H - footH, W, footH);
+    g.fillStyle = K.footT; g.font = `600 26px ${F}`; g.textAlign = 'center'; g.fillText('skigame-2627.vercel.app', W / 2, H - footH / 2 + 9); g.textAlign = 'left';
     return cv;
   }
   async function jpg(raceId) {
