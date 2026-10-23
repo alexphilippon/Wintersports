@@ -957,9 +957,9 @@
   }
   const globeBoard = (rk) => {
     const nth = (r) => (r ? `${ordinal(r.rank)}` : '–');
-    const DN = { DH: 'Descente', SG: 'Super-G', GS: 'Géant', SL: 'Slalom' };
+    const DN = { DH: 'DH', SG: 'SG', GS: 'GS', SL: 'SL' };
     return `<div class="acct__board">
-      <div class="gl gl--big">${globeSvg('big')}<span class="gl__t"><b>${rk ? nth(rk.gen) : '–'}</b><span>Gros globe</span><em>${rk && rk.gen ? rk.gen.pts + ' pts' : 'pas encore de course'}</em></span></div>
+      <div class="gl gl--big">${globeSvg('big')}<span class="gl__t"><b>${rk ? nth(rk.gen) : '–'}</b><span title="Gros globe">GG</span></span></div>
       <div class="gl-row">${['DH', 'SG', 'GS', 'SL'].map((c, i) => `<div class="gl gl--sm">${globeSvg('sm')}<span class="gl__t"><b>${rk ? nth(rk.discs[i]) : '–'}</b><span>${DN[c]}</span></span></div>`).join('')}</div>
     </div>`;
   };
@@ -972,7 +972,7 @@
     return `<div class="acct"><div class="acct__who"><span class="acct__avw"><button type="button" class="acct__avb" data-photo aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" ${state.demo ? 'disabled' : ''}>${pav(Object.assign({}, me, { name }), 'lg')}</button>${cam}</span>
       <div class="acct__id"><span class="acct__hi">Mon compte</span>${FICHE_ON ? `<button type="button" class="acct__name acct__namebtn" data-player="${esc(state.me)}" title="Voir ma fiche">${esc(name)}</button>` : `<strong class="acct__name">${esc(name)}</strong>`}</div></div>
       ${globeBoard(rk)}
-      <div class="acct__btns">${FICHE_ON ? `<button type="button" class="btn btn--sm" data-player="${esc(state.me)}">Ma fiche</button>` : ''}<button type="button" class="btn btn--sm btn--ghost" data-settings>Mes réglages</button></div></div>`;
+      <div class="acct__btns">${FICHE_ON ? `<button type="button" class="btn btn--sm" data-player="${esc(state.me)}">Ma fiche</button>` : ''}<button type="button" class="btn btn--sm btn--ghost" data-settings aria-label="Mes réglages"><span class="lbl-lg">Mes réglages</span><span class="lbl-sm">Réglages</span></button></div></div>`;
   }
 
   /* ---------- Fiche d'un joueur : statistiques avancées (courses terminées seulement, donc publiques) ---------- */
