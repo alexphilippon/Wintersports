@@ -69,7 +69,7 @@ button, select, input { font: inherit; color: inherit; }
 .demo { background: var(--ocre); color: var(--nuit); padding: .45rem .9rem; margin-bottom: 20px; border-radius: 6px; font-weight: 600; font-size: .92rem; }
 .subtitle { font-size: 1.4rem; margin: 2.2rem 0 .8rem; }
 .hint { color: var(--encre-douce); font-size: .9rem; margin: .4rem 0 1rem; }
-.empty { padding: 1.4rem; border: 2px dashed var(--filet); border-radius: 8px; background: rgba(251, 248, 239, .6); }
+.empty { padding: 1.4rem; border: 2px dashed var(--filet); border-radius: 8px; background: #f3efe2; }
 .none { color: var(--encre-douce); }
 .sub { display: block; font-size: .8rem; color: var(--encre-douce); }
 
@@ -141,7 +141,7 @@ button, select, input { font: inherit; color: inherit; }
 .deskhead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1.2rem; }
 .deskhead h2 { font-size: clamp(1.9rem, 5vw, 2.7rem); color: var(--nuit); font-weight: 800; }
 .deskhead__meta { color: var(--encre-douce); margin-top: .3rem; }
-.rule { display: inline-block; margin-top: .5rem; padding: .1rem .6rem; border-radius: 99px; background: rgba(200, 150, 46, .22); font-size: .85rem; font-weight: 500; }
+.rule { display: inline-block; margin-top: .5rem; padding: .1rem .6rem; border-radius: 99px; background: #e4d6b0; font-size: .85rem; font-weight: 500; }
 .deskhead__stats { display: flex; margin: 0; border: 2px solid var(--nuit); border-radius: 8px; background: var(--neige); overflow: hidden; }
 .deskhead__stats > div { padding: .4rem 1rem; }
 .deskhead__stats > div + div { border-left: 2px solid var(--nuit); }
@@ -207,7 +207,7 @@ button, select, input { font: inherit; color: inherit; }
 .grid thead th { background: var(--papier); border-bottom: 2px solid var(--nuit); font-weight: 600; white-space: nowrap; }
 .grid tbody th { font-weight: 400; min-width: 11rem; }
 .grid tfoot th, .grid tfoot td { border-top: 2px solid var(--nuit); border-bottom: 0; background: var(--papier); }
-.grid .me { background: rgba(200, 150, 46, .15); }
+.grid .me { background: #f3e9d2; }
 .grid thead th.me { background: var(--ocre); color: var(--nuit); }
 .grid .num { text-align: right; font-variant-numeric: tabular-nums; }
 .grid .total { font-weight: 700; }
@@ -485,3 +485,7 @@ body {
 .session__head { background-image: var(--tex-sapin); background-color: var(--sapin-fond); }
 .mastbtn { background: rgba(22, 54, 41, .6); }
 .mastbtn:hover { background: var(--neige); color: var(--sapin-fond); }
+/* Blocs posés sur le fond à flocons : toujours opaques */
+.seg, .btn--ghost, .search { background-color: var(--neige); }
+.btn--ghost:hover { background-color: #e9eef2; }
+.avatar--empty { background: var(--papier); }
