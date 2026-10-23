@@ -380,3 +380,18 @@ body.noscroll { overflow: hidden; }
 .rnk { display: inline-flex; align-items: center; justify-content: center; min-width: 1.9rem; height: 1.9rem; border-radius: 50%; font-family: var(--display); font-weight: 800; }
 .rnk--1 { background: #e0b13a; color: #1b2b44; } .rnk--2 { background: #b8c2cc; color: #1b2b44; } .rnk--3 { background: #c98a55; color: #fff; }
 .rnk--n { color: var(--encre-douce); }
+
+.logo-img { display: block; height: clamp(84px, 24vw, 128px); width: auto; filter: drop-shadow(3px 4px 0 rgba(0, 0, 0, .3)); }
+.masthead__sub { margin-top: .5rem; }
+.remindbtn { cursor: pointer; border: 1.5px solid currentColor; background: transparent; color: inherit; border-radius: 999px; padding: .15rem .65rem; font-size: .8rem; font-weight: 600; }
+.remindbtn:hover { background: var(--neige); color: var(--nuit); }
+.remindbtn.is-on { background: var(--neige); color: var(--nuit); }
+.forfait__stub .remindbtn { margin-top: .7rem; }
+.remindopts { display: grid; gap: .35rem; margin: .8rem 0; }
+.remindopts label { display: flex; gap: .6rem; align-items: center; padding: .5rem .7rem; border: 1.5px solid var(--filet); border-radius: 8px; cursor: pointer; background: #fff; }
+.remindopts label:has(input:checked) { border-color: var(--nuit); background: #e9eef2; font-weight: 600; }
+.remindbtns { display: flex; flex-wrap: wrap; gap: .5rem; }
+.remindbtns .btn { margin-top: .3rem; }
+.logo-img { height: clamp(100px, 30vw, 160px); }
+.masthead { height: 240px; }
+@media (max-width: 480px) { .masthead { height: 225px; } }

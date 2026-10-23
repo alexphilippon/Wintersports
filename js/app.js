@@ -254,7 +254,7 @@
           <p class="session__meta">${indexLabel ? indexLabel + ', ' : ''}deadline ${dlShort(dl)}</p>
         </div>
         <div class="session__side">${stateBadge(session)}${open
-    ? `<span class="count${n === live.length ? ' count--ok' : ''}">${n}/${live.length} choisis</span>`
+    ? `<span class="count${n === live.length ? ' count--ok' : ''}">${n}/${live.length} choisis</span>${remindBtn(session)}`
     : `<span class="count count--pts">${mine} pts</span>`}</div>
       </header>
       <ul class="races">${races.map((r) => raceRow(r, session)).join('')}</ul>
@@ -404,7 +404,7 @@
         <span class="mini__pick">${r.cancelled ? '<span class="none">Annulée</span>' : (myPicks()[r.id] || {}).a ? pickSummary(state.me, r) : '<span class="todo">À choisir</span>'}</span></li>`;
     }).join('');
     const stub = open
-      ? `<p class="forfait__label">Deadline dans ${info('Tes choix se modifient librement jusqu’au départ de la première course de la session. Ensuite ils sont verrouillés, et les choix de tous les joueurs deviennent visibles.')}</p><p class="countdown" id="countdown" data-dl="${dl.toISOString()}">${countdownText(dl)}</p><p class="forfait__dl">${dlShort(dl)}</p>`
+      ? `<p class="forfait__label">Deadline dans ${info('Tes choix se modifient librement jusqu’au départ de la première course de la session. Ensuite ils sont verrouillés, et les choix de tous les joueurs deviennent visibles.')}</p><p class="countdown" id="countdown" data-dl="${dl.toISOString()}">${countdownText(dl)}</p><p class="forfait__dl">${dlShort(dl)}</p>${remindBtn(up)}`
       : `<p class="forfait__label">Choix verrouillés</p><p class="countdown countdown--shut">Course en cours</p><p class="forfait__dl">depuis ${dlShort(dl)}</p>`;
     const cta = open ? (n === live.length ? 'Modifier mes choix' : 'Faire mes choix') : 'Voir le desk';
     return `<section>
@@ -549,6 +549,71 @@
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { hideTip(); closeModal(); } });
   window.addEventListener('scroll', hideTip, { passive: true });
+
+
+  /* ---------- Rappel agenda (fichier .ics ou lien Google Agenda) ---------- */
+  const REMIND = [['1h', '1 h avant la deadline'], ['2h', '2 h avant la deadline'], ['24h', '24 h avant la deadline'], ['eve22', 'La veille à 22 h'], ['eve20', 'La veille à 20 h']];
+  const FMT_YMD = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+  function remindAt(dl, key) {
+    if (key === '1h') return new Date(dl - 3600e3);
+    if (key === '2h') return new Date(dl - 7200e3);
+    if (key === '24h') return new Date(dl - 86400e3);
+    const [y, m, d] = FMT_YMD.format(dl).split('-').map(Number);
+    const prev = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
+    return G.parisInstant(prev, key === 'eve22' ? '22:00' : '20:00');
+  }
+  const remindKey = (sid) => { try { return localStorage.getItem('skigame.remind.' + sid) || ''; } catch (e) { return ''; } };
+  const remindSave = (sid, k) => { try { if (k) localStorage.setItem('skigame.remind.' + sid, k); else localStorage.removeItem('skigame.remind.' + sid); } catch (e) { /* ignoré */ } };
+  const remindBtn = (session) => {
+    const k = remindKey(session.id);
+    const lab = k ? 'Rappel : ' + REMIND.find((r) => r[0] === k)[1].toLowerCase() : 'Me rappeler';
+    return `<button type="button" class="remindbtn${k ? ' is-on' : ''}" data-remind="${session.id}">🔔 ${lab}</button>`;
+  };
+  const icsUtc = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const icsEsc = (t) => t.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  function remindEvent(session, key) {
+    const dl = G.sessionDeadline(session), start = remindAt(dl, key);
+    const title = `Ski game : valide tes choix avant ${hourText(dl)} (${session.name})`;
+    const desc = `Deadline : ${dlShort(dl)} (heure de Paris). Tes choix se modifient jusqu’au départ de la première course.\n${location.origin}${location.pathname}`;
+    return { start, end: new Date(start.getTime() + 15 * 60e3), title, desc };
+  }
+  function remindOpen(session) {
+    const cur = remindKey(session.id) || '1h';
+    const dl = G.sessionDeadline(session);
+    openModal(`<h2>Rappel pour cette session</h2>
+      <p class="hint">${esc(session.name)} : deadline ${esc(dlShort(dl))}. Choisis quand tu veux être prévenu, puis l’agenda à relier.</p>
+      <form id="remind-form" data-sid="${session.id}"><div class="remindopts">${REMIND.map(([k, l]) => `<label><input type="radio" name="rk" value="${k}"${k === cur ? ' checked' : ''}> ${l} <span class="sub">${esc(dlShort(remindAt(dl, k)))}</span></label>`).join('')}</div>
+      <div class="remindbtns"><button type="submit" class="btn btn--brique" data-kind="ics">Ajouter à mon agenda</button><button type="submit" class="btn" data-kind="google">Google Agenda</button>${remindKey(session.id) ? '<button type="submit" class="btn btn--ghost" data-kind="off">Retirer le rappel</button>' : ''}</div>
+      <p class="hint">« Ajouter à mon agenda » télécharge un fichier : ouvre-le et choisis l’agenda (Apple, Google, Outlook…). Le rappel est un événement placé à l’heure choisie.</p></form>`);
+  }
+  document.addEventListener('submit', (e) => {
+    if (e.target.id !== 'remind-form') return;
+    e.preventDefault();
+    const kind = e.submitter && e.submitter.dataset.kind;
+    const sid = e.target.dataset.sid;
+    const session = allSessions().find((x) => String(x.id) === sid);
+    if (!session) return;
+    if (kind === 'off') { remindSave(sid, ''); closeModal(); render(); return; }
+    const key = new FormData(e.target).get('rk');
+    remindSave(sid, key);
+    const ev = remindEvent(session, key);
+    if (kind === 'google') {
+      window.open('https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(ev.title) + '&dates=' + icsUtc(ev.start) + '/' + icsUtc(ev.end) + '&details=' + encodeURIComponent(ev.desc), '_blank', 'noopener');
+    } else {
+      const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Ski game//FR', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT', `UID:skigame-${sid}-${key}@skigame`, `DTSTAMP:${icsUtc(new Date())}`, `DTSTART:${icsUtc(ev.start)}`, `DTEND:${icsUtc(ev.end)}`, `SUMMARY:${icsEsc(ev.title)}`, `DESCRIPTION:${icsEsc(ev.desc)}`, 'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Ski game', 'TRIGGER:PT0S', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+      a.download = `ski-game-rappel-${sid}.ics`;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+    closeModal(); render();
+  });
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-remind]');
+    if (!b) return;
+    const session = allSessions().find((x) => String(x.id) === b.dataset.remind);
+    if (session) remindOpen(session);
+  });
 
   /* ---------- Connexion ---------- */
   function authPanel() {
