@@ -661,3 +661,9 @@ html[data-theme='nuit'] .cap--d1 caption, html[data-theme='nuit'] .cap--d2 capti
 html[data-theme='nuit'] .ffc--M { --c: #9db4cf; } html[data-theme='nuit'] .ffc--M[aria-pressed='true'] { color: #111a26; }
 html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--W[aria-pressed='true'] { color: #111a26; }
 .ff__x { border: 0; background: none; padding: 0; cursor: pointer; color: var(--brique); text-decoration: underline; font-size: .85rem; }
+
+/* La liste déroulante des skieurs ne doit pas être coupée par le bas de la carte de session */
+.session { overflow: visible; }
+.session__head { border-radius: 8px 8px 0 0; }
+.race { position: relative; }
+.race:has(.combo__list:not([hidden])) { z-index: 30; }
