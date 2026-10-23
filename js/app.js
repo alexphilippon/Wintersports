@@ -339,7 +339,7 @@
       <div class="race__date race__date--${race.gender}"><span class="race__wd">${F_WD.format(d).replace('.', '')}</span><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_MO.format(d)}</span></div>
       <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong>
         <span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${flag}</span>
-        ${race.cancelled || !startListOf(race) ? '' : `<button type="button" class="linkbtn slbtn" data-startlist="${race.id}">Consulter la start list</button>`}</div>
+        ${race.cancelled ? '' : slLink(race)}</div>
       <div class="race__pick">${pick}</div>
       <div class="race__out">${outcome(race, state.me)}${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="linkbtn rcbtn" data-racecard="${race.id}">Détail et export</button>`}</div>
     </li>`;
@@ -549,8 +549,8 @@
       const d = at(r.date);
       return `<li class="mini">
         <span class="mini__when"><b>${F_NUM.format(d)}</b> ${F_MO.format(d)}</span>
-        <span class="mini__what"><strong>${fl(placeLabel(r))}</strong> <span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</span>
-        <span class="mini__pick">${r.cancelled ? '<span class="none">Annulée</span>' : (myPicks()[r.id] || {}).a ? pickSummary(state.me, r) : '<span class="todo">À choisir</span>'}</span></li>`;
+        <span class="mini__what"><strong class="mini__place">${fl(placeLabel(r))}</strong><span class="mini__tags"><span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</span></span>
+        <span class="mini__pick">${r.cancelled ? '<span class="none">Annulée</span>' : (myPicks()[r.id] || {}).a ? pickSummary(state.me, r) : '<span class="todo">À choisir</span>'}${r.cancelled ? '' : slLink(r)}</span></li>`;
     }).join('');
     const stub = open
       ? `<p class="forfait__label">Deadline dans ${info('Tes choix se modifient librement jusqu’au départ de la première course de la session. Ensuite ils sont verrouillés, et les choix de tous les joueurs deviennent visibles.')}</p><p class="countdown" id="countdown" data-dl="${dl.toISOString()}">${countdownText(dl)}</p><p class="forfait__dl">${dlShort(dl)}</p>${remindBtn(up)}`
@@ -675,17 +675,46 @@
     m.hidden = false; document.body.classList.add('noscroll');
     const f = m.querySelector('textarea, button:not(.modal__x)'); if (f) f.focus({ preventScroll: true });
   }
-  /** Fenêtre « start list » : dossards, noms et nations lus sur la page FIS ; les skieurs absents de la liste du jeu sont signalés. */
-  function startListModal(raceId) {
+  const slLink = (race) => (startListOf(race) ? `<button type="button" class="linkbtn slbtn" data-startlist="${race.id}">Consulter la start list</button>` : '');
+  /** Fenêtre « start list » : dossards, noms et nations lus sur la page FIS. On peut y choisir son skieur (et son remplaçant) tant que la session est ouverte ;
+      le choix déjà fait est mis en évidence et peut être retiré puis changé. */
+  function startListModal(raceId, keep) {
     const race = G.raceOf(raceId), sl = race && startListOf(race);
     if (!sl) return;
+    const session = sessionOf(race);
+    const canPick = !race.cancelled && !lockedRace(race) && !!state.me;
+    const picks = myPicks()[race.id] || {};
+    const used = canPick ? G.usedInDesk(session.desk, race.gender, myPicks(), race.id, state.results) : new Set();
     const out = sl.rows.filter((r) => !r.ath);
     const when = sl.fetched ? `${F_DAY.format(new Date(sl.fetched))}, ${F_HOUR.format(new Date(sl.fetched))}` : '';
-    const rows = sl.rows.map((r) => `<li class="sl__row${r.ath ? '' : ' is-out'}"><b class="sl__bib">${r.bib}</b>${r.ath ? avatarOf(r.ath, 'sm') : '<span class="avatar avatar--empty avatar--sm" aria-hidden="true"></span>'}<span class="sl__n">${esc(r.name)}</span><span class="sl__nat">${esc(r.nat)}</span>${r.ath ? '' : '<span class="sl__tag">pas dans la liste du jeu</span>'}</li>`).join('');
+    const rowOf = (id) => sl.rows.find((r) => r.ath === id);
+    const mine = (slot, label) => {
+      const r = picks[slot] && rowOf(picks[slot]);
+      const nm = picks[slot] ? (r ? `${r.bib} · ${esc(r.name)}` : esc(nameOf(picks[slot]))) : '';
+      return picks[slot] ? `<div class="slmine"><span class="slmine__l">${label}</span><strong>${nm}</strong>${canPick ? `<button type="button" class="linkbtn" data-slclear="${race.id}|${slot}">Retirer</button>` : ''}</div>` : '';
+    };
+    const box = (picks.a || picks.b) ? `<div class="slmine__box">${mine('a', 'Ton choix')}${mine('b', 'Ton remplaçant')}</div>`
+      : canPick ? '<p class="hint">Tu n’as pas encore choisi : touche « Choisir » en face d’un skieur.</p>' : '';
+    const act = (r) => {
+      if (!r.ath) return '<span class="sl__tag">pas dans la liste du jeu</span>';
+      if (picks.a === r.ath) return `<span class="sl__me">Ton choix</span>${canPick ? `<button type="button" class="sl__btn sl__btn--off" data-slclear="${race.id}|a">Retirer</button>` : ''}`;
+      if (picks.b === r.ath) return `<span class="sl__me">Remplaçant</span>${canPick ? `<button type="button" class="sl__btn sl__btn--off" data-slclear="${race.id}|b">Retirer</button>` : ''}`;
+      if (!canPick) return '';
+      if (used.has(r.ath)) return '<span class="sl__tag sl__tag--used">déjà pris</span>';
+      if (!picks.a) return `<button type="button" class="sl__btn" data-slpick="${race.id}|a|${r.ath}">Choisir</button>`;
+      if (!picks.b) return `<button type="button" class="sl__btn sl__btn--sub" data-slpick="${race.id}|b|${r.ath}">Remplaçant</button>`;
+      return '';
+    };
+    const rows = sl.rows.map((r) => `<li class="sl__row${r.ath ? '' : ' is-out'}${r.ath && (picks.a === r.ath || picks.b === r.ath) ? ' is-mine' : ''}${r.ath && canPick && used.has(r.ath) && picks.a !== r.ath && picks.b !== r.ath ? ' is-used' : ''}"><b class="sl__bib">${r.bib}</b>${r.ath ? avatarOf(r.ath, 'sm') : '<span class="avatar avatar--empty avatar--sm" aria-hidden="true"></span>'}<span class="sl__n">${esc(r.name)}<em class="sub">${esc(r.nat)}</em></span><span class="sl__act">${act(r)}</span></li>`).join('');
+    const mo = $('#modal'), prevM = keep && !mo.hidden ? mo.scrollTop : 0, prevL = keep && $('.sl') ? $('.sl').scrollTop : 0;
     openModal(`<h2 class="rc__title">Start list</h2>
-      <p class="hint">${esc(placeLabel(race))}, ${esc(genderLabel(race))}, ${esc(discLabel(race))} · manche 1 · ${sl.rows.length} partants<br>Source : page FIS « Start List »${when ? `, relevée le ${esc(when)}` : ''}. Elle peut encore évoluer avant le départ.</p>
+      <p class="hint">${esc(placeLabel(race))}, ${esc(genderLabel(race))}, ${esc(discLabel(race))} · manche 1 · ${sl.rows.length} partants<br>Source : page FIS « Start List »${when ? `, relevée le ${esc(when)}` : ''}. Elle peut encore évoluer avant le départ.${canPick ? '' : lockedRace(race) ? ' Les choix sont verrouillés.' : ''}</p>
+      ${box}
       ${out.length ? `<p class="hint"><strong>${out.length} ${race.gender === 'W' ? 'skieuses' : 'skieurs'} ne sont pas dans la liste du jeu</strong> : ${esc(out.map((r) => r.name).join(', '))}.</p>` : ''}
       <ol class="sl">${rows}</ol>`);
+    const list = $('.sl');
+    if (keep) { mo.scrollTop = prevM; if (list) list.scrollTop = prevL; }
+    else { const me = $('.sl__row.is-mine'); if (me && list) list.scrollTop = Math.max(0, me.offsetTop - list.offsetTop - 60); }
   }
   function closeModal() { const m = $('#modal'); m.hidden = true; m.dataset.lock = ''; m.innerHTML = ''; document.body.classList.remove('noscroll'); }
   const rulesSeen = () => { try { return !!localStorage.getItem('skigame.rulesSeen'); } catch (e) { return false; } };
@@ -1063,6 +1092,10 @@
     const rc = e.target.closest('[data-racecard]');
     if (rc) { SHARE.open(rc.dataset.racecard); return; }
     if (e.target.closest('[data-acct-toggle]')) { state.acctOpen = !state.acctOpen; renderUserbar(); return; }
+    const slp = e.target.closest('[data-slpick]');
+    if (slp) { const [rid, slot, ath] = slp.dataset.slpick.split('|'); onPick({ dataset: { race: rid, slot }, value: ath, id: 'sl' }).then(() => startListModal(rid, true)); return; }
+    const slc = e.target.closest('[data-slclear]');
+    if (slc) { const [rid, slot] = slc.dataset.slclear.split('|'); onPick({ dataset: { race: rid, slot }, value: '', id: 'sl' }).then(() => startListModal(rid, true)); return; }
     const slb = e.target.closest('[data-startlist]');
     if (slb) { startListModal(slb.dataset.startlist); return; }
     const rcc = e.target.closest('[data-rc-copy]'); if (rcc) { SHARE.copy(rcc.dataset.rcCopy); return; }

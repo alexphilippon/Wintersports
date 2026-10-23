@@ -724,3 +724,23 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
   /* « Athlètes pris » : colonne des joueurs plus étroite pour voir davantage de skieurs */
   .grid--tk thead th.tk__corner, .grid--tk tbody th { min-width: 6.8rem; max-width: 6.8rem; }
 }
+
+/* ---------- Session à venir : lieu / genre et discipline / choix sur trois lignes ---------- */
+.mini__place { display: block; }
+.mini__tags { display: block; margin-top: .2rem; }
+.mini__what .gender { margin-left: 0; }
+.mini__pick .slbtn { display: block; margin-top: .3rem; font-size: .82rem; }
+
+/* ---------- Start list : choix dans la fenêtre ---------- */
+.sl__n .sub { display: inline; margin-left: .4rem; }
+.sl__act { display: flex; align-items: center; gap: .4rem; flex: none; }
+.sl__btn { border: 1.5px solid var(--brique); background: var(--brique); color: #fff; border-radius: 999px; padding: .2rem .7rem; font: 700 .8rem var(--body, inherit); cursor: pointer; white-space: nowrap; }
+.sl__btn--sub { background: transparent; color: var(--brique); }
+.sl__btn--off { background: transparent; color: var(--nuit); border-color: var(--nuit); }
+.sl__me { font-size: .72rem; font-weight: 700; color: #fff; background: var(--pine, #2f7a4f); border-radius: 999px; padding: .1rem .55rem; white-space: nowrap; }
+.sl__tag--used { color: var(--encre-douce); border-color: var(--encre-douce); }
+.sl__row.is-mine { background: rgba(47, 122, 79, .14); box-shadow: inset 4px 0 0 var(--pine, #2f7a4f); }
+.sl__row.is-used { opacity: .55; }
+.slmine__box { margin: .5rem 0 .7rem; padding: .6rem .8rem; border: 2px solid var(--pine, #2f7a4f); border-radius: 10px; background: rgba(47, 122, 79, .1); display: grid; gap: .3rem; }
+.slmine { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; }
+.slmine__l { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--encre-douce); min-width: 6.4rem; }
