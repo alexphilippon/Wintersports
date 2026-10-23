@@ -20,6 +20,11 @@ service cloud.firestore {
     // Résultats, calendrier (annulations, reports), alias : admin seulement.
     match /results/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /config/{doc} { allow read: if signedIn(); allow write: if isAdmin(); }
+    // Boîte à idées : tout joueur connecté peut écrire, seul l'admin lit.
+    match /ideas/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow read, delete: if isAdmin();
+    }
     // Skieurs ajoutés : un joueur peut proposer un nom libre (pending), l'admin gère le reste.
     match /athletes/{id} {
       allow read: if signedIn();

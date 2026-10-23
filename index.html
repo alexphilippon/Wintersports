@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ski game</title>
-  <meta name="description" content="Fantasy league de la Coupe du monde de ski alpin 2026-2027.">
+  <meta name="description" content="Coupe du Monde de ski alpin, hiver 2026-27 : le jeu des pronostics.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -33,9 +33,10 @@
         <polygon points="940,300 953,264 966,300"/><polygon points="962,300 976,254 990,300"/>
       </g>
     </svg>
+    <div class="mast-actions" id="mastact" hidden></div>
     <div class="masthead__frame">
-      <h1 class="masthead__title">Ski game</h1>
-      <p class="masthead__sub">Fantasy league de la Coupe du monde de ski alpin, hiver 2026-2027</p>
+      <h1 class="masthead__title"><span class="logo" aria-label="Ski Game"><span class="logo__w">SKI</span><span class="logo__w logo__w--b">GAME</span></span></h1>
+      <p class="masthead__sub">Coupe du Monde de ski alpin, hiver 2026-27</p>
     </div>
   </header>
 
@@ -66,6 +67,9 @@
       </div>
     </details>
   </footer>
+
+  <div id="modal" class="modal" hidden></div>
+  <div id="tip" class="tip" role="tooltip" hidden></div>
 
   <script src="js/data.js"></script>
   <script src="js/game.js"></script>

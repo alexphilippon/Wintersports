@@ -3,7 +3,7 @@
   'use strict';
   let C = null; // contexte fourni par app.js à chaque rendu
   const A = { sub: 'ctl', race: '', parsed: null, text: '', msg: '', calRace: '' };
-  const SUBS = [['ctl', 'Contrôles'], ['res', 'Résultats'], ['cal', 'Calendrier'], ['ath', 'Skieurs'], ['draw', 'Tirages']];
+  const SUBS = [['ctl', 'Contrôles'], ['res', 'Résultats'], ['cal', 'Calendrier'], ['ath', 'Skieurs'], ['draw', 'Tirages'], ['idea', 'Idées']];
   const $ = (s) => document.querySelector(s);
   const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const tokens = (s) => norm(s).split(/[^a-z0-9]+/).filter(Boolean);
@@ -179,9 +179,15 @@
     }).join('')}</ul>`;
   }
 
+  function ideaView() {
+    if (!A.ideasOn) { A.ideasOn = true; A.ideas = []; C.store.listenIdeas((l) => { A.ideas = l; if (A.sub === 'idea') C.rerender(); }); }
+    if (!A.ideas.length) return '<p class="hint">Aucune suggestion pour l’instant.</p>';
+    return `<ul class="adm__list">${A.ideas.map((i) => `<li><strong>${C.esc(i.name || '?')}</strong> <span class="sub">${C.esc(new Date(i.ts).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'short' }))}</span><br>${C.esc(i.text).replace(/\n/g, '<br>')}</li>`).join('')}</ul>`;
+  }
+
   function render(ctx) {
     C = ctx;
-    const body = { ctl: ctlView, res: resView, cal: calView, ath: athView, draw: drawView }[A.sub]();
+    const body = { ctl: ctlView, res: resView, cal: calView, ath: athView, draw: drawView, idea: ideaView }[A.sub]();
     const drawN = drawJobs().length;
     const tabs = SUBS.map(([id, l]) => `<button type="button" role="tab" class="seg__btn" aria-selected="${A.sub === id}" data-adm-sub="${id}">${l}${id === 'draw' && drawN ? ` (${drawN})` : ''}</button>`).join('');
     return `<section class="adm"><header class="deskhead"><div><h2>Administration</h2><p class="deskhead__meta">Réservé à l’organisateur</p></div></header>

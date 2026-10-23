@@ -21,6 +21,7 @@
     const emit = (k) => { if (!handlers[k]) return; const d = db[k];
       handlers[k](k === 'players' ? Object.keys(d).map((id) => Object.assign({ id }, d[id])) : k === 'athletes' ? Object.keys(d).map((id) => Object.assign({ id }, d[id])) : JSON.parse(JSON.stringify(d))); };
     const emitAll = () => Object.keys(handlers).forEach(emit);
+    let ideasCb = null;
     const api = {
       mode: 'local', ready: Promise.resolve(),
       onAuth(cb) { authCbs.push(cb); cb(userObj()); },
@@ -45,6 +46,8 @@
       async updateAthlete(id, patch) { db.athletes[id] = Object.assign({}, db.athletes[id], patch); persist(); emit('athletes'); },
       async setAlias(from, to) { if (to) db.aliases[from] = to; else delete db.aliases[from]; persist(); emit('aliases'); },
       async setPlayerName(u, name) { db.players[u] = Object.assign({}, db.players[u], { name }); persist(); emit('players'); emitAuth(); },
+      async addIdea(i) { (db.ideas || (db.ideas = [])).push(Object.assign({ id: 'i' + Date.now(), ts: Date.now() }, i)); persist(); if (ideasCb) ideasCb(db.ideas.slice().reverse()); },
+      listenIdeas(cb) { ideasCb = cb; cb((db.ideas || []).slice().reverse()); },
     };
     return api;
   }
@@ -108,6 +111,8 @@
       async addAthlete(a) { await ready; const d = Object.assign({}, a); delete d.id; await db.doc('athletes/' + a.id).set(d); },
       async updateAthlete(id, patch) { await ready; await db.doc('athletes/' + id).set(patch, { merge: true }); },
       async setAlias(from, to) { await ready; await setField('config/aliases', from, to || null); },
+      async addIdea(i) { await ready; await db.collection('ideas').add(Object.assign({}, i, { ts: FV.serverTimestamp() })); },
+      listenIdeas(cb) { ready.then(() => db.collection('ideas').orderBy('ts', 'desc').onSnapshot((s) => cb(s.docs.map((d) => { const m = d.data(); return Object.assign({ id: d.id }, m, { ts: m.ts ? ms(m.ts) : Date.now() }); })), (e) => console.error('Idées :', e))); },
       async setPlayerName(uid, name) { await ready; await db.doc('players/' + uid).set({ name }, { merge: true }); if (current && current.uid === uid) { current.name = name; authCbs.forEach((cb) => cb(current)); } },
     };
   }

@@ -25,7 +25,7 @@
     sim: null,
     demo: false,
     user: null,            // { uid, email, name } une fois connecté
-    authMode: 'in',        // 'in' | 'up' (écran de connexion)
+    authMode: 'rules',     // 'rules' | 'in' | 'up' (écran d'accueil / connexion)
     authError: '',
     players: [],
     me: null,
@@ -58,6 +58,22 @@
   const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
   const surname = (name) => { const p = name.split(' '); return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : name; };
   const ordinal = (n) => (n === 1 ? '1er' : `${n}e`);
+  /* Drapeaux : images (les emoji de drapeaux ne s'affichent pas sous Windows). */
+  const PLACE_CC = { 'Sölden': 'at', 'Levi': 'fi', 'Gurgl': 'at', 'Copper Mountain': 'us', 'Beaver Creek': 'us', 'Val d’Isère': 'fr', "Val d'Isère": 'fr', 'Val Gardena': 'it', 'Alta Badia': 'it', 'Madonna di Campiglio': 'it', 'Madonna': 'it', 'Bormio': 'it', 'Kranjska Gora': 'si', 'Adelboden': 'ch', 'Wengen': 'ch', 'Kitzbühel': 'at', 'Schladming': 'at', 'Chamonix': 'fr', 'Garmisch-Partenkirchen': 'de', 'Garmisch': 'de', 'Saalbach': 'at', 'Kvitfjell': 'no', 'Åre': 'se', 'Sun Valley': 'us', 'Killington': 'us', 'Tremblant': 'ca', 'Saint-Moritz': 'ch', 'Courchevel': 'fr', 'Gosau': 'at', 'Flachau': 'at', 'Val di Fassa': 'it', 'Cortina d’Ampezzo': 'it', 'Cortina': 'it', 'Kronplatz': 'it', 'Jasná': 'sk', 'Lenzerheide': 'ch', 'Soldeu': 'ad', 'Narvik': 'no', 'Crans-Montana': 'ch' };
+  const PLACE_RE = new RegExp(Object.keys(PLACE_CC).sort((a, b) => b.length - a.length).map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
+  /** Texte HTML échappé avec un drapeau devant chaque nom de station connu. */
+  function fl(text) {
+    let out = '', last = 0, m;
+    PLACE_RE.lastIndex = 0;
+    while ((m = PLACE_RE.exec(text))) {
+      const cc = PLACE_CC[m[0]];
+      out += esc(text.slice(last, m.index)) + `<img class="fl" src="https://flagcdn.com/w40/${cc}.png" srcset="https://flagcdn.com/w80/${cc}.png 2x" width="20" height="15" alt="" loading="lazy">` + esc(m[0]);
+      last = m.index + m[0].length;
+    }
+    return out + esc(text.slice(last));
+  }
+  /** Bouton « i » qui ouvre une petite bulle d'aide. */
+  const info = (text) => `<button type="button" class="info" data-info="${esc(text)}" aria-label="Aide : ${esc(text)}">i</button>`;
   const norm = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const myPicks = () => state.picks[state.me] || (state.picks[state.me] = {});
   const isAdmin = () => !!state.user && !state.demo && (store.mode === 'local' || (!!CONFIG.adminEmail && state.user.email.toLowerCase() === CONFIG.adminEmail.toLowerCase()));
@@ -181,7 +197,7 @@
         ${freeLink(race, 'a')}
         <label class="sr" for="pb-${race.id}">Remplaçant, ${esc(label)}</label>
         <select id="pb-${race.id}" class="pick pick--sub" data-race="${race.id}" data-slot="b"${cur.a ? '' : ' disabled'}>${options(race, session, 'b')}</select>
-        ${freeLink(race, 'b')}
+        <span class="pickhelp">${freeLink(race, 'b')}${info('Le remplaçant est facultatif : il joue à ta place seulement si ton titulaire ne prend pas le départ (blessure, malade). Dans ce cas, seul le remplaçant est « grillé ». Si le titulaire chute ou abandonne, il marque 0 et reste grillé : le remplaçant ne joue pas.')}</span>
       </div>
     </div>`;
   }
@@ -218,7 +234,7 @@
     const pick = race.cancelled ? '<span class="none">Course annulée : aucun choix</span>' : lockedRace(race) ? pickSummary(state.me, race) : pickEditor(race, session);
     return `<li class="race${race.cancelled ? ' race--off' : ''}">
       <div class="race__date"><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_WD.format(d)} ${F_MO.format(d)}</span></div>
-      <div class="race__info"><strong class="race__place">${esc(placeLabel(race))}</strong>
+      <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong>
         <span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${flag}</span></div>
       <div class="race__pick">${pick}</div>
       <div class="race__out">${outcome(race, state.me)}</div>
@@ -234,7 +250,7 @@
     return `<article class="session" id="s-${session.id}">
       <header class="session__head">
         <div>
-          <h3 class="session__name">${esc(session.name)}</h3>
+          <h3 class="session__name">${fl(session.name)}</h3>
           <p class="session__meta">${indexLabel ? indexLabel + ', ' : ''}deadline ${dlShort(dl)}</p>
         </div>
         <div class="session__side">${stateBadge(session)}${open
@@ -260,11 +276,11 @@
         const sc = G.scoreRace(r, pk, state.results);
         return `<td class="${cls}"><div class="cell">${avatarOf(eff, 'sm')}<div class="cell__txt"><span class="who" title="${esc(nameOf(eff))}">${esc(surname(nameOf(eff)))}</span>${eff !== pk.a ? '<span class="sub">Remplaçant</span>' : ''}${sc === null ? '' : `<span class="cellpts ${sc > 0 ? 'on' : 'off'}">${sc > 0 ? '+' : ''}${sc}</span>`}</div></div></td>`;
       }).join('');
-      return `<tr><th scope="row"><span class="rowhead__day">${dayOf(r.date)}</span> ${esc(placeLabel(r))}<br><span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</th>${cells}</tr>`;
+      return `<tr><th scope="row"><span class="rowhead__day">${dayOf(r.date)}</span> ${fl(placeLabel(r))}<br><span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</th>${cells}</tr>`;
     }).join('');
     const totals = state.players.map((p) => `<td class="${p.id === state.me ? 'me' : ''}"><strong>${G.sessionScore(session, state.picks[p.id], state.results)} pts</strong></td>`).join('');
     return `<div class="tablewrap"><table class="grid">
-      <caption>${esc(session.name)}</caption>
+      <caption>${fl(session.name)}</caption>
       <thead><tr><th scope="col">Course</th>${head}</tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><th scope="row">Total de la session</th>${totals}</tr></tfoot>
@@ -330,7 +346,7 @@
     const lines = b.lines.length
       ? `<ul class="bonus__lines">${b.lines.map((l) => `<li><span>${esc(l.label)}</span><strong>+${l.pts}</strong></li>`).join('')}</ul>` : '';
     return `<aside class="bonus">
-      <h3>Bonus des vainqueurs</h3>
+      <h3>Bonus des vainqueurs ${info('Aux Mondiaux, tu gagnes un bonus si tes choix remportent des épreuves : +200 par discipline gagnée à la fois chez les messieurs et chez les dames, +400 si tes quatre skieurs d’un même genre gagnent leur discipline.')}</h3>
       <ul class="bonus__rules">
         <li><strong>+200</strong><span>les deux vainqueurs d’une discipline (messieurs et dames)</span></li>
         <li><strong>+400</strong><span>les quatre vainqueurs messieurs, ou les quatre dames</span></li>
@@ -359,8 +375,8 @@
     return `<section>
       <header class="deskhead">
         <div><h2>${esc(title)}</h2><p class="deskhead__meta">${esc(meta)}</p>
-          <p class="rule">${isW ? 'Barème ×3. Un skieur ne peut être choisi qu’une fois.' : 'Un skieur ne peut être choisi qu’une fois dans ce desk.'}</p></div>
-        <dl class="deskhead__stats"><div><dt>Choix faits</dt><dd>${chosen}/${total}</dd></div><div><dt>Points</dt><dd>${score}</dd></div></dl>
+          <p class="rule">${isW ? 'Barème ×3. Un skieur ne peut être choisi qu’une fois.' : 'Un skieur ne peut être choisi qu’une fois dans ce desk.'} ${info(isW ? 'Aux Mondiaux, les points sont multipliés par 3 et un skieur ne peut servir qu’une fois sur l’ensemble des 8 épreuves. Messieurs et dames comptent à part.' : 'Dans un même desk, un skieur ne peut être choisi qu’une seule fois chez les messieurs et une seule fois chez les dames. Un skieur déjà pris apparaît grisé.')}</p></div>
+        <dl class="deskhead__stats"><div><dt>Choix faits ${info('Nombre de courses de ce desk pour lesquelles tu as déjà choisi un skieur.')}</dt><dd>${chosen}/${total}</dd></div><div><dt>Points ${info('Total de tes points sur ce desk, d’après les résultats déjà saisis.')}</dt><dd>${score}</dd></div></dl>
       </header>
       <div class="seg" role="tablist" aria-label="Vue du desk">${tabs}</div>
       <div class="deskbody">${body}</div>
@@ -384,18 +400,18 @@
       const d = at(r.date);
       return `<li class="mini">
         <span class="mini__when"><b>${F_NUM.format(d)}</b> ${F_MO.format(d)}</span>
-        <span class="mini__what"><strong>${esc(placeLabel(r))}</strong> <span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</span>
+        <span class="mini__what"><strong>${fl(placeLabel(r))}</strong> <span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</span>
         <span class="mini__pick">${r.cancelled ? '<span class="none">Annulée</span>' : (myPicks()[r.id] || {}).a ? pickSummary(state.me, r) : '<span class="todo">À choisir</span>'}</span></li>`;
     }).join('');
     const stub = open
-      ? `<p class="forfait__label">Deadline dans</p><p class="countdown" id="countdown" data-dl="${dl.toISOString()}">${countdownText(dl)}</p><p class="forfait__dl">${dlShort(dl)}</p>`
+      ? `<p class="forfait__label">Deadline dans ${info('Tes choix se modifient librement jusqu’au départ de la première course de la session. Ensuite ils sont verrouillés, et les choix de tous les joueurs deviennent visibles.')}</p><p class="countdown" id="countdown" data-dl="${dl.toISOString()}">${countdownText(dl)}</p><p class="forfait__dl">${dlShort(dl)}</p>`
       : `<p class="forfait__label">Choix verrouillés</p><p class="countdown countdown--shut">Course en cours</p><p class="forfait__dl">depuis ${dlShort(dl)}</p>`;
     const cta = open ? (n === live.length ? 'Modifier mes choix' : 'Faire mes choix') : 'Voir le desk';
     return `<section>
       <article class="forfait">
         <div class="forfait__main">
           ${stateBadge(up)}
-          <h2 class="forfait__name">${esc(up.name)}</h2>
+          <h2 class="forfait__name">${fl(up.name)}</h2>
           <p class="forfait__where">${esc(where)}</p>
           <ul class="minis">${list}</ul>
           <button type="button" class="btn btn--brique" data-goto="${goto}">${cta}</button>
@@ -420,22 +436,22 @@
     rows.forEach((r, i) => { if (r.v.total !== last) { rank = i + 1; last = r.v.total; } r.rank = rank; });
     return rows;
   }
-  function smallRanking(title, scoreFn) {
+  function smallRanking(title, scoreFn, cls) {
     const rows = rankRows((pk) => ({ total: scoreFn(pk) }));
-    return `<div class="tablewrap"><table class="grid grid--rank"><caption>${esc(title)}</caption>
+    return `<div class="tablewrap"><table class="grid grid--rank ${cls || ''}"><caption>${esc(title)}</caption>
       <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num">Points</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${r.rank}</td><th scope="row">${esc(r.p.name)}</th><td class="num">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
+      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td><th scope="row">${esc(r.p.name)}</th><td class="num">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
   }
   function generalPanel() {
     const R = state.results;
     const rows = rankRows((pk) => G.generalScore(pk, R));
-    const main = `<div class="tablewrap"><table class="grid grid--rank grid--general"><caption>Le gros globe</caption>
-      <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num">Desk 1</th><th scope="col" class="num">Desk 2</th><th scope="col" class="num">Desk 3</th><th scope="col" class="num">Mondiaux</th><th scope="col" class="num">Total</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${r.rank}</td><th scope="row">${esc(r.p.name)}</th>${r.v.desks.map((d) => `<td class="num">${d}</td>`).join('')}<td class="num">${r.v.worlds}</td><td class="num total">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
-    const desks = D.DESKS.map((d) => smallRanking(`Classement du ${d.name}`, (pk) => G.deskScore(d.id, pk, R))).join('');
-    const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => smallRanking(`Petit globe de ${c === 'SG' ? 'super-G' : D.DISC[c].fr.toLowerCase()}`, (pk) => G.disciplineScore(c, pk, R))).join('');
+    const main = `<div class="tablewrap"><table class="grid grid--rank grid--general cap--gen"><caption>Le gros globe ${info('Classement général : somme des points des trois desks et des Mondiaux, bonus compris.')}</caption>
+      <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num th--d1">Desk 1</th><th scope="col" class="num th--d2">Desk 2</th><th scope="col" class="num th--d3">Desk 3</th><th scope="col" class="num th--w">Mondiaux</th><th scope="col" class="num">Total</th></tr></thead>
+      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td><th scope="row">${esc(r.p.name)}</th>${r.v.desks.map((d) => `<td class="num">${d}</td>`).join('')}<td class="num">${r.v.worlds}</td><td class="num total">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
+    const desks = D.DESKS.map((d) => smallRanking(`Classement du ${d.name}`, (pk) => G.deskScore(d.id, pk, R), 'cap--d' + d.id)).join('');
+    const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => smallRanking(`Petit globe de ${c === 'SG' ? 'super-G' : D.DISC[c].fr.toLowerCase()}`, (pk) => G.disciplineScore(c, pk, R), 'cap--' + c)).join('');
     const none = Object.keys(R).length === 0 ? '<p class="hint">Aucun résultat pour l’instant.</p>' : '';
-    return `<section><header class="deskhead"><div><h2>Classement général</h2>
+    return `<section class="genpanel"><header class="deskhead"><div><h2>Classement général</h2>
       <p class="deskhead__meta">Trois desks et les Mondiaux, bonus compris</p></div></header>${none}${main}
       <h3 class="subtitle">Par desk</h3><div class="grid3">${desks}</div>
       <h3 class="subtitle">Petits globes</h3><div class="grid2">${discs}</div></section>`;
@@ -449,18 +465,100 @@
       { id: 'next', label, note: '' },
       { id: '1', label: 'Desk 1', note: `${shortOf(D.DESKS[0].from)} au ${shortOf(D.DESKS[0].to)}` },
       { id: '2', label: 'Desk 2', note: `${shortOf(D.DESKS[1].from)} au ${shortOf(D.DESKS[1].to)}` },
-      { id: '3', label: 'Desk 3', note: `${shortOf(D.DESKS[2].from)} au ${shortOf(D.DESKS[2].to)}` },
       { id: 'w', label: 'Mondiaux', note: '4 au 14 févr.' },
+      { id: '3', label: 'Desk 3', note: `${shortOf(D.DESKS[2].from)} au ${shortOf(D.DESKS[2].to)}` },
       { id: 'gen', label: 'Classement général', note: '' },
     ].concat(isAdmin() ? [{ id: 'adm', label: 'Admin', note: 'organisateur' }] : []);
   }
-  const TAB_IDS = ['next', '1', '2', '3', 'w', 'gen', 'adm'];
+  const TAB_IDS = ['next', '1', '2', 'w', '3', 'gen', 'adm'];
   function renderTabs() {
-    $('#tabs').innerHTML = tabs().map((t) => `<button type="button" role="tab" class="plate" id="tab-${t.id}" data-tab="${t.id}" aria-selected="${state.tab === t.id}">
+    $('#tabs').innerHTML = tabs().map((t) => `<button type="button" role="tab" class="plate plate--${t.id}" id="tab-${t.id}" data-tab="${t.id}" aria-selected="${state.tab === t.id}">
       <span class="plate__label">${t.label}</span>${t.note ? `<span class="plate__note">${t.note}</span>` : ''}</button>`).join('');
   }
+
+  /* ---------- Règles, boîte à idées, bulles d'aide ---------- */
+  function rulesHtml() {
+    return `<div class="rules">
+      <h3>Le principe</h3>
+      <p>À chaque course de la Coupe du Monde, tu choisis <strong>un skieur</strong> (et, si tu veux, un remplaçant). Il te rapporte les points de la Coupe du Monde : <strong>100 pour le 1er, 80, 60, 50, 45…</strong> jusqu’à 1 point pour le 30e.</p>
+      <h3>L’organisation</h3>
+      <ul>
+        <li><strong>3 desks</strong> (octobre-décembre, janvier, février-mars) et les <strong>Mondiaux</strong> de Crans-Montana, soit une vingtaine de sessions. Chaque session regroupe quelques courses.</li>
+        <li>Messieurs et dames sont chacun à part : un choix par course.</li>
+        <li>Slalom et géant : classement cumulé des deux manches. Chaque descente compte comme une course. Les épreuves par équipes sont exclues.</li>
+        <li><strong>Finales ×2</strong> et <strong>Mondiaux ×3</strong> (avec un bonus si tes choix gagnent).</li>
+      </ul>
+      <h3>La règle d’or</h3>
+      <p>Dans un desk, <strong>un skieur ne peut être choisi qu’une seule fois</strong> par genre. Aux Mondiaux aussi, une seule fois sur les huit épreuves. Il faut donc gérer ses atouts sur la durée.</p>
+      <h3>Les délais</h3>
+      <ul>
+        <li>Tu peux changer tes choix jusqu’au <strong>départ de la première course de la session</strong>.</li>
+        <li>Ensuite tout est verrouillé, et les choix des autres joueurs deviennent visibles (avant, ils sont cachés).</li>
+      </ul>
+      <h3>Quand ça ne se passe pas comme prévu</h3>
+      <ul>
+        <li><strong>Chute ou abandon</strong> : 0 point, et le skieur reste « grillé » dans ce desk.</li>
+        <li><strong>Non-partant</strong> : ton remplaçant prend la place, et lui seul est grillé. Sans remplaçant, l’organisateur fait un tirage au sort.</li>
+        <li><strong>Course annulée</strong> : personne ne marque, ton skieur est libéré.</li>
+        <li><strong>Course reportée</strong> : ton choix est gardé, modifiable jusqu’au nouveau départ.</li>
+      </ul>
+      <h3>Les classements</h3>
+      <p>Général (gros globe), par desk, et un petit globe par discipline (descente, super-G, géant, slalom).</p>
+    </div>`;
+  }
+  function openModal(html) {
+    const m = $('#modal');
+    m.innerHTML = `<div class="modal__card" role="dialog" aria-modal="true"><button type="button" class="modal__x" data-close aria-label="Fermer">×</button>${html}</div>`;
+    m.hidden = false; document.body.classList.add('noscroll');
+    const f = m.querySelector('textarea, button:not(.modal__x)'); if (f) f.focus({ preventScroll: true });
+  }
+  function closeModal() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; document.body.classList.remove('noscroll'); }
+  const rulesModal = () => openModal(`<h2>Les règles du jeu</h2>${rulesHtml()}<button type="button" class="btn btn--brique" data-close>J’ai compris</button>`);
+  const ideasModal = () => openModal(`<h2>Boîte à idées</h2>
+    <p class="hint">N’hésite pas à formuler tes suggestions d’améliorations sur l’ergonomie du site. Pas sur les règles, mais sur les fonctionnalités, la navigation, les stats éventuelles, etc.</p>
+    <form id="idea-form"><label class="sr" for="idea-text">Ta suggestion</label><textarea id="idea-text" rows="6" maxlength="1500" placeholder="Ta suggestion…" required></textarea>
+    <p class="auth__err" id="idea-msg" role="status"></p><button type="submit" class="btn btn--brique">Envoyer</button></form>`);
+  document.addEventListener('submit', async (e) => {
+    if (e.target.id !== 'idea-form') return;
+    e.preventDefault();
+    const t = $('#idea-text').value.trim();
+    if (!t || !state.user) return;
+    try {
+      await store.addIdea({ uid: state.user.uid, name: state.user.name, text: t });
+      $('#idea-form').innerHTML = '<p class="adm__msg">Merci ! Ta suggestion a bien été envoyée.</p><button type="button" class="btn" data-close>Fermer</button>';
+    } catch (err) { $('#idea-msg').textContent = 'Envoi impossible : ' + (err.message || err); }
+  });
+  function showTip(btn) {
+    const tip = $('#tip');
+    if (!tip.hidden && tip._for === btn) { hideTip(); return; }
+    tip.textContent = btn.dataset.info; tip._for = btn; tip.hidden = false;
+    const r = btn.getBoundingClientRect(), w = Math.min(280, window.innerWidth - 24);
+    tip.style.width = w + 'px';
+    tip.style.left = Math.max(12, Math.min(window.innerWidth - w - 12, r.left + r.width / 2 - w / 2)) + 'px';
+    const h = tip.offsetHeight;
+    tip.style.top = (r.bottom + h + 14 > window.innerHeight && r.top > h + 14 ? r.top - h - 8 : r.bottom + 8) + 'px';
+  }
+  function hideTip() { const t = $('#tip'); t.hidden = true; t._for = null; }
+  document.addEventListener('click', (e) => {
+    const i = e.target.closest('.info');
+    if (i) { e.preventDefault(); showTip(i); return; }
+    if (!e.target.closest('#tip')) hideTip();
+    if (e.target.closest('[data-close]') || e.target.id === 'modal') closeModal();
+    if (e.target.closest('[data-rules]')) rulesModal();
+    if (e.target.closest('[data-ideas]')) ideasModal();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { hideTip(); closeModal(); } });
+  window.addEventListener('scroll', hideTip, { passive: true });
+
   /* ---------- Connexion ---------- */
   function authPanel() {
+    if (state.authMode === 'rules') {
+      return `<section class="auth"><div class="authcard authcard--rules"><h2>Bienvenue sur Ski Game</h2>
+        <p class="auth__intro">Voici le jeu en deux minutes. Les règles restent consultables à tout moment une fois connecté.</p>
+        ${rulesHtml()}
+        <button type="button" class="btn btn--brique" data-auth="up">Créer mon compte</button>
+        <p class="auth__alt">Déjà un compte ? <button type="button" class="linkbtn" data-auth="in">Me connecter</button></p></div></section>`;
+    }
     const up = state.authMode === 'up';
     return `<section class="auth"><form class="authcard" id="auth-form" novalidate>
       <h2>${up ? 'Créer mon compte' : 'Connexion'}</h2>
@@ -470,13 +568,14 @@
       <label for="au-pw">Mot de passe${up ? ' (6 caractères minimum)' : ''}</label><input id="au-pw" name="pw" type="password" autocomplete="${up ? 'new-password' : 'current-password'}" required>
       <p class="auth__err" id="auth-err" role="alert">${esc(state.authError)}</p>
       <button type="submit" class="btn btn--brique">${up ? 'Créer mon compte' : 'Me connecter'}</button>
-      <p class="auth__alt">${up ? 'Déjà un compte ?' : 'Pas encore de compte ?'} <button type="button" class="linkbtn" data-auth="${up ? 'in' : 'up'}">${up ? 'Me connecter' : 'Créer un compte'}</button>${up ? '' : ' · <button type="button" class="linkbtn" data-auth="reset">Mot de passe oublié</button>'}</p>
+      <p class="auth__alt">${up ? 'Déjà un compte ?' : 'Pas encore de compte ?'} <button type="button" class="linkbtn" data-auth="${up ? 'in' : 'up'}">${up ? 'Me connecter' : 'Créer un compte'}</button> · <button type="button" class="linkbtn" data-auth="rules">Revoir les règles</button>${up ? '' : ' · <button type="button" class="linkbtn" data-auth="reset">Mot de passe oublié</button>'}</p>
       ${store.mode === 'local' ? '<p class="auth__local">Mode local : les comptes et les choix restent dans ce navigateur (pas de partage entre joueurs).</p>' : ''}
     </form></section>`;
   }
   function renderUserbar() {
     const el = $('#userbar');
     if (!el) return;
+    const ma = $('#mastact'); if (ma) { ma.hidden = !state.user && !state.demo; ma.innerHTML = '<button type="button" class="mastbtn" data-rules>Règles du jeu</button><button type="button" class="mastbtn" data-ideas>Boîte à idées</button>'; }
     el.hidden = !state.user || state.demo;
     if (!el.hidden) el.innerHTML = `<span>Connecté : <strong>${esc(state.user.name)}</strong></span> <button type="button" class="linkbtn" data-auth="rename">Changer mon nom</button> <button type="button" class="linkbtn" data-auth="out">Me déconnecter</button>`;
   }
@@ -526,7 +625,7 @@
 
   /* ---------- Actions : connexion ---------- */
   async function authAction(kind) {
-    if (kind === 'in' || kind === 'up') { state.authMode = kind; state.authError = ''; render(); return; }
+    if (kind === 'in' || kind === 'up' || kind === 'rules') { state.authMode = kind; state.authError = ''; render(); return; }
     if (kind === 'out') { await store.signOut(); state.tab = 'next'; state.authMode = 'in'; state.authError = ''; render(); return; }
     if (kind === 'rename') {
       const n = (window.prompt('Ton nom dans le jeu :', state.user.name) || '').trim().slice(0, 24);
