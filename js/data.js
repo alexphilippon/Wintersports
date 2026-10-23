@@ -43,7 +43,7 @@ M|27|Kitzbühel|2027-01-23|DH
 M|28|Kitzbühel|2027-01-24|SL
 M|29|Schladming|2027-01-26|GS
 M|30|Schladming|2027-01-27|SL
-M|31|Chamonix|2027-01-31|SL
+M|31|Chamonix|2027-01-30|SL
 M|32|Garmisch-Partenkirchen|2027-02-20|DH
 M|33|Garmisch-Partenkirchen|2027-02-21|SG
 M|34|Saalbach|2027-02-27|DH
@@ -69,13 +69,13 @@ W|10|Beaver Creek|2026-12-13|SG
 W|11|Saint-Moritz|2026-12-18|SG|1
 W|12|Saint-Moritz|2026-12-19|SG|2
 W|13|Saint-Moritz|2026-12-20|GS
-W|14|Lieu à déterminer|2026-12-22|SL
+W|14|Courchevel|2026-12-22|SL
 W|15|Gosau|2026-12-28|GS
 W|16|Gosau|2026-12-29|SL
 W|17|Flachau|2027-01-04|GS
 W|18|Flachau|2027-01-05|SL
-W|19|Lieu à déterminer|2027-01-09|DH
-W|20|Lieu à déterminer|2027-01-10|SG
+W|19|Val di Fassa|2027-01-09|DH
+W|20|Val di Fassa|2027-01-10|SG
 W|21|Cortina d'Ampezzo|2027-01-15|DH|1
 W|22|Cortina d'Ampezzo|2027-01-16|DH|2
 W|23|Cortina d'Ampezzo|2027-01-17|SG
@@ -151,10 +151,10 @@ W|40|Sun Valley|2027-03-25|SL
     { id: 5,  desk: 1, name: 'Beaver Creek et Tremblant',       races: mix([6, 9], [6, 7]) },
     { id: 6,  desk: 1, name: 'Beaver Creek et Val d’Isère', races: mix([10, 11], [8, 10]) },
     { id: 7,  desk: 1, name: 'Val Gardena, Saint-Moritz et Alta Badia', races: mix([12, 14], [11, 13]) },
-    { id: 8,  desk: 1, name: 'Alta Badia et Madonna',           races: ['M15', 'W14', 'M16'] },
+    { id: 8,  desk: 1, name: 'Alta Badia, Courchevel et Madonna',         races: ['M15', 'W14', 'M16'] },
     { id: 9,  desk: 2, name: 'Bormio et Gosau',                 races: mix([17, 18], [15, 16]) },
     { id: 10, desk: 2, name: 'Kranjska Gora et Flachau',        races: ['M19', 'M20', 'W17', 'W18'] },
-    { id: 11, desk: 2, name: 'Adelboden',                       races: mix([21, 22], [19, 20]) },
+    { id: 11, desk: 2, name: 'Adelboden et Val di Fassa',                    races: mix([21, 22], [19, 20]) },
     { id: 12, desk: 2, name: 'Wengen et Cortina',               races: mix([23, 25], [21, 23]) },
     { id: 13, desk: 2, name: 'Kronplatz',                       races: ['W24'] },
     { id: 14, desk: 2, name: 'Kitzbühel et Jasná',              races: mix([26, 28], [25, 26]) },
