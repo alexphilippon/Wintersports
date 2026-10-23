@@ -963,15 +963,15 @@
       <div class="gl-row">${['DH', 'SG', 'GS', 'SL'].map((c, i) => `<div class="gl gl--sm">${globeSvg('sm')}<span class="gl__t"><b>${rk ? nth(rk.discs[i]) : '–'}</b><span>${DN[c]}</span></span></div>`).join('')}</div>
     </div>`;
   };
-  /** Cartouche « Mon compte » : l'essentiel seulement ; le détail est dans la fiche et les réglages. */
+  /** Cartouche « Mon compte » : identité, tableau des globes (gros seul sur mobile), boutons. */
   function accountBar() {
     const name = state.user.name || '';
     const rk = myRanks();
     const me = playerOf(state.me);
-    const sum = rk && rk.gen ? `${ordinal(rk.gen.rank)} au général · ${rk.gen.pts} pts` : 'Pas encore de course jouée';
     const cam = state.demo ? '' : `<button type="button" class="acct__cam" data-photo title="${me.blocked ? 'Photo retirée par l’organisateur' : me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 8h3l1.6-2h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>`;
     return `<div class="acct"><div class="acct__who"><span class="acct__avw"><button type="button" class="acct__avb" data-photo aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" ${state.demo ? 'disabled' : ''}>${pav(Object.assign({}, me, { name }), 'lg')}</button>${cam}</span>
-      <div class="acct__id"><span class="acct__hi">Mon compte</span>${FICHE_ON ? `<button type="button" class="acct__name acct__namebtn" data-player="${esc(state.me)}" title="Voir ma fiche">${esc(name)}</button>` : `<strong class="acct__name">${esc(name)}</strong>`}<span class="acct__sum">${esc(sum)}</span></div></div>
+      <div class="acct__id"><span class="acct__hi">Mon compte</span>${FICHE_ON ? `<button type="button" class="acct__name acct__namebtn" data-player="${esc(state.me)}" title="Voir ma fiche">${esc(name)}</button>` : `<strong class="acct__name">${esc(name)}</strong>`}</div></div>
+      ${globeBoard(rk)}
       <div class="acct__btns">${FICHE_ON ? `<button type="button" class="btn btn--sm" data-player="${esc(state.me)}">Ma fiche</button>` : ''}<button type="button" class="btn btn--sm btn--ghost" data-settings>Mes réglages</button></div></div>`;
   }
 

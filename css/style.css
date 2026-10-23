@@ -817,3 +817,14 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 @media (max-width: 759px) { .installrow { display: block; } }
 .installrow[hidden] { display: none !important; }
 .inst { margin: .6rem 0 0; padding-left: 1.3rem; display: grid; gap: .5rem; }
+
+/* ---------- Mon compte : tableau des globes (mobile : gros globe seul) ---------- */
+.acct__sum { display: none; }
+@media (min-width: 900px) { .acct__btns { margin-left: .4rem; } }
+@media (max-width: 759px) {
+  .acct { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .5rem .8rem; }
+  .acct__who { grid-column: 1 / -1; width: auto; }
+  .acct:not(.acct--open) .acct__board, .acct > .acct__board { display: flex; width: auto; grid-column: 1; }
+  .acct > .acct__board .gl-row { display: none; }
+  .acct__btns { width: auto; grid-column: 2; display: flex; }
+}
