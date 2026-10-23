@@ -886,7 +886,8 @@
     const init = esc((p.name || '?').trim()[0] ? (p.name || '?').trim()[0].toUpperCase() : '?');
     return `<span class="pav pav--${size || 'sm'}" aria-hidden="true">${p.photo ? `<img src="${p.photo}" alt="">` : `<span>${init}</span>`}</span>`;
   }
-  const pname = (p) => `<button type="button" class="pn pn--btn" data-player="${esc(p.id)}" title="Voir la fiche">${pav(p, 'xs')}<span>${esc(p.name)}</span></button>`;
+  const FICHE_ON = false; // fiche joueur : désactivée pour le moment (passer à true pour la réactiver)
+  const pname = (p) => !FICHE_ON ? `<span class="pn">${pav(p, 'xs')}<span>${esc(p.name)}</span></span>` : `<button type="button" class="pn pn--btn" data-player="${esc(p.id)}" title="Voir la fiche">${pav(p, 'xs')}<span>${esc(p.name)}</span></button>`;
   const PH = { img: null, zoom: 1, x: 0, y: 0 };
   function photoModal() {
     const me = playerOf(state.me);
@@ -970,8 +971,8 @@
     const sum = rk && rk.gen ? `${ordinal(rk.gen.rank)} au général · ${rk.gen.pts} pts` : 'Pas encore de course jouée';
     const cam = state.demo ? '' : `<button type="button" class="acct__cam" data-photo title="${me.blocked ? 'Photo retirée par l’organisateur' : me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 8h3l1.6-2h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>`;
     return `<div class="acct"><div class="acct__who"><span class="acct__avw"><button type="button" class="acct__avb" data-photo aria-label="${me.photo ? 'Changer ma photo' : 'Ajouter ma photo'}" ${state.demo ? 'disabled' : ''}>${pav(Object.assign({}, me, { name }), 'lg')}</button>${cam}</span>
-      <div class="acct__id"><span class="acct__hi">Mon compte</span><button type="button" class="acct__name acct__namebtn" data-player="${esc(state.me)}" title="Voir ma fiche">${esc(name)}</button><span class="acct__sum">${esc(sum)}</span></div></div>
-      <div class="acct__btns"><button type="button" class="btn btn--sm" data-player="${esc(state.me)}">Ma fiche</button><button type="button" class="btn btn--sm btn--ghost" data-settings>Mes réglages</button></div></div>`;
+      <div class="acct__id"><span class="acct__hi">Mon compte</span>${FICHE_ON ? `<button type="button" class="acct__name acct__namebtn" data-player="${esc(state.me)}" title="Voir ma fiche">${esc(name)}</button>` : `<strong class="acct__name">${esc(name)}</strong>`}<span class="acct__sum">${esc(sum)}</span></div></div>
+      <div class="acct__btns">${FICHE_ON ? `<button type="button" class="btn btn--sm" data-player="${esc(state.me)}">Ma fiche</button>` : ''}<button type="button" class="btn btn--sm btn--ghost" data-settings>Mes réglages</button></div></div>`;
   }
 
   /* ---------- Fiche d'un joueur : statistiques avancées (courses terminées seulement, donc publiques) ---------- */
@@ -1028,6 +1029,26 @@
       ${pid === state.me ? '<p class="fiche__foot"><button type="button" class="btn btn--ghost btn--sm" data-settings>Mes réglages</button></p>' : ''}</div>`, 'modal__card--wide');
   }
 
+  /* ---------- Installer l'app (raccourci sur l'écran d'accueil) ---------- */
+  let installEvt = null;
+  const isStandalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  function syncInstall() { const r = $('#installrow'); if (r) r.hidden = isStandalone(); }
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; });
+  window.addEventListener('appinstalled', () => { installEvt = null; syncInstall(); });
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { /* ignoré */ });
+  async function installApp() {
+    if (installEvt) { const ev = installEvt; installEvt = null; ev.prompt(); try { await ev.userChoice; } catch (e) { /* ignoré */ } return; }
+    const ua = navigator.userAgent;
+    const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const android = /Android/.test(ua);
+    const steps = ios
+      ? ['Ouvre ce site dans <strong>Safari</strong> (pas dans une application de messagerie ou de réseau social).', 'Touche le bouton <strong>Partager</strong> (le carré avec une flèche vers le haut), en bas de l’écran.', 'Fais défiler la liste et touche <strong>« Sur l’écran d’accueil »</strong>.', 'Touche <strong>« Ajouter »</strong> : l’icône Ski Game apparaît sur ton écran d’accueil.']
+      : android
+        ? ['Ouvre ce site dans <strong>Chrome</strong>.', 'Touche le menu <strong>⋮</strong>, en haut à droite.', 'Touche <strong>« Installer l’application »</strong> (ou « Ajouter à l’écran d’accueil »).', 'Valide : l’icône Ski Game apparaît sur ton écran d’accueil.']
+        : ['Dans <strong>Chrome</strong> ou <strong>Edge</strong>, clique sur l’icône d’installation à droite de la barre d’adresse, ou ouvre le menu <strong>⋮</strong> puis <strong>« Installer Ski Game »</strong>.', 'Sur Safari (Mac) : menu <strong>Fichier</strong>, puis <strong>« Ajouter au Dock »</strong>.', 'Sur téléphone, ouvre ce site depuis ton téléphone pour avoir le raccourci sur l’écran d’accueil.'];
+    openModal(`<h2>Installer l’app</h2><p class="hint">Ski Game s’ouvre alors comme une application, en plein écran, depuis un raccourci sur ton écran d’accueil.</p><ol class="inst">${steps.map((t) => `<li>${t}</li>`).join('')}</ol>`);
+  }
+
   /* ---------- Mes réglages ---------- */
   function settingsModal() {
     const me = playerOf(state.me), g = gateGet();
@@ -1047,6 +1068,9 @@
         <p class="hint">Réglage enregistré dans ce navigateur : à refaire sur un autre appareil.</p>
       </section>
       <section class="set set--desk"><h3>Ambiance du site</h3><div class="set__themes">${dot('sapin', 'Sapin')}${dot('glace', 'Glace')}${dot('nuit', 'Nuit')}</div></section>
+      <section class="set"><h3>Application mobile</h3>
+        ${isStandalone() ? '<p class="hint">L’app est déjà installée sur cet appareil ✓</p>' : '<p class="hint">Ajoute un raccourci Ski Game sur ton écran d’accueil : le jeu s’ouvre comme une application.</p><button type="button" class="btn btn--ghost btn--sm" data-install>📲 Installer l’app sur mon téléphone</button>'}
+      </section>
       <section class="set"><h3>Aide et compte</h3>
         <div class="set__links"><button type="button" class="btn btn--ghost btn--sm" data-rules>Revoir les règles</button><button type="button" class="btn btn--ghost btn--sm" data-ideas>Boîte à idées</button>${state.demo ? '' : '<button type="button" class="btn btn--ghost btn--sm" data-auth="out">Me déconnecter</button>'}</div>
       </section>`);
@@ -1077,7 +1101,7 @@
   function render() {
     $('#tabs').closest('nav').hidden = !state.user && !state.demo;
     renderTabs(); renderUserbar(); renderPanel(); syncSim();
-    setTimeout(gateCheck, 400);
+    setTimeout(gateCheck, 400); syncInstall();
     const f = document.querySelector('.atelier'); if (f) f.hidden = !(state.demo || store.mode === 'local');
   }
 
@@ -1172,8 +1196,9 @@
     const rc = e.target.closest('[data-racecard]');
     if (rc) { SHARE.open(rc.dataset.racecard); return; }
     const pl = e.target.closest('[data-player]');
-    if (pl) { ficheModal(pl.dataset.player); return; }
+    if (pl && FICHE_ON) { ficheModal(pl.dataset.player); return; }
     if (e.target.closest('[data-settings]')) { settingsModal(); return; }
+    if (e.target.closest('[data-install]')) { installApp(); return; }
     if (e.target.closest('[data-gate-reset]')) { const g = gateGet(); delete g.skip; delete g.until; gateSet(g); settingsModal(); return; }
     if (e.target.closest('#modal [data-auth="out"]')) closeModal();
     const slp = e.target.closest('[data-slpick]');

@@ -1,0 +1,16 @@
+{
+  "name": "Ski Game – Coupe du monde de ski alpin 2026-27",
+  "short_name": "Ski Game",
+  "description": "Le jeu des pronostics de la Coupe du monde de ski alpin.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1b2b44",
+  "theme_color": "#1b2b44",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
