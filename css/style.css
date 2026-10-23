@@ -409,3 +409,6 @@ body.noscroll { overflow: hidden; }
 /* Onglets : une famille de violet pour les Mondiaux, un seul ton pour les desks */
 .plate--1, .plate--2, .plate--3 { --c: #8667b5; }
 .plate--w { --c: #7a1fe0; }
+
+.brand { display: flex; flex-direction: column; width: fit-content; }
+.brand .masthead__sub { width: 0; min-width: 100%; }
