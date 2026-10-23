@@ -549,3 +549,15 @@ body {
 .phs__cv { width: 240px; max-width: 100%; aspect-ratio: 1; border-radius: 50%; border: 3px solid #1f4a3a; touch-action: none; cursor: grab; background: #e4e1d3; }
 .phs__ctl { flex: 1 1 12rem; display: grid; gap: .7rem; } .phs__z { display: grid; gap: .2rem; font-weight: 600; }
 .adm__ph { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+
+/* ---------- Logo typographique : Bungee jaune soleil, bordure rouge épaisse, skis ---------- */
+.masthead__frame { --wm: clamp(2rem, 10.4vw, 4.4rem); --lh: calc(var(--wm) * 2.4); }
+.wordmark { display: inline-flex; align-items: center; gap: calc(var(--wm) * .12); filter: drop-shadow(3px 4px 0 rgba(0, 0, 0, .3)); }
+.wordmark__skis { flex: none; height: calc(var(--wm) * 1.7); width: auto; margin-bottom: calc(var(--wm) * .05); }
+.wordmark__t { font: 400 var(--wm)/1 'Bungee', Impact, sans-serif; color: #f1d78a; letter-spacing: .02em; white-space: nowrap; -webkit-text-stroke: calc(var(--wm) * .13) #b3382a; paint-order: stroke fill; }
+/* Mon compte : la photo se change depuis un petit bouton sur le rond */
+.acct__avw { position: relative; flex: none; display: inline-block; }
+.acct__cam { position: absolute; right: -4px; bottom: -4px; width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center; padding: 0; cursor: pointer; background: var(--neige); color: #1f4a3a; border: 2px solid #1f4a3a; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.acct__cam:hover { background: #1f4a3a; color: var(--neige); }
+.acct__id { flex: 1 1 auto; }
+@media (min-width: 900px) { .acct { flex-wrap: nowrap; } .acct__who { flex: 1 1 auto; } .acct__board { flex: none; } }
