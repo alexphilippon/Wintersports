@@ -828,3 +828,7 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
   .acct > .acct__board .gl-row { display: none; }
   .acct__btns { width: auto; grid-column: 2; display: flex; }
 }
+@media (max-width: 759px) {
+  .acct > .acct__board .gl--big .gl__t span, .acct > .acct__board .gl--big .gl__t em { display: none; }
+  .acct > .acct__board .gl--big { gap: .6rem; }
+}
