@@ -454,6 +454,7 @@ body.noscroll { overflow: hidden; }
 .combo__opt:hover, .combo__opt.is-hl { background: #dfe9f2; }
 .combo__opt.is-cur { font-weight: 700; }
 .combo__opt.is-off { color: #9a9285; cursor: not-allowed; text-decoration: line-through; }
+.combo__opt--out.is-off { text-decoration: none; }
 .combo__opt--clear { color: var(--encre-douce); font-style: italic; }
 .combo__none { padding: .6rem; font-size: .85rem; color: var(--encre-douce); }
 .pickhelp .combo { flex: 1; }

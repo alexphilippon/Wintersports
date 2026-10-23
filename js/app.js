@@ -215,10 +215,10 @@
     const items = ordered.map((a) => {
       const isCur = cur[slot] === a.id;
       const taken = used.has(a.id);
-      const dis = !isCur && (taken || (slot === 'b' && cur.a === a.id));
-      const out = sl && bibOf[a.id] === undefined;
+      const out = sl && bibOf[a.id] === undefined; // hors start list : grisé (sauf si déjà choisi)
+      const dis = !isCur && (taken || out || (slot === 'b' && cur.a === a.id));
       const meta = [a.nat, a.pending ? 'à régulariser' : '', out ? 'hors start list' : '', taken && slot === 'a' ? 'déjà pris' : ''].filter(Boolean).join(', ');
-      return { a, isCur, dis, label: (sl && !out ? bibOf[a.id] + ' · ' : '') + listName(a) + (meta ? ` (${meta})` : '') };
+      return { a, isCur, dis, out, label: (sl && !out ? bibOf[a.id] + ' · ' : '') + listName(a) + (meta ? ` (${meta})` : '') };
     });
     const curItem = items.find((x) => x.isCur);
     const ph = slot === 'a' ? 'Choisir un skieur (tape quelques lettres)' : 'Remplaçant (facultatif)';
@@ -227,7 +227,7 @@
     return `<div class="combo${slot === 'b' ? ' combo--sub' : ''}" data-race="${race.id}" data-slot="${slot}">
       <input type="text" id="${id}" class="pick${slot === 'b' ? ' pick--sub' : ''} combo__in" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(ph)}" value="${esc(curItem ? curItem.label : '')}" data-cur="${esc(curItem ? curItem.label : '')}"${dis ? ' disabled' : ''}>
       ${curItem && !dis ? `<button type="button" class="combo__x" data-cx aria-label="Retirer ce choix" title="Retirer ce choix">×</button>` : ''}
-      <ul class="combo__list" role="listbox" hidden>${curItem ? '<li role="option" class="combo__opt combo__opt--clear" data-v="">— Aucun —</li>' : ''}${sl ? '<li class="combo__hd" aria-hidden="true">Par ordre de dossard (start list FIS, manche 1)</li>' : ''}${items.map((x) => `<li role="option" class="combo__opt${x.dis ? ' is-off' : ''}${x.isCur ? ' is-cur' : ''}" data-v="${x.a.id}" data-l="${esc(norm(listName(x.a)))}" data-s="${esc(norm(x.a.name + ' ' + (x.a.fis || '') + ' ' + listName(x.a) + ' ' + (x.a.nat || '')))}"${x.dis ? ' aria-disabled="true"' : ''}>${esc(x.label)}</li>`).join('')}</ul>
+      <ul class="combo__list" role="listbox" hidden>${curItem ? '<li role="option" class="combo__opt combo__opt--clear" data-v="">— Aucun —</li>' : ''}${sl ? '<li class="combo__hd" aria-hidden="true">Par ordre de dossard (start list FIS, manche 1)</li>' : ''}${items.map((x) => `<li role="option" class="combo__opt${x.dis ? ' is-off' : ''}${x.out ? ' combo__opt--out' : ''}${x.isCur ? ' is-cur' : ''}" data-v="${x.a.id}" data-l="${esc(norm(listName(x.a)))}" data-s="${esc(norm(x.a.name + ' ' + (x.a.fis || '') + ' ' + listName(x.a) + ' ' + (x.a.nat || '')))}"${x.dis ? ' aria-disabled="true"' : ''}>${esc(x.label)}</li>`).join('')}</ul>
     </div>`;
   }
   const comboClose = () => document.querySelectorAll('.combo__list').forEach((l) => { l.hidden = true; const i = l.parentElement.querySelector('.combo__in'); if (i) { i.setAttribute('aria-expanded', 'false'); i.value = i.dataset.cur; } });
