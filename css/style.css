@@ -475,3 +475,13 @@ body {
 .forfait__stub { border-left-color: #e9f0f2 !important; }
 @media (max-width: 759px) { .forfait__stub { border-top-color: #e9f0f2; } }
 .forfait__stub .countdown b { color: #f1d78a; }
+
+/* ---------- Sapin, en touches discrètes ---------- */
+:root { --tex-sapin: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22%3E%3Cg stroke=%22%238fc0a4%22 stroke-opacity=%22.16%22 stroke-width=%221.4%22 stroke-linecap=%22round%22 fill=%22none%22%3E%3Cpath d=%22M4 12l8 -5l8 5M36 44l8 -5l8 5M20 60l8 -5l8 5M52 22l8 -5l8 5M-12 36l8 -5l8 5%22/%3E%3Cpath d=%22M8 28l6 -4l6 4M40 12l6 -4l6 4M24 44l6 -4l6 4%22/%3E%3C/g%3E%3Cg fill=%22%23fff%22 fill-opacity=%22.10%22%3E%3Ccircle cx=%2230%22 cy=%2222%22 r=%221.3%22/%3E%3Ccircle cx=%2258%22 cy=%2252%22 r=%221.1%22/%3E%3Ccircle cx=%2210%22 cy=%2250%22 r=%221.2%22/%3E%3C/g%3E%3C/svg%3E"); --sapin-fond: #1f4a3a; --sapin-nuit: #163629; }
+.masthead { background-color: var(--sapin-fond); background-image: var(--tex-sapin), linear-gradient(180deg, #2b5f4b 0%, var(--sapin-nuit) 100%); border-bottom-color: #e9f0f2; }
+.masthead::after { background: linear-gradient(90deg, #163629 0%, rgba(22, 54, 41, .88) 40%, rgba(22, 54, 41, 0) 85%); }
+.masthead__art rect:first-child { fill: transparent; }
+.tabs { background-color: var(--sapin-nuit); background-image: var(--tex-sapin); border-bottom-color: #e9f0f2; }
+.session__head { background-image: var(--tex-sapin); background-color: var(--sapin-fond); }
+.mastbtn { background: rgba(22, 54, 41, .6); }
+.mastbtn:hover { background: var(--neige); color: var(--sapin-fond); }
