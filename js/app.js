@@ -199,10 +199,9 @@
       <div class="pickbox__sel">
         <label class="sr" for="pa-${race.id}">Skieur, ${esc(label)}</label>
         <select id="pa-${race.id}" class="pick" data-race="${race.id}" data-slot="a">${options(race, session, 'a')}</select>
-        ${freeLink(race, 'a')}
         <label class="sr" for="pb-${race.id}">Remplaçant, ${esc(label)}</label>
-        <select id="pb-${race.id}" class="pick pick--sub" data-race="${race.id}" data-slot="b"${cur.a ? '' : ' disabled'}>${options(race, session, 'b')}</select>
-        <span class="pickhelp">${freeLink(race, 'b')}${info('Le remplaçant est facultatif : il joue à ta place seulement si ton titulaire ne prend pas le départ (blessure, malade). Dans ce cas, seul le remplaçant est « grillé ». Si le titulaire chute ou abandonne, il marque 0 et reste grillé : le remplaçant ne joue pas.')}</span>
+        <span class="pickhelp"><select id="pb-${race.id}" class="pick pick--sub" data-race="${race.id}" data-slot="b"${cur.a ? '' : ' disabled'}>${options(race, session, 'b')}</select>${info('Le remplaçant est facultatif : il joue à ta place seulement si ton titulaire ne prend pas le départ (blessure, malade). Dans ce cas, seul le remplaçant est « grillé ». Si le titulaire chute ou abandonne, il marque 0 et reste grillé : le remplaçant ne joue pas.')}</span>
+        ${freeLink(race, 'auto')}
       </div>
     </div>`;
   }
@@ -756,7 +755,7 @@
     const race = G.raceOf(sel.dataset.race);
     if (lockedRace(race)) { render(); return; } // deadline passée : on ignore
     const cur = Object.assign({}, myPicks()[race.id] || {});
-    const slot = sel.dataset.slot;
+    const slot = sel.dataset.slot === 'auto' ? (cur.a ? 'b' : 'a') : sel.dataset.slot;
     let value = sel.value;
     if (value === '__free__') {
       const name = (window.prompt('ATTENTION : vérifie d\'abord que ce skieur n\'est vraiment pas dans la liste déroulante (cherche-le par son nom de famille).\n\nNom du skieur (prénom et nom) :') || '').trim();
@@ -796,7 +795,7 @@
     const sub = e.target.closest('[data-sub]');
     if (sub) { state.sub[Number(sub.dataset.key)] = sub.dataset.sub; renderPanel(); return; }
     const fr = e.target.closest('[data-free]');
-    if (fr) { onPick({ dataset: { race: fr.dataset.free, slot: fr.dataset.slot }, value: '__free__', id: `p${fr.dataset.slot}-${fr.dataset.free}` }); return; }
+    if (fr) { onPick({ dataset: { race: fr.dataset.free, slot: fr.dataset.slot }, value: '__free__', id: `pa-${fr.dataset.free}` }); return; }
     const au = e.target.closest('[data-auth]');
     if (au) { authAction(au.dataset.auth); return; }
     if (e.target.closest('#btn-demo')) loadDemo();
