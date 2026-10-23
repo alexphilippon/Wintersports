@@ -8,9 +8,9 @@
   // Liste des skieurs : la liste de base (js/athletes.js) + ceux ajoutés par l'admin ou saisis librement par un joueur.
   let LIST = { M: BASE.M.slice(), W: BASE.W.slice() }, ATH = {};
   function rebuildAthletes() {
-    LIST = { M: BASE.M.slice(), W: BASE.W.slice() };
+    LIST = { M: BASE.M.concat(state.addl.M), W: BASE.W.concat(state.addl.W) }; // liste de base + skieurs de data/extra-athletes.json
     state.extra.slice().sort((a, b) => (a.pending ? 1 : 0) - (b.pending ? 1 : 0) || a.name.localeCompare(b.name)).forEach((x) => {
-      if (!state.aliases[x.id] && LIST[x.gender]) LIST[x.gender].push(Object.assign({ rank: null }, x));
+      if (!state.aliases[x.id] && LIST[x.gender] && !LIST[x.gender].some((a) => a.id === x.id)) LIST[x.gender].push(Object.assign({ rank: null }, x));
     });
     ATH = {};
     ['M', 'W'].forEach((g) => LIST[g].forEach((a) => { ATH[a.id] = Object.assign({}, a, { gender: g }); }));
@@ -40,6 +40,7 @@
     raw: { picks: {}, results: {} },
     file: null, draws: {}, // résultats officiels lus dans data/results.json, tirages calculés
     startlists: null,      // start lists FIS lues dans data/startlists.json (voir tools/startlist.js)
+    addl: { M: [], W: [] }, // skieurs ajoutés depuis une start list (data/extra-athletes.json, voir tools/add-missing.js)
     overrides: {}, extra: [], aliases: {},
     admin: { race: null, msg: '' },
     contacts: {}, contactsOn: false, // e-mails des joueurs (admin seulement)
@@ -1122,6 +1123,7 @@
   else {
     rebuildAthletes(); startStore();
     fetch('data/results.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.file = j; recompute(); } }).catch(() => {});
+    fetch('data/extra-athletes.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { state.addl = { M: j.M || [], W: j.W || [] }; recompute(); } }).catch(() => {});
     fetch('data/startlists.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.startlists = j; scheduleRender(); } }).catch(() => {});
   }
   render();

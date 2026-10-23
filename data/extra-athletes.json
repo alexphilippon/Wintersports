@@ -1,0 +1,18 @@
+{
+ "M": [],
+ "W": [
+  { "id": "petra-vlhova", "name": "Petra Vlhová", "fis": "VLHOVA Petra", "nat": "SVK", "rank": null, "code": "705423", "from": "W01" },
+  { "id": "sophie-mathiou", "name": "Sophie Mathiou", "fis": "MATHIOU Sophie", "nat": "ITA", "rank": null, "code": "6295752", "from": "W01" },
+  { "id": "francesca-baruzzi-farriol", "name": "Francesca Baruzzi Farriol", "fis": "BARUZZI FARRIOL Francesca", "nat": "ARG", "rank": null, "code": "35222", "from": "W01" },
+  { "id": "sohui-gim", "name": "Sohui Gim", "fis": "GIM Sohui", "nat": "KOR", "rank": null, "code": "325119", "from": "W01" },
+  { "id": "charlotte-lingg", "name": "Charlotte Lingg", "fis": "LINGG Charlotte", "nat": "LIE", "rank": null, "code": "516560", "from": "W01" },
+  { "id": "shaienne-zehnder", "name": "Shaienne Zehnder", "fis": "ZEHNDER Shaienne", "nat": "SUI", "rank": null, "code": "516848", "from": "W01" },
+  { "id": "katie-rowekamp", "name": "Katie Rowekamp", "fis": "ROWEKAMP Katie", "nat": "USA", "rank": null, "code": "6538519", "from": "W01" },
+  { "id": "arianne-forget", "name": "Arianne Forget", "fis": "FORGET Arianne", "nat": "CAN", "rank": null, "code": "108420", "from": "W01" },
+  { "id": "tatum-bieler", "name": "Tatum Bieler", "fis": "BIELER Tatum", "nat": "ITA", "rank": null, "code": "6296660", "from": "W01" },
+  { "id": "iria-medina-girones", "name": "Iria Medina Girones", "fis": "MEDINA GIRONES Iria", "nat": "AND", "rank": null, "code": "25223", "from": "W01" },
+  { "id": "elena-riederer", "name": "Elena Riederer", "fis": "RIEDERER Elena", "nat": "AUT", "rank": null, "code": "56723", "from": "W01" },
+  { "id": "sina-fausch", "name": "Sina Fausch", "fis": "FAUSCH Sina", "nat": "SUI", "rank": null, "code": "516819", "from": "W01" },
+  { "id": "valentina-rings-wanner", "name": "Valentina Rings-Wanner", "fis": "RINGS-WANNER Valentina", "nat": "AUT", "rank": null, "code": "56698", "from": "W01" }
+ ]
+}
