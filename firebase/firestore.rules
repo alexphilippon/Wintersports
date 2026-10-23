@@ -6,10 +6,16 @@ service cloud.firestore {
     // Remplace l'adresse ci-dessous par celle du compte administrateur (la même que adminEmail dans js/config.js).
     function isAdmin() { return signedIn() && request.auth.token.email == 'alexandre.philippon@gmail.com'; }
 
-    // Joueurs : chacun gère sa propre fiche.
+    // Joueurs : chacun gère sa propre fiche (nom, photo). La photo est une petite image JPEG (data URL) ;
+    // l'admin peut la retirer et en interdire le renvoi (photoBlocked), ce que le joueur ne peut pas modifier lui-même.
+    function photoOk(d) { return !('photo' in d) || d.photo == '' || (d.photo is string && d.photo.size() < 30000 && d.photo.matches('^data:image/jpeg;base64,.*')); }
     match /players/{uid} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid && !('photoBlocked' in request.resource.data) && photoOk(request.resource.data));
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && photoOk(request.resource.data)
+        && request.resource.data.get('photoBlocked', false) == resource.data.get('photoBlocked', false)
+        && (!resource.data.get('photoBlocked', false) || request.resource.data.get('photo', '') == resource.data.get('photo', '')));
       allow delete: if isAdmin();
     }
     // Adresses e-mail : visibles seulement par l'admin et par leur propriétaire.

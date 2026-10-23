@@ -133,7 +133,7 @@
   function startStore() {
     store.onAuth((u) => { state.authReady = true; state.user = u; state.me = u ? u.uid : null; introRules(); if (isAdmin() && !state.contactsOn) { state.contactsOn = true; store.listenContacts((m) => { state.contacts = m; scheduleRender(); }); } if (!state.demo) { state.authError = ''; scheduleRender(); } });
     store.listen({
-      players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id })).sort((a, b) => a.name.localeCompare(b.name, 'fr')); scheduleRender(); },
+      players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id, photo: x.photo || '', blocked: !!x.photoBlocked })).sort((a, b) => a.name.localeCompare(b.name, 'fr')); scheduleRender(); },
       picks: (m) => { state.raw.picks = m; recompute(); },
       results: (m) => { state.raw.results = m; recompute(); },
       overrides: (m) => { state.overrides = m; recompute(); },
@@ -341,7 +341,7 @@
   /* ---------- Récap des joueurs ---------- */
   function recapTable(session) {
     const races = sortedRaces(session);
-    const head = state.players.map((p) => `<th scope="col" class="${p.id === state.me ? 'me' : ''}">${esc(p.name)}</th>`).join('');
+    const head = state.players.map((p) => `<th scope="col" class="${p.id === state.me ? 'me' : ''}">${pname(p)}</th>`).join('');
     const rows = races.map((r) => {
       const cells = state.players.map((p) => {
         const pk = (state.picks[p.id] || {})[r.id];
@@ -551,14 +551,14 @@
     const rows = rankRows((pk) => ({ total: scoreFn(pk) }));
     return `<div class="tablewrap"><table class="grid grid--rank ${cls || ''}"><caption>${esc(title)}</caption>
       <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num">Points</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td><th scope="row">${esc(r.p.name)}</th><td class="num">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
+      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td><th scope="row">${pname(r.p)}</th><td class="num">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
   }
   function generalPanel() {
     const R = state.results;
     const rows = rankRows((pk) => G.generalScore(pk, R));
     const main = `<div class="tablewrap"><table class="grid grid--rank grid--general cap--gen"><caption>Le gros globe ${info('Classement général : somme des points des trois desks et des Mondiaux, bonus compris.')}</caption>
       <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num th--d1">Desk 1</th><th scope="col" class="num th--d2">Desk 2</th><th scope="col" class="num th--d3">Desk 3</th><th scope="col" class="num th--w">Mondiaux</th><th scope="col" class="num">Total</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td><th scope="row">${esc(r.p.name)}</th>${r.v.desks.map((d) => `<td class="num">${d}</td>`).join('')}<td class="num">${r.v.worlds}</td><td class="num total">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
+      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td><th scope="row">${pname(r.p)}</th>${r.v.desks.map((d) => `<td class="num">${d}</td>`).join('')}<td class="num">${r.v.worlds}</td><td class="num total">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
     const desks = D.DESKS.map((d) => smallRanking(`Classement du ${d.name}`, (pk) => G.deskScore(d.id, pk, R), 'cap--d' + d.id)).join('');
     const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => smallRanking(`Petit globe de ${c === 'SG' ? 'super-G' : D.DISC[c].fr.toLowerCase()}`, (pk) => G.disciplineScore(c, pk, R), 'cap--' + c)).join('');
     const none = Object.keys(R).length === 0 ? '<p class="hint">Aucun résultat pour l’instant.</p>' : '';
@@ -776,6 +776,66 @@
     el.hidden = !state.user || (state.demo && !state.user);
     if (!el.hidden) el.innerHTML = accountBar();
   }
+  /* ---------- Photo de profil ---------- */
+  const playerOf = (id) => state.players.find((p) => p.id === id) || { id, name: '', photo: '' };
+  function pav(p, size) {
+    const init = esc((p.name || '?').trim()[0] ? (p.name || '?').trim()[0].toUpperCase() : '?');
+    return `<span class="pav pav--${size || 'sm'}" aria-hidden="true">${p.photo ? `<img src="${p.photo}" alt="">` : `<span>${init}</span>`}</span>`;
+  }
+  const pname = (p) => `<span class="pn">${pav(p, 'xs')}<span>${esc(p.name)}</span></span>`;
+  const PH = { img: null, zoom: 1, x: 0, y: 0 };
+  function photoModal() {
+    const me = playerOf(state.me);
+    if (me.blocked) { openModal('<h3>Photo de profil</h3><p>L’organisateur a retiré ta photo : tu ne peux pas en envoyer une nouvelle pour l’instant. Si c’est une erreur, écris-lui.</p>'); return; }
+    PH.img = null; PH.zoom = 1; PH.x = 0; PH.y = 0;
+    openModal(`<h3>Photo de profil</h3><p class="hint">Visible par tous les joueurs. Une image carrée de 160 px est enregistrée : choisis une photo, cadre-la, valide.</p>
+      <div class="phs"><canvas id="ph-cv" class="phs__cv" width="240" height="240" aria-label="Aperçu de la photo"></canvas>
+      <div class="phs__ctl"><input type="file" id="ph-file" accept="image/*"><label class="phs__z">Zoom <input type="range" id="ph-zoom" min="1" max="3" step="0.02" value="1" disabled></label><p class="hint">Fais glisser l’image pour la recentrer.</p></div></div>
+      <div class="rc__act"><button type="button" class="btn" id="ph-save" disabled>Enregistrer</button>${me.photo ? '<button type="button" class="btn btn--ghost" id="ph-del">Retirer ma photo</button>' : ''}</div><p class="auth__err" id="ph-msg" role="status"></p>`);
+    phDraw();
+  }
+  function phDraw() {
+    const cv = $('#ph-cv'); if (!cv) return; const g = cv.getContext('2d'), S = cv.width;
+    g.fillStyle = '#e4e1d3'; g.fillRect(0, 0, S, S);
+    if (PH.img) {
+      const im = PH.img, base = S / Math.min(im.width, im.height), k = base * PH.zoom, w = im.width * k, h = im.height * k;
+      PH.x = Math.max(-(w - S) / 2, Math.min((w - S) / 2, PH.x)); PH.y = Math.max(-(h - S) / 2, Math.min((h - S) / 2, PH.y));
+      g.drawImage(im, (S - w) / 2 + PH.x, (S - h) / 2 + PH.y, w, h);
+    } else { g.fillStyle = '#675e51'; g.font = '600 18px sans-serif'; g.textAlign = 'center'; g.fillText('Aucune image', S / 2, S / 2); }
+  }
+  function phExport() {
+    const src = $('#ph-cv'), out = document.createElement('canvas'); out.width = out.height = 160;
+    out.getContext('2d').drawImage(src, 0, 0, 160, 160);
+    let q = 0.85, d = out.toDataURL('image/jpeg', q);
+    while (d.length > 26000 && q > 0.4) { q -= 0.1; d = out.toDataURL('image/jpeg', q); }
+    return d;
+  }
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'ph-file') {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      if (!/^image\//.test(f.type)) { $('#ph-msg').textContent = 'Ce fichier n’est pas une image.'; return; }
+      const im = new Image(), url = URL.createObjectURL(f);
+      im.onload = () => { PH.img = im; PH.zoom = 1; PH.x = PH.y = 0; $('#ph-zoom').disabled = false; $('#ph-zoom').value = 1; $('#ph-save').disabled = false; $('#ph-msg').textContent = ''; phDraw(); URL.revokeObjectURL(url); };
+      im.onerror = () => { $('#ph-msg').textContent = 'Image illisible : essaie un JPEG ou un PNG.'; };
+      im.src = url;
+    }
+  });
+  document.addEventListener('input', (e) => { if (e.target.id === 'ph-zoom') { PH.zoom = +e.target.value; phDraw(); } });
+  (function () {
+    let drag = null;
+    document.addEventListener('pointerdown', (e) => { if (e.target.id === 'ph-cv' && PH.img) { drag = { x: e.clientX, y: e.clientY, px: PH.x, py: PH.y, k: 240 / e.target.getBoundingClientRect().width }; e.target.setPointerCapture(e.pointerId); } });
+    document.addEventListener('pointermove', (e) => { if (drag) { PH.x = drag.px + (e.clientX - drag.x) * drag.k; PH.y = drag.py + (e.clientY - drag.y) * drag.k; phDraw(); } });
+    document.addEventListener('pointerup', () => { drag = null; });
+  })();
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-photo]')) { photoModal(); return; }
+    if (e.target.id === 'ph-save' && PH.img) {
+      e.target.disabled = true; $('#ph-msg').textContent = 'Enregistrement…';
+      try { await store.setPlayerPhoto(state.me, phExport()); closeModal(); } catch (err) { $('#ph-msg').textContent = 'Échec de l’enregistrement : ' + (err.message || err); e.target.disabled = false; }
+    }
+    if (e.target.id === 'ph-del') { try { await store.setPlayerPhoto(state.me, ''); closeModal(); } catch (err) { $('#ph-msg').textContent = 'Échec : ' + (err.message || err); } }
+  });
+
   /* ---------- Mon compte et tableau de bord ---------- */
   function globeSvg(kind) {
     const id = 'g' + kind + Math.random().toString(36).slice(2, 6);
@@ -799,8 +859,10 @@
       <button type="button" class="gl gl--big" data-tab="gen" title="Voir les classements">${globeSvg('big')}<span class="gl__t"><b>${rk ? nth(rk.gen) : '–'}</b><span>Gros globe</span><em>${rk && rk.gen ? rk.gen.pts + ' pts' : 'pas encore de course'}</em></span></button>
       <div class="gl-row">${['DH', 'SG', 'GS', 'SL'].map((c, i) => `<button type="button" class="gl gl--sm" data-tab="gen" title="Petit globe de ${DN[c].toLowerCase()}">${globeSvg('sm')}<span class="gl__t"><b>${rk ? nth(rk.discs[i]) : '–'}</b><span>${DN[c]}</span></span></button>`).join('')}</div>
     </div>`;
-    const links = state.demo ? '' : `<span class="acct__links"><button type="button" class="linkbtn" data-auth="rename">Changer mon nom</button><button type="button" class="linkbtn" data-auth="out">Me déconnecter</button></span>`;
-    return `<div class="acct"><div class="acct__who"><span class="acct__av" aria-hidden="true">${esc((name.trim()[0] || '?').toUpperCase())}</span>
+    const me0 = playerOf(state.me), me0Btn = state.demo ? '' : `<button type="button" class="linkbtn" data-photo>${me0.photo ? 'Changer ma photo' : 'Ajouter ma photo'}</button>`;
+    const links = state.demo ? '' : `<span class="acct__links">${me0Btn}<button type="button" class="linkbtn" data-auth="rename">Changer mon nom</button><button type="button" class="linkbtn" data-auth="out">Me déconnecter</button></span>`;
+    const me = playerOf(state.me);
+    return `<div class="acct"><div class="acct__who"><button type="button" class="acct__avb" data-photo title="${me.blocked ? 'Photo retirée par l’organisateur' : 'Ma photo de profil'}" ${state.demo ? 'disabled' : ''}>${pav(Object.assign({}, me, { name }), 'lg')}</button>
       <div class="acct__id"><span class="acct__hi">Mon compte</span><strong class="acct__name">${esc(name)}</strong>${links}</div></div>${board}</div>`;
   }
   function renderPanel() {

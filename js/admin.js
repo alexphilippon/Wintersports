@@ -70,7 +70,7 @@
     html += `<h3 class="subtitle">Choix posés ou modifiés après la deadline</h3>${late.length
       ? `<ul class="adm__list">${late.map((x) => `<li><strong>${esc(x.p.name)}</strong> · ${esc(raceLabel(x.r))} · ${esc(new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'short' }).format(new Date(x.ts)))}</li>`).join('')}</ul>`
       : '<p class="hint">Aucun.</p>'}`;
-    html += `<h3 class="subtitle">Joueurs inscrits (${state.players.length})</h3>${state.players.length ? `<ul class="adm__list">${state.players.map((p) => `<li><strong>${esc(p.name)}</strong> <span class="sub">${state.contacts[p.id] ? esc(state.contacts[p.id]) : 'e-mail non disponible'}</span></li>`).join('')}</ul>` : '<p class="hint">Personne pour l’instant.</p>'}`;
+    html += `<h3 class="subtitle">Joueurs inscrits (${state.players.length})</h3>${state.players.length ? `<ul class="adm__list">${state.players.map((p) => `<li class="adm__ph"><span class="pav pav--sm">${p.photo ? `<img src="${p.photo}" alt="">` : `<span>${esc((p.name || '?')[0].toUpperCase())}</span>`}</span><strong>${esc(p.name)}</strong> <span class="sub">${state.contacts[p.id] ? esc(state.contacts[p.id]) : 'e-mail non disponible'}</span>${p.blocked ? `<span class="sub">photo interdite</span> <button type="button" class="linkbtn" data-adm="photo-allow" data-id="${esc(p.id)}">Autoriser à nouveau</button>` : p.photo ? `<button type="button" class="linkbtn" data-adm="photo-censor" data-id="${esc(p.id)}">Retirer la photo</button>` : ''}</li>`).join('')}</ul>` : '<p class="hint">Personne pour l’instant.</p>'}`;
     return html;
   }
 
@@ -206,6 +206,8 @@
     const act = b.dataset.adm;
     const r = A.race ? C.G.raceOf(A.race) : null;
     if (act === 'players-seen') { C.markPlayersSeen(); return; }
+    if (act === 'photo-censor') { if (window.confirm('Retirer cette photo et empêcher le joueur d’en envoyer une nouvelle ?')) await guard(C.store.setPhotoBlock(b.dataset.id, true)); return; }
+    if (act === 'photo-allow') { await guard(C.store.setPhotoBlock(b.dataset.id, false)); return; }
     if (act === 'analyse' && r) {
       A.text = $('#adm-text').value; A.parsed = parseResults(A.text, r.gender); A.msg = ''; C.rerender();
     } else if (act === 'save-result' && r && A.parsed) {

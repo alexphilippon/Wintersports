@@ -46,6 +46,8 @@
       async updateAthlete(id, patch) { db.athletes[id] = Object.assign({}, db.athletes[id], patch); persist(); emit('athletes'); },
       async setAlias(from, to) { if (to) db.aliases[from] = to; else delete db.aliases[from]; persist(); emit('aliases'); },
       async setPlayerName(u, name) { db.players[u] = Object.assign({}, db.players[u], { name }); persist(); emit('players'); emitAuth(); },
+      async setPlayerPhoto(u, photo) { db.players[u] = Object.assign({}, db.players[u], { photo }); persist(); emit('players'); },
+      async setPhotoBlock(u, blocked) { db.players[u] = Object.assign({}, db.players[u], { photo: '', photoBlocked: !!blocked }); persist(); emit('players'); },
       async addIdea(i) { (db.ideas || (db.ideas = [])).push(Object.assign({ id: 'i' + Date.now(), ts: Date.now() }, i)); persist(); if (ideasCb) ideasCb(db.ideas.slice().reverse()); },
       listenContacts(cb) { const o = {}; db.users.forEach((u) => { o[u.uid] = u.email; }); cb(o); },
       listenIdeas(cb) { ideasCb = cb; cb((db.ideas || []).slice().reverse()); },
@@ -118,6 +120,8 @@
       listenContacts(cb) { ready.then(() => db.collection('contacts').onSnapshot((s) => { const o = {}; s.docs.forEach((d) => { o[d.id] = d.data().email || ''; }); cb(o); }, (e) => console.error('Contacts :', e))); },
       listenIdeas(cb) { ready.then(() => db.collection('ideas').orderBy('ts', 'desc').onSnapshot((s) => cb(s.docs.map((d) => { const m = d.data(); return Object.assign({ id: d.id }, m, { ts: m.ts ? ms(m.ts) : Date.now() }); })), (e) => console.error('Idées :', e))); },
       async setPlayerName(uid, name) { await ready; await db.doc('players/' + uid).set({ name }, { merge: true }); if (current && current.uid === uid) { current.name = name; authCbs.forEach((cb) => cb(current)); } },
+      async setPlayerPhoto(uid, photo) { await ready; await db.doc('players/' + uid).set({ photo }, { merge: true }); },
+      async setPhotoBlock(uid, blocked) { await ready; await db.doc('players/' + uid).set({ photo: '', photoBlocked: !!blocked }, { merge: true }); },
     };
   }
 
