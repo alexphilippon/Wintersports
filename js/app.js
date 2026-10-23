@@ -776,6 +776,18 @@
     el.hidden = !state.user || (state.demo && !state.user);
     if (!el.hidden) el.innerHTML = accountBar();
   }
+  /* ---------- Ambiance (Sapin, Glace, Nuit), mémorisée dans le navigateur ---------- */
+  const THEME_COLOR = { sapin: '#163629', glace: '#a8cfe4', nuit: '#0b1322' };
+  function setTheme(t, save) {
+    if (!THEME_COLOR[t]) t = 'sapin';
+    if (t === 'sapin') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
+    document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)));
+    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', THEME_COLOR[t]);
+    if (save) { try { localStorage.setItem('skigame.theme', t); } catch (e) { /* ignoré */ } }
+  }
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-theme-set]'); if (b) setTheme(b.dataset.themeSet, true); });
+  (function () { let t = 'sapin'; try { t = localStorage.getItem('skigame.theme') || 'sapin'; } catch (e) { /* ignoré */ } setTheme(t, false); })();
+
   /* ---------- Photo de profil ---------- */
   const playerOf = (id) => state.players.find((p) => p.id === id) || { id, name: '', photo: '' };
   function pav(p, size) {
