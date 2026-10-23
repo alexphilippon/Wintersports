@@ -3,7 +3,7 @@
   'use strict';
   let C = null; // contexte fourni par app.js à chaque rendu
   const A = { sub: 'ctl', race: '', parsed: null, text: '', msg: '', calRace: '' };
-  const SUBS = [['ctl', 'Contrôles'], ['res', 'Résultats'], ['cal', 'Calendrier'], ['ath', 'Skieurs'], ['draw', 'Tirages'], ['idea', 'Idées']];
+  const SUBS = [['ctl', 'Contrôles'], ['res', 'Résultats'], ['cal', 'Calendrier'], ['ath', 'Skieurs'], ['draw', 'Tirages'], ['idea', 'Idées et questions']];
   const $ = (s) => document.querySelector(s);
   const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const tokens = (s) => norm(s).split(/[^a-z0-9]+/).filter(Boolean);
@@ -182,7 +182,7 @@
   function ideaView() {
     if (!A.ideasOn) { A.ideasOn = true; A.ideas = []; C.store.listenIdeas((l) => { A.ideas = l; if (A.sub === 'idea') C.rerender(); }); }
     if (!A.ideas.length) return '<p class="hint">Aucune suggestion pour l’instant.</p>';
-    return `<ul class="adm__list">${A.ideas.map((i) => `<li><strong>${C.esc(i.name || '?')}</strong> <span class="sub">${C.esc(new Date(i.ts).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'short' }))}</span><br>${C.esc(i.text).replace(/\n/g, '<br>')}</li>`).join('')}</ul>`;
+    return `<ul class="adm__list">${A.ideas.map((i) => `<li><strong>${C.esc(i.name || '?')}</strong> ${i.kind === 'question' ? '<span class="flag flag--moved">Question</span>' : '<span class="flag flag--idea">Idée</span>'} ${i.contact ? `<span class="sub">Contact : ${C.esc(i.contact)}</span>` : ''}<span class="sub">${C.esc(new Date(i.ts).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'short' }))}</span><br>${C.esc(i.text).replace(/\n/g, '<br>')}</li>`).join('')}</ul>`;
   }
 
   function render(ctx) {

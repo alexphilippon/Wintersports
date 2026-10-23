@@ -25,7 +25,8 @@
     sim: null,
     demo: false,
     user: null,            // { uid, email, name } une fois connecté
-    authMode: 'rules',     // 'rules' | 'in' | 'up' (écran d'accueil / connexion)
+    authMode: 'up',        // 'in' | 'up' (écran de connexion)
+    authReady: false,      // la session (déjà connecté ou non) est connue
     authError: '',
     players: [],
     me: null,
@@ -67,7 +68,7 @@
     PLACE_RE.lastIndex = 0;
     while ((m = PLACE_RE.exec(text))) {
       const cc = PLACE_CC[m[0]];
-      out += esc(text.slice(last, m.index)) + `<img class="fl" src="https://flagcdn.com/w40/${cc}.png" srcset="https://flagcdn.com/w80/${cc}.png 2x" width="20" height="15" alt="" loading="lazy">` + esc(m[0]);
+      out += esc(text.slice(last, m.index)) + `<img class="fl" src="https://flagcdn.com/w40/${cc}.png" srcset="https://flagcdn.com/w80/${cc}.png 2x" width="20" height="15" alt="" loading="lazy" onerror="this.style.display='none'">` + esc(m[0]);
       last = m.index + m[0].length;
     }
     return out + esc(text.slice(last));
@@ -117,7 +118,7 @@
     scheduleRender();
   }
   function startStore() {
-    store.onAuth((u) => { state.user = u; state.me = u ? u.uid : null; if (!state.demo) { state.authError = ''; scheduleRender(); } });
+    store.onAuth((u) => { state.authReady = true; state.user = u; state.me = u ? u.uid : null; introRules(); if (!state.demo) { state.authError = ''; scheduleRender(); } });
     store.listen({
       players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id })).sort((a, b) => a.name.localeCompare(b.name, 'fr')); scheduleRender(); },
       picks: (m) => { state.raw.picks = m; recompute(); },
@@ -147,7 +148,7 @@
   function avatar(a, on, size) {
     const caps = a.name.split(' ').filter((w) => /^[A-ZÀ-ÝÖÜÄ]/.test(w));
     const initials = (caps.length > 1 ? caps[0][0] + caps[caps.length - 1][0] : (caps[0] || a.name).slice(0, 2)).toUpperCase();
-    return `<span class="avatar avatar--${a.gender}${size ? ' avatar--' + size : ''}${on === false ? ' is-off' : ''}" aria-hidden="true"><span class="avatar__in">${esc(initials)}</span><img class="avatar__img" src="${PHOTO_DIR}${a.id}.jpg" alt="" loading="lazy"></span>`;
+    return `<span class="avatar avatar--${a.gender}${size ? ' avatar--' + size : ''}${on === false ? ' is-off' : ''}" aria-hidden="true"><span class="avatar__in">${esc(initials)}</span><img class="avatar__img" src="${PHOTO_DIR}${a.id}.jpg" alt="" loading="lazy" onerror="this.style.display='none'"></span>`;
   }
   const avatarOf = (id, size) => (ATH[id] ? avatar(ATH[id], true, size) : '');
   const nameOf = (id) => (ATH[id] ? ATH[id].name : id);
@@ -512,8 +513,33 @@
     m.hidden = false; document.body.classList.add('noscroll');
     const f = m.querySelector('textarea, button:not(.modal__x)'); if (f) f.focus({ preventScroll: true });
   }
-  function closeModal() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; document.body.classList.remove('noscroll'); }
-  const rulesModal = () => openModal(`<h2>Les règles du jeu</h2>${rulesHtml()}<button type="button" class="btn btn--brique" data-close>J’ai compris</button>`);
+  function closeModal() { const m = $('#modal'); m.hidden = true; m.dataset.lock = ''; m.innerHTML = ''; document.body.classList.remove('noscroll'); }
+  const rulesSeen = () => { try { return !!localStorage.getItem('skigame.rulesSeen'); } catch (e) { return false; } };
+  const markSeen = () => { try { localStorage.setItem('skigame.rulesSeen', '1'); } catch (e) { /* ignoré */ } };
+  function rulesModal(intro) {
+    openModal(`<h2>${intro ? 'Bienvenue sur Ski Game' : 'Les règles du jeu'}</h2>${intro ? '<p class="hint">Voici le jeu en deux minutes. Tu les retrouveras à tout moment via « Règles du jeu » en haut de la page.</p>' : ''}${rulesHtml()}
+      <div class="remindbtns"><button type="button" class="btn btn--brique" data-rules-ok>Ok, j’ai compris</button><button type="button" class="btn btn--ghost" data-question>J’ai une question</button></div>`);
+    $('#modal').dataset.lock = intro ? '1' : '';
+  }
+  /** Première visite : les règles s'affichent et restent jusqu'à « Ok, j'ai compris ». */
+  function introRules() { if (!state.demo && !rulesSeen() && $('#modal').hidden) rulesModal(true); }
+  function questionForm() {
+    const who = state.user ? '' : `<label for="q-contact">Ton nom ou e-mail (pour qu’on puisse te répondre)</label><input id="q-contact" type="text" maxlength="80">`;
+    $('#modal .modal__card').innerHTML = `<h2>J’ai une question</h2><p class="hint">Pose ta question sur le jeu ou son fonctionnement : l’organisateur la recevra.</p>
+      <form id="q-form"><label class="sr" for="q-text">Ta question</label><textarea id="q-text" rows="5" maxlength="1500" required></textarea>${who}
+      <p class="auth__err" id="q-msg" role="status"></p><button type="submit" class="btn btn--brique">Envoyer ma question</button></form>`;
+    $('#q-text').focus();
+  }
+  document.addEventListener('submit', async (e) => {
+    if (e.target.id !== 'q-form') return;
+    e.preventDefault();
+    const text = $('#q-text').value.trim(); if (!text) return;
+    const c = $('#q-contact');
+    try {
+      await store.addIdea({ kind: 'question', uid: state.user ? state.user.uid : '', name: state.user ? state.user.name : '', contact: c ? c.value.trim() : '', text });
+      $('#modal .modal__card').innerHTML = '<h2>Merci !</h2><p class="adm__msg">Ta question a bien été envoyée.</p><button type="button" class="btn btn--brique" data-rules-ok>Continuer</button>';
+    } catch (err) { $('#q-msg').textContent = 'Envoi impossible : ' + (err.message || err); }
+  });
   const ideasModal = () => openModal(`<h2>Boîte à idées</h2>
     <p class="hint">N’hésite pas à formuler tes suggestions d’améliorations sur l’ergonomie du site. Pas sur les règles, mais sur les fonctionnalités, la navigation, les stats éventuelles, etc.</p>
     <form id="idea-form"><label class="sr" for="idea-text">Ta suggestion</label><textarea id="idea-text" rows="6" maxlength="1500" placeholder="Ta suggestion…" required></textarea>
@@ -524,7 +550,7 @@
     const t = $('#idea-text').value.trim();
     if (!t || !state.user) return;
     try {
-      await store.addIdea({ uid: state.user.uid, name: state.user.name, text: t });
+      await store.addIdea({ kind: 'idea', uid: state.user.uid, name: state.user.name, text: t });
       $('#idea-form').innerHTML = '<p class="adm__msg">Merci ! Ta suggestion a bien été envoyée.</p><button type="button" class="btn" data-close>Fermer</button>';
     } catch (err) { $('#idea-msg').textContent = 'Envoi impossible : ' + (err.message || err); }
   });
@@ -543,11 +569,14 @@
     const i = e.target.closest('.info');
     if (i) { e.preventDefault(); showTip(i); return; }
     if (!e.target.closest('#tip')) hideTip();
-    if (e.target.closest('[data-close]') || e.target.id === 'modal') closeModal();
-    if (e.target.closest('[data-rules]')) rulesModal();
+    if (e.target.closest('[data-rules-ok]')) { markSeen(); closeModal(); return; }
+    if (e.target.closest('[data-question]')) { questionForm(); return; }
+    const lk = $('#modal').dataset.lock === '1';
+    if (e.target.closest('[data-close]') || (e.target.id === 'modal' && !lk)) closeModal();
+    if (e.target.closest('[data-rules]')) rulesModal(false);
     if (e.target.closest('[data-ideas]')) ideasModal();
   });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { hideTip(); closeModal(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { hideTip(); if ($('#modal').dataset.lock !== '1') closeModal(); } });
   window.addEventListener('scroll', hideTip, { passive: true });
 
 
@@ -617,13 +646,6 @@
 
   /* ---------- Connexion ---------- */
   function authPanel() {
-    if (state.authMode === 'rules') {
-      return `<section class="auth"><div class="authcard authcard--rules"><h2>Bienvenue sur Ski Game</h2>
-        <p class="auth__intro">Voici le jeu en deux minutes. Les règles restent consultables à tout moment une fois connecté.</p>
-        ${rulesHtml()}
-        <button type="button" class="btn btn--brique" data-auth="up">Créer mon compte</button>
-        <p class="auth__alt">Déjà un compte ? <button type="button" class="linkbtn" data-auth="in">Me connecter</button></p></div></section>`;
-    }
     const up = state.authMode === 'up';
     return `<section class="auth"><form class="authcard" id="auth-form" novalidate>
       <h2>${up ? 'Créer mon compte' : 'Connexion'}</h2>
@@ -633,7 +655,7 @@
       <label for="au-pw">Mot de passe${up ? ' (6 caractères minimum)' : ''}</label><input id="au-pw" name="pw" type="password" autocomplete="${up ? 'new-password' : 'current-password'}" required>
       <p class="auth__err" id="auth-err" role="alert">${esc(state.authError)}</p>
       <button type="submit" class="btn btn--brique">${up ? 'Créer mon compte' : 'Me connecter'}</button>
-      <p class="auth__alt">${up ? 'Déjà un compte ?' : 'Pas encore de compte ?'} <button type="button" class="linkbtn" data-auth="${up ? 'in' : 'up'}">${up ? 'Me connecter' : 'Créer un compte'}</button> · <button type="button" class="linkbtn" data-auth="rules">Revoir les règles</button>${up ? '' : ' · <button type="button" class="linkbtn" data-auth="reset">Mot de passe oublié</button>'}</p>
+      <p class="auth__alt">${up ? 'Déjà un compte ?' : 'Pas encore de compte ?'} <button type="button" class="linkbtn" data-auth="${up ? 'in' : 'up'}">${up ? 'Me connecter' : 'Créer un compte'}</button> · <button type="button" class="linkbtn" data-rules>Revoir les règles</button>${up ? '' : ' · <button type="button" class="linkbtn" data-auth="reset">Mot de passe oublié</button>'}</p>
       ${store.mode === 'local' ? '<p class="auth__local">Mode local : les comptes et les choix restent dans ce navigateur (pas de partage entre joueurs).</p>' : ''}
     </form></section>`;
   }
@@ -646,6 +668,7 @@
   }
   function renderPanel() {
     const t = state.tab;
+    if (!state.authReady && !state.demo) { $('#panel').innerHTML = '<p class="hint">Chargement…</p>'; return; }
     if (!state.user && !state.demo) {
       $('#panel').innerHTML = authPanel();
       return;
@@ -690,7 +713,7 @@
 
   /* ---------- Actions : connexion ---------- */
   async function authAction(kind) {
-    if (kind === 'in' || kind === 'up' || kind === 'rules') { state.authMode = kind; state.authError = ''; render(); return; }
+    if (kind === 'in' || kind === 'up') { state.authMode = kind; state.authError = ''; render(); return; }
     if (kind === 'out') { await store.signOut(); state.tab = 'next'; state.authMode = 'in'; state.authError = ''; render(); return; }
     if (kind === 'rename') {
       const n = (window.prompt('Ton nom dans le jeu :', state.user.name) || '').trim().slice(0, 24);

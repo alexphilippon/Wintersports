@@ -395,3 +395,17 @@ body.noscroll { overflow: hidden; }
 .logo-img { height: clamp(100px, 30vw, 160px); }
 .masthead { height: 240px; }
 @media (max-width: 480px) { .masthead { height: 225px; } }
+
+/* Tagline alignée sur le logo */
+.masthead__frame { --lh: clamp(100px, 30vw, 160px); }
+.logo-img { height: var(--lh); }
+.masthead__title { margin: 0; }
+.masthead__sub { width: 0; min-width: 100%; margin-top: .45rem; padding-top: .4rem; border-top: 2px solid var(--ocre); text-transform: uppercase; letter-spacing: .16em; font-weight: 700; font-size: max(10.5px, calc(var(--lh) * .085)); line-height: 1.5; color: var(--neige); max-width: none; }
+.masthead__frame { align-items: flex-start; }
+.masthead__title { width: fit-content; }
+.masthead__sub { align-self: flex-start; }
+.modal[data-lock="1"] .modal__x { display: none; }
+.flag--idea { background: var(--sapin); color: var(--neige); }
+/* Onglets : une famille de violet pour les Mondiaux, un seul ton pour les desks */
+.plate--1, .plate--2, .plate--3 { --c: #8667b5; }
+.plate--w { --c: #7a1fe0; }

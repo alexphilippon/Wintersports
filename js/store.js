@@ -58,17 +58,18 @@
   }
   function firebaseStore(cfg) {
     let fb, auth, db, FV;
-    const authCbs = []; let current = null;
+    const authCbs = []; let current = null, resolved = false;
     const ready = (async () => {
       if (!root.firebase) for (const f of FB_FILES) await loadScript(`https://www.gstatic.com/firebasejs/${FB_VERSION}/firebase-${f}-compat.js`);
       fb = root.firebase; fb.initializeApp(cfg); auth = fb.auth(); db = fb.firestore(); FV = fb.firestore.FieldValue;
       auth.onAuthStateChanged(async (u) => {
-        if (!u) { current = null; authCbs.forEach((cb) => cb(null)); return; }
+        if (!u) { current = null; resolved = true; authCbs.forEach((cb) => cb(null)); return; }
         let name = u.email;
         try { const d = await db.doc('players/' + u.uid).get(); if (d.exists) name = d.data().name || name; } catch (e) { /* pas encore créé */ }
-        current = { uid: u.uid, email: u.email, name }; authCbs.forEach((cb) => cb(current));
+        current = { uid: u.uid, email: u.email, name }; resolved = true; authCbs.forEach((cb) => cb(current));
       });
     })();
+    ready.catch(() => { resolved = true; authCbs.forEach((cb) => cb(null)); });
     const msg = (e) => {
       const c = e && e.code || '';
       if (/email-already/.test(c)) return new Error('Cette adresse a déjà un compte.');
@@ -86,7 +87,7 @@
     }
     return {
       mode: 'firebase', ready,
-      onAuth(cb) { authCbs.push(cb); cb(current); },
+      onAuth(cb) { authCbs.push(cb); if (resolved) cb(current); },
       async signUp(email, pw, name) {
         await ready;
         try { const c = await auth.createUserWithEmailAndPassword(email.trim(), pw); await db.doc('players/' + c.user.uid).set({ name: name || email, email: email.trim() }); current = { uid: c.user.uid, email: c.user.email, name: name || email }; authCbs.forEach((cb) => cb(current)); } catch (e) { throw msg(e); }
