@@ -163,7 +163,8 @@
         const res = state.results[r.id];
         if (!pk || !pk.a) { jobs.push({ p, r, kind: 'oubli', pk: null }); return; }
         const main = res && res.find((e) => e.ath === pk.a);
-        if (main && main.status === 'DNS' && !pk.b && !pk.d) jobs.push({ p, r, kind: 'dns', pk });
+        const sub = pk.b && (((res || []).find((e) => e.ath === pk.b) || {}).status !== 'DNS');
+        if (main && main.status === 'DNS' && !sub && !pk.d) jobs.push({ p, r, kind: 'dns', pk });
       });
     });
     return jobs.sort((a, b) => (a.r.date + a.r.time).localeCompare(b.r.date + b.r.time)).map((j) => Object.assign(j, { desk: deskOf(j.r) }));

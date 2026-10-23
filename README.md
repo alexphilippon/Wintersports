@@ -68,3 +68,8 @@ Sur ton ordinateur : `npm i sharp` puis `node tools/fetch-photos.js` remplit `im
 - Admin : Contrôles (qui a choisi, choix hors délai), Résultats (coller un classement, ex aequo, DNS/DNF/DSQ), Calendrier (heure confirmée, report, annulation), Skieurs (ajout, régularisation des noms libres), Tirages (choix oubliés, DNS sans remplaçant).
 - Règles : annulation = skieur libéré ; report = choix gardé, modifiable jusqu'au nouveau départ ; DNS = le remplaçant joue (seul lui est grillé), sinon tirage hors site saisi par l'admin.
 - Limite connue : le masquage des choix avant la deadline est fait par le site, pas par la base de données (un joueur averti pourrait lire les choix des autres via les outils du navigateur). Les modifications tardives sont détectées (onglet Admin > Contrôles).
+
+## Résultats officiels (PDF FIS)
+`node tools/results.js course.json` ajoute une course à `data/results.json` (lu par le site en plus de Firestore, qui reste prioritaire).
+Il refuse d'écrire tant qu'un DNS n'est pas confirmé (`"dns":[{"bib":N,"confirmed":true}]`).
+Tirage au sort (titulaire et remplaçant absents) : calculé par le site, reproductible, graine = `course|joueur|temps du vainqueur`, parmi les 30 premiers dossards du départ (manche 1 en GS/SL), hors skieurs déjà grillés par le joueur dans le desk et hors non-partants. Test : `node tests/results.test.js` (Sölden 2025).

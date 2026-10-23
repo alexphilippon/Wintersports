@@ -37,6 +37,7 @@
     tf: 'all',             // filtre : all | taken | free
     // données brutes du stockage
     raw: { picks: {}, results: {} },
+    file: null, draws: {}, // résultats officiels lus dans data/results.json, tirages calculés
     overrides: {}, extra: [], aliases: {},
     admin: { race: null, msg: '' },
     contacts: {}, contactsOn: false, // e-mails des joueurs (admin seulement)
@@ -116,10 +117,17 @@
       picks[uid] = {};
       Object.entries(state.raw.picks[uid] || {}).forEach(([rid, p]) => { if (p && typeof p === 'object') picks[uid][rid] = fix(p); });
     });
-    state.picks = picks;
-    const res = {};
-    Object.entries(state.raw.results).forEach(([rid, entries]) => { res[rid] = (entries || []).map((e) => Object.assign({}, e, { ath: canon(e.ath) })); });
+    const res = {}, meta = {};
+    const fileRaces = (state.file && state.file.races) || {};
+    Object.entries(fileRaces).forEach(([rid, r]) => { // résultats officiels du dépôt (data/results.json) ; une saisie dans Firestore les remplace
+      res[rid] = (r.entries || []).map((e) => Object.assign({}, e, { ath: canon(e.ath) }));
+      if (r.start && r.seed) meta[rid] = { seed: r.seed, start: r.start.map((x) => ({ bib: x.bib, ath: canon(x.ath) })) };
+    });
+    Object.entries(state.raw.results).forEach(([rid, entries]) => { res[rid] = (entries || []).map((e) => Object.assign({}, e, { ath: canon(e.ath) })); delete meta[rid]; });
     state.results = res;
+    state.draws = G.autoDraws(res, meta, picks); // tirages au sort : fonction pure des données publiques, donc vérifiables
+    Object.entries(state.draws).forEach(([rid, byPlayer]) => Object.entries(byPlayer).forEach(([pid, d]) => { picks[pid][rid] = Object.assign({}, picks[pid][rid], { d: d.ath, auto: true }); }));
+    state.picks = picks;
     scheduleRender();
   }
   function startStore() {
@@ -272,7 +280,10 @@
     if (!p || !p.a) return '<span class="none">Aucun choix</span>';
     const eff = G.effectiveAthlete(p, state.results, race.id);
     const swapped = p.b && eff === p.b;
-    const text = swapped
+    const drawn = p.d && eff === p.d;
+    const text = drawn
+      ? `<span class="who"><s class="who--out">${esc(nameOf(p.a))}</s>${p.b ? ` <s class="who--out">${esc(nameOf(p.b))}</s>` : ''} ${esc(nameOf(p.d))}</span><span class="sub">Tiré au sort</span>`
+      : swapped
       ? `<span class="who"><s class="who--out">${esc(nameOf(p.a))}</s> ${esc(nameOf(p.b))}</span><span class="sub">Remplaçant en piste</span>`
       : `<span class="who">${esc(nameOf(p.a))}</span>${p.b ? `<span class="sub">Remplaçant : ${esc(nameOf(p.b))}</span>` : ''}`;
     return `<div class="pickline">${avatarOf(eff)}<div class="pickline__txt">${text}</div></div>`;
@@ -909,7 +920,10 @@
   const h = location.hash.replace('#', '');
   if (TAB_IDS.includes(h)) state.tab = h;
   if (q.has('demo')) loadDemo();
-  else { rebuildAthletes(); startStore(); }
+  else {
+    rebuildAthletes(); startStore();
+    fetch('data/results.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.file = j; recompute(); } }).catch(() => {});
+  }
   render();
   window.SKI_APP = { state, render, store };
 })();
