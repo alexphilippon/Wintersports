@@ -90,8 +90,6 @@ W|31|Garmisch-Partenkirchen|2027-02-27|DH|1
 W|32|Garmisch-Partenkirchen|2027-02-28|DH|2
 W|33|Soldeu|2027-03-06|GS
 W|34|Soldeu|2027-03-07|SL
-W|35|Narvik|2027-03-12|DH
-W|36|Narvik|2027-03-13|SG
 W|37|Sun Valley|2027-03-20|DH
 W|38|Sun Valley|2027-03-21|SG
 W|39|Sun Valley|2027-03-23|GS
@@ -166,7 +164,7 @@ W|40|Sun Valley|2027-03-25|SL
     { id: 17, desk: 3, name: 'Garmisch et Lenzerheide',         races: mix([32, 33], [29, 30]) },
     { id: 18, desk: 3, name: 'Saalbach et Garmisch',            races: mix([34, 35], [31, 32]) },
     { id: 19, desk: 3, name: 'Kvitfjell et Soldeu',             races: mix([36, 37], [33, 34]) },
-    { id: 20, desk: 3, name: 'Åre et Narvik',                   races: mix([38, 39], [35, 36]) },
+    { id: 20, desk: 3, name: 'Åre',                             races: mix([38, 39]) },
     { id: 21, desk: 3, name: 'Finales de Sun Valley',           races: mix([40, 43], [37, 40]) },
   ];
 

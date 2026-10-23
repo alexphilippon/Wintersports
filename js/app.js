@@ -262,7 +262,7 @@
         <label class="sr" for="pa-${race.id}">Skieur, ${esc(label)}</label>
         ${combo(race, session, 'a')}
         <label class="sr" for="pb-${race.id}">Remplaçant, ${esc(label)}</label>
-        <span class="pickhelp">${combo(race, session, 'b')}${info('Le remplaçant est facultatif : il joue à ta place seulement si ton titulaire ne prend pas le départ (blessure, malade). Dans ce cas, seul le remplaçant est « grillé ». Si le titulaire chute ou abandonne, il marque 0 et reste grillé : le remplaçant ne joue pas.')}</span>
+        <span class="pickhelp">${combo(race, session, 'b')}${info('Le remplaçant est facultatif. Il joue à la place du titulaire que si ce dernier ne prend pas le départ.')}</span>
         ${freeLink(race, 'auto')}
       </div>
     </div>`;

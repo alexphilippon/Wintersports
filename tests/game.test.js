@@ -3,14 +3,14 @@ const D = require('../js/data.js');
 const G = require('../js/game.js');
 
 // ---- Calendrier
-assert.strictEqual(Object.values(D.RACES).filter((r) => r.kind !== 'mondial').length, 83, '83 courses CDM');
+assert.strictEqual(Object.values(D.RACES).filter((r) => r.kind !== 'mondial').length, 81, '81 courses CDM');
 assert.strictEqual(Object.values(D.RACES).filter((r) => r.gender === 'M' && r.kind !== 'mondial').length, 43);
-assert.strictEqual(Object.values(D.RACES).filter((r) => r.gender === 'W' && r.kind !== 'mondial').length, 40);
+assert.strictEqual(Object.values(D.RACES).filter((r) => r.gender === 'W' && r.kind !== 'mondial').length, 38);
 assert.strictEqual(D.SESSIONS.length, 21, '21 sessions');
 const inSessions = D.SESSIONS.flatMap((s) => s.races);
-assert.strictEqual(new Set(inSessions).size, 83, 'chaque course dans une seule session');
+assert.strictEqual(new Set(inSessions).size, 81, 'chaque course dans une seule session');
 const perDesk = [1, 2, 3].map((d) => D.SESSIONS.filter((s) => s.desk === d).reduce((n, s) => n + s.races.length, 0));
-assert.deepStrictEqual(perDesk, [30, 29, 24], 'desks 30/29/24');
+assert.deepStrictEqual(perDesk, [30, 29, 22], 'desks 30/29/22');
 assert.deepStrictEqual([1, 2, 3].map((d) => D.SESSIONS.filter((s) => s.desk === d).length), [8, 8, 5]);
 // les sessions sont chronologiques et dans les bornes de leur desk
 D.SESSIONS.forEach((s) => {
