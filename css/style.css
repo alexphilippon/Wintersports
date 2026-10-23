@@ -667,3 +667,8 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 .session__head { border-radius: 8px 8px 0 0; }
 .race { position: relative; }
 .race:has(.combo__list:not([hidden])) { z-index: 30; }
+
+/* Croix pour retirer un choix */
+.combo__in { padding-right: 2.2rem; }
+.combo__x { position: absolute; top: 50%; right: .4rem; transform: translateY(-50%); width: 1.6rem; height: 1.6rem; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--encre-douce); font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.combo__x:hover, .combo__x:focus-visible { background: var(--brique); color: #fff; }

@@ -206,6 +206,7 @@
     const dis = slot === 'b' && !cur.a;
     return `<div class="combo${slot === 'b' ? ' combo--sub' : ''}" data-race="${race.id}" data-slot="${slot}">
       <input type="text" id="${id}" class="pick${slot === 'b' ? ' pick--sub' : ''} combo__in" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(ph)}" value="${esc(curItem ? curItem.label : '')}" data-cur="${esc(curItem ? curItem.label : '')}"${dis ? ' disabled' : ''}>
+      ${curItem && !dis ? `<button type="button" class="combo__x" data-cx aria-label="Retirer ce choix" title="Retirer ce choix">×</button>` : ''}
       <ul class="combo__list" role="listbox" hidden>${curItem ? '<li role="option" class="combo__opt combo__opt--clear" data-v="">— Aucun —</li>' : ''}${items.map((x) => `<li role="option" class="combo__opt${x.dis ? ' is-off' : ''}${x.isCur ? ' is-cur' : ''}" data-v="${x.a.id}" data-l="${esc(norm(listName(x.a)))}" data-s="${esc(norm(x.a.name + ' ' + (x.a.fis || '') + ' ' + listName(x.a) + ' ' + (x.a.nat || '')))}"${x.dis ? ' aria-disabled="true"' : ''}>${esc(x.label)}</li>`).join('')}</ul>
     </div>`;
   }
@@ -242,6 +243,8 @@
   }
   document.addEventListener('focusin', (e) => { const i = e.target.closest('.combo__in'); if (i) comboOpen(i.parentElement); });
   document.addEventListener('click', (e) => {
+    const cx = e.target.closest('[data-cx]');
+    if (cx) { const box = cx.closest('.combo'); comboClose(); onPick({ dataset: { race: box.dataset.race, slot: box.dataset.slot }, value: '', id: box.querySelector('.combo__in').id }); return; }
     const i = e.target.closest('.combo__in');
     if (i && i.parentElement.querySelector('.combo__list').hidden && !i.disabled) comboOpen(i.parentElement);
     if (!e.target.closest('.combo')) comboClose();
