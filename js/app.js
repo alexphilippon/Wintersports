@@ -899,6 +899,7 @@
 
   function loadDemo() {
     state.demo = true;
+    rebuildAthletes();
     state.user = { uid: DEMO.ME, email: '', name: 'Alexandre' };
     state.me = DEMO.ME;
     G.setOverrides({});
