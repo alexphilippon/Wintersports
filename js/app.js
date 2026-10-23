@@ -611,7 +611,7 @@
     const dl = G.sessionDeadline(session);
     openModal(`<h2>Rappel pour cette session</h2>
       <p class="hint">${esc(session.name)} : deadline ${esc(dlShort(dl))}. Choisis quand tu veux être prévenu, puis l’agenda à relier.</p>
-      <form id="remind-form" data-sid="${session.id}"><div class="remindopts">${REMIND.map(([k, l]) => `<label><input type="radio" name="rk" value="${k}"${k === cur ? ' checked' : ''}> ${l} <span class="sub">${esc(dlShort(remindAt(dl, k)))}</span></label>`).join('')}</div>
+      <form id="remind-form" data-sid="${session.id}"><div class="remindopts">${REMIND.slice().sort((a, b) => remindAt(dl, a[0]) - remindAt(dl, b[0])).map(([k, l]) => `<label><input type="radio" name="rk" value="${k}"${k === cur ? ' checked' : ''}> ${l} <span class="sub">${esc(dlShort(remindAt(dl, k)))}</span></label>`).join('')}</div>
       <div class="remindbtns"><button type="submit" class="btn btn--brique" data-kind="ics">Ajouter à mon agenda</button><button type="submit" class="btn" data-kind="google">Google Agenda</button>${remindKey(session.id) ? '<button type="submit" class="btn btn--ghost" data-kind="off">Retirer le rappel</button>' : ''}</div>
       <p class="hint">« Ajouter à mon agenda » télécharge un fichier : ouvre-le et choisis l’agenda (Apple, Google, Outlook…). Le rappel est un événement placé à l’heure choisie.</p></form>`);
   }
