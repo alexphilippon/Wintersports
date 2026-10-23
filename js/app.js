@@ -403,7 +403,7 @@
     const sessions = scopeSessions(key);
     const done = sessions.filter(locked);
     const waiting = sessions.length - done.length;
-    let html = done.length ? done.map(recapTable).join('') : '<p class="empty">Rien à voir pour l’instant. Les choix de chacun apparaissent à la deadline de la session.</p>';
+    let html = done.length ? done.filter((s) => sortedRaces(s).some(passF)).map(recapTable).join('') || '<p class="empty">Aucune course avec ces filtres.</p>' : '<p class="empty">Rien à voir pour l’instant. Les choix de chacun apparaissent à la deadline de la session.</p>';
     if (done.length && waiting) html += `<p class="hint">${plural(waiting, 'session reste', 'sessions restent')} à venir.</p>`;
     return html;
   }
@@ -480,7 +480,8 @@
       `<button type="button" role="tab" class="seg__btn" aria-selected="${sub === id}" data-sub="${id}" data-key="${key}">${label}</button>`).join('');
     let body;
     if (sub === 'mine') {
-      body = (isW ? worldsBox() : '') + sessions.map((s, i) => sessionCard(s, isW ? '' : `session ${i + 1} sur ${sessions.length}`)).join('')
+      const hasF = (s) => sortedRaces(s).some(passF);
+      body = (isW ? worldsBox() : '') + (sessions.some(hasF) ? sessions.map((s, i) => hasF(s) ? sessionCard(s, isW ? '' : `session ${i + 1} sur ${sessions.length}`) : '').join('') : '<p class="empty">Aucune course avec ces filtres.</p>')
         + '<p class="hint">Heures de départ provisoires.</p>';
     } else if (sub === 'recap') body = (isW ? worldsBox() : '') + recapView(key);
     else if (sub === 'trend' && trendsAny(key)) body = trendsView(key);
