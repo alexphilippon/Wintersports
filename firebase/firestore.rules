@@ -4,7 +4,7 @@ service cloud.firestore {
 
     function signedIn() { return request.auth != null; }
     // Remplace l'adresse ci-dessous par celle du compte administrateur (la même que adminEmail dans js/config.js).
-    function isAdmin() { return signedIn() && request.auth.token.email == 'REMPLACER_PAR_ADRESSE_ADMIN'; }
+    function isAdmin() { return signedIn() && request.auth.token.email == 'alexandre.philippon@gmail.com'; }
 
     // Joueurs : chacun gère sa propre fiche.
     match /players/{uid} {

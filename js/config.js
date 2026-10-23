@@ -1,10 +1,11 @@
-/* Ski game – configuration. Collée une fois pour toutes après la création du projet Firebase
-   (Paramètres du projet > Général > Vos applications > Configuration du SDK). Ces valeurs sont publiques.
-   Tant que « firebase » est null, le site tourne en mode local (rien n'est partagé entre joueurs). */
 window.SKI_CONFIG = {
-  firebase: null,
-  /* {
-    apiKey: '...', authDomain: '...firebaseapp.com', projectId: '...', storageBucket: '...', messagingSenderId: '...', appId: '...'
-  } */
-  adminEmail: '', // adresse du compte administrateur (la même que dans les règles Firestore)
+  firebase: {
+    apiKey: "AIzaSyDb92bdSH3F78C8Ek0Y0es44X39TtnIFss",
+    authDomain: "ski-game-4e87d.firebaseapp.com",
+    projectId: "ski-game-4e87d",
+    storageBucket: "ski-game-4e87d.firebasestorage.app",
+    messagingSenderId: "78664381225",
+    appId: "1:78664381225:web:a4a7ab78d8fa30cbd57d38"
+  },
+  adminEmail: "alexandre.philippon@gmail.com"
 };
