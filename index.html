@@ -43,6 +43,8 @@
     <div class="tabs__row" role="tablist" id="tabs"></div>
   </nav>
 
+  <p id="userbar" class="userbar" hidden></p>
+
   <main id="panel" class="panel" tabindex="-1" aria-live="polite"></main>
 
   <p class="credits">Photos : Wikimedia Commons et contributeurs · <a href="credits.html">crédits</a></p>
@@ -51,7 +53,7 @@
     <details>
       <summary>Atelier de la maquette</summary>
       <div class="atelier__body">
-        <p>Cette maquette tourne sans connexion Google ni base de données. Les skieurs, les joueurs et les résultats sont fictifs.</p>
+        <p>Mode local ou démonstration : rien n’est partagé entre les joueurs. La démonstration charge des joueurs, des choix et des résultats fictifs.</p>
         <div class="atelier__row">
           <button type="button" class="btn" id="btn-demo">Charger la démonstration</button>
           <button type="button" class="btn btn--ghost" id="btn-reset">Effacer mes choix</button>
@@ -69,6 +71,9 @@
   <script src="js/game.js"></script>
   <script src="js/athletes.js"></script>
   <script src="js/demo.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/admin.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    // Remplace l'adresse ci-dessous par celle du compte administrateur (la même que adminEmail dans js/config.js).
+    function isAdmin() { return signedIn() && request.auth.token.email == 'REMPLACER_PAR_ADRESSE_ADMIN'; }
+
+    // Joueurs : chacun gère sa propre fiche.
+    match /players/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+    // Choix : chacun écrit uniquement les siens. (Le masquage avant la deadline est fait par le site.)
+    match /picks/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && (request.auth.uid == uid || isAdmin());
+    }
+    // Résultats, calendrier (annulations, reports), alias : admin seulement.
+    match /results/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /config/{doc} { allow read: if signedIn(); allow write: if isAdmin(); }
+    // Skieurs ajoutés : un joueur peut proposer un nom libre (pending), l'admin gère le reste.
+    match /athletes/{id} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || (signedIn() && request.resource.data.pending == true);
+      allow update, delete: if isAdmin();
+    }
+  }
+}

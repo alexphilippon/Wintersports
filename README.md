@@ -59,3 +59,12 @@ Sur ton ordinateur : `npm i sharp` puis `node tools/fetch-photos.js` remplit `im
 
 ### Photos via Olympedia (skieurs passés par les Jeux 2014-2026)
 `node tools/fetch-olympedia-photos.js --dry` compte les skieurs retrouvés ; sans `--dry`, télécharge les portraits (stockage d'images d'Olympedia) dans `img/athletes/`, sans écraser les photos déjà présentes, et met à jour `credits.html`.
+
+
+## Partage entre joueurs (Firebase) et administration
+- `js/config.js` : coller la configuration Firebase (Paramètres du projet > Général > Vos applications) et l'adresse de l'admin. Sans configuration, le site tourne en **mode local** (comptes et choix dans le navigateur, pour essais).
+- `firebase/firestore.rules` : règles à coller dans Firestore > Règles (remplacer l'adresse admin).
+- Connexion : e-mail + mot de passe (Firebase Authentication). Le compte dont l'adresse = `adminEmail` voit l'onglet **Admin**. S'inscrire en premier avec cette adresse.
+- Admin : Contrôles (qui a choisi, choix hors délai), Résultats (coller un classement, ex aequo, DNS/DNF/DSQ), Calendrier (heure confirmée, report, annulation), Skieurs (ajout, régularisation des noms libres), Tirages (choix oubliés, DNS sans remplaçant).
+- Règles : annulation = skieur libéré ; report = choix gardé, modifiable jusqu'au nouveau départ ; DNS = le remplaçant joue (seul lui est grillé), sinon tirage hors site saisi par l'admin.
+- Limite connue : le masquage des choix avant la deadline est fait par le site, pas par la base de données (un joueur averti pourrait lire les choix des autres via les outils du navigateur). Les modifications tardives sont détectées (onglet Admin > Contrôles).

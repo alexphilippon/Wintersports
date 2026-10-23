@@ -18,17 +18,43 @@
     return new Date(guess - offset);
   }
 
+  /* ---------- Calendrier vivant : annulations, reports, heures confirmées ---------- */
+  // Surcharges posées par l'admin : { raceId: { status:'cancelled', date, time, place, moved:true } }
+  let OVR = {};
+  function setOverrides(o) { OVR = o || {}; }
+  /** Course avec ses éventuelles surcharges. `cancelled` : annulée. `moved` : reportée (elle a alors sa propre deadline). */
+  function raceOf(id) {
+    const r = D.RACES[id], o = OVR[id];
+    if (!r || !o) return r;
+    return Object.assign({}, r, {
+      date: o.date || r.date, time: o.time || r.time, place: o.place || r.place,
+      timeKnown: o.time ? true : r.timeKnown, cancelled: o.status === 'cancelled', moved: !!o.moved, note: o.note || '',
+      originalDate: r.date,
+    });
+  }
   const raceStart = (race) => parisInstant(race.date, race.time);
 
-  function sessionRaces(session) { return session.races.map((id) => D.RACES[id]); }
-
+  function sessionRaces(session) { return session.races.map(raceOf); }
+  const activeRaces = (session) => sessionRaces(session).filter((r) => !r.cancelled);
+  /** Courses qui fixent le calendrier de la session : ni annulées ni reportées (sauf si toutes le sont). */
+  function anchorRaces(session) {
+    const act = activeRaces(session);
+    const fixed = act.filter((r) => !r.moved);
+    return fixed.length ? fixed : act.length ? act : sessionRaces(session);
+  }
   function sessionDeadline(session) {
-    return new Date(Math.min(...sessionRaces(session).map((r) => raceStart(r).getTime())));
+    return new Date(Math.min(...anchorRaces(session).map((r) => raceStart(r).getTime())));
   }
   function sessionEnd(session) {
-    const last = sessionRaces(session).map((r) => raceStart(r).getTime());
+    const last = anchorRaces(session).map((r) => raceStart(r).getTime());
     return new Date(Math.max(...last) + 12 * 3600 * 1000);
   }
+  const sessionOfRace = (id) => D.SESSIONS.concat([D.WORLDS]).find((s) => s.races.includes(id));
+  /** Moment où les choix d'une course se verrouillent : la deadline de la session, ou le nouveau départ si la course est reportée. */
+  function raceLockTime(race) {
+    return race.moved ? raceStart(race) : sessionDeadline(sessionOfRace(race.id));
+  }
+  const raceLocked = (race, now) => now >= raceLockTime(race);
   /** 'ouverte' (choix possibles) | 'en cours' (choix verrouillés) | 'terminée' */
   function sessionState(session, now) {
     if (now < sessionDeadline(session)) return 'ouverte';
@@ -43,14 +69,15 @@
   function findEntry(results, raceId, athId) {
     return ((results && results[raceId]) || []).find((e) => e.ath === athId) || null;
   }
-  /** Athlète effectivement compté : le titulaire, sauf DNS où le remplaçant prend le relais. */
+  /** Athlète effectivement compté : le titulaire ; s'il ne part pas (DNS), le remplaçant, à défaut le skieur tiré au sort par l'admin. */
   function effectiveAthlete(pick, results, raceId) {
     if (!pick || !pick.a) return null;
     const main = findEntry(results, raceId, pick.a);
-    if (main && main.status === 'DNS' && pick.b) return pick.b;
+    if (main && main.status === 'DNS') return pick.b || pick.d || pick.a;
     return pick.a;
   }
   function scoreRace(race, pick, results) {
+    if (race.cancelled) return null; // course annulée : personne ne marque
     if (!results || !results[race.id]) return null; // pas encore de résultat
     const ath = effectiveAthlete(pick, results, race.id);
     if (!ath) return 0;
@@ -91,12 +118,12 @@
     return D.SESSIONS.filter((s) => s.desk === deskId).reduce((s, x) => s + sessionScore(x, picksOfPlayer, results), 0);
   }
   function worldsScore(picksOfPlayer, results) {
-    const races = D.WORLDS.races.reduce((s, id) => s + (scoreRace(D.RACES[id], picksOfPlayer && picksOfPlayer[id], results) || 0), 0);
+    const races = D.WORLDS.races.reduce((s, id) => s + (scoreRace(raceOf(id), picksOfPlayer && picksOfPlayer[id], results) || 0), 0);
     const bonus = worldsBonus(picksOfPlayer, results).total;
     return { races, bonus, total: races + bonus };
   }
   function disciplineScore(disc, picksOfPlayer, results) {
-    return Object.values(D.RACES).filter((r) => r.disc === disc)
+    return Object.keys(D.RACES).map(raceOf).filter((r) => r.disc === disc)
       .reduce((s, r) => s + (scoreRace(r, picksOfPlayer && picksOfPlayer[r.id], results) || 0), 0);
   }
   function generalScore(picksOfPlayer, results) {
@@ -106,23 +133,27 @@
   }
 
   /* ---------- Contrainte « un athlète une seule fois par desk » ---------- */
-  /** Athlètes déjà utilisés comme titulaires dans le desk, pour un genre, hors la course `exceptRaceId`. */
-  function usedInDesk(deskId, gender, picksOfPlayer, exceptRaceId) {
+  /** Athlètes déjà « grillés » dans le desk, pour un genre, hors la course `exceptRaceId`.
+      Une course annulée libère son skieur. Si le titulaire est DNS (résultat connu), il reste libre : seul compte celui qui a pris le départ. */
+  function usedInDesk(deskId, gender, picksOfPlayer, exceptRaceId, results) {
     const used = new Set();
     // deskId 0 = bloc des Mondiaux (huit épreuves, huit skieurs différents par genre)
     const scope = deskId === 0 ? [D.WORLDS] : D.SESSIONS.filter((s) => s.desk === deskId);
     scope.forEach((s) => {
       sessionRaces(s).forEach((r) => {
-        if (r.gender !== gender || r.id === exceptRaceId) return;
+        if (r.gender !== gender || r.id === exceptRaceId || r.cancelled) return;
         const p = picksOfPlayer && picksOfPlayer[r.id];
-        if (p && p.a) used.add(p.a);
+        if (!p || !p.a) return;
+        const main = findEntry(results, r.id, p.a);
+        if (main && main.status === 'DNS') { const sub = p.b || p.d; if (sub) used.add(sub); return; }
+        used.add(p.a);
       });
     });
     return used;
   }
 
   const api = {
-    parisInstant, raceStart, sessionRaces, sessionDeadline, sessionEnd, sessionState,
+    parisInstant, setOverrides, raceOf, raceStart, activeRaces, sessionOfRace, raceLockTime, raceLocked, sessionRaces, sessionDeadline, sessionEnd, sessionState,
     pointsForRank, effectiveAthlete, scoreRace, worldsWinner, worldsBonus,
     sessionScore, deskScore, worldsScore, disciplineScore, generalScore, usedInDesk,
   };

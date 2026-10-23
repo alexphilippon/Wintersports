@@ -1,13 +1,22 @@
-/* Ski game – interface (maquette sans connexion) */
+/* Ski game – interface */
 (function () {
   'use strict';
-  const D = window.SKI_DATA, G = window.SKI_GAME, DEMO = window.SKI_DEMO, ATHL = window.SKI_ATHLETES;
+  const D = window.SKI_DATA, G = window.SKI_GAME, DEMO = window.SKI_DEMO, BASE = window.SKI_ATHLETES, CONFIG = window.SKI_CONFIG || {};
   const TZ = 'Europe/Paris';
-  const STORE = 'skigame.maquette.picks';
   const PHOTO_DIR = 'img/athletes/'; // une photo par skieur : img/athletes/<id>.jpg (voir README)
 
-  const ATH = {};
-  ['M', 'W'].forEach((g) => ATHL[g].forEach((a) => { ATH[a.id] = Object.assign({ gender: g }, a); }));
+  // Liste des skieurs : la liste de base (js/athletes.js) + ceux ajoutés par l'admin ou saisis librement par un joueur.
+  let LIST = { M: BASE.M.slice(), W: BASE.W.slice() }, ATH = {};
+  function rebuildAthletes() {
+    LIST = { M: BASE.M.slice(), W: BASE.W.slice() };
+    state.extra.slice().sort((a, b) => (a.pending ? 1 : 0) - (b.pending ? 1 : 0) || a.name.localeCompare(b.name)).forEach((x) => {
+      if (!state.aliases[x.id] && LIST[x.gender]) LIST[x.gender].push(Object.assign({ rank: null }, x));
+    });
+    ATH = {};
+    ['M', 'W'].forEach((g) => LIST[g].forEach((a) => { ATH[a.id] = Object.assign({}, a, { gender: g }); }));
+    // un nom libre régularisé reste lisible : il pointe vers le vrai skieur
+    state.extra.forEach((x) => { if (state.aliases[x.id] && ATH[state.aliases[x.id]]) ATH[x.id] = ATH[state.aliases[x.id]]; });
+  }
 
   const freshSubs = () => ({ 1: 'mine', 2: 'mine', 3: 'mine', 0: 'mine' });
   const state = {
@@ -15,12 +24,19 @@
     sub: freshSubs(),
     sim: null,
     demo: false,
-    players: [{ id: DEMO.ME, name: 'Alexandre' }],
-    me: DEMO.ME,
-    picks: { [DEMO.ME]: {} },
+    user: null,            // { uid, email, name } une fois connecté
+    authMode: 'in',        // 'in' | 'up' (écran de connexion)
+    authError: '',
+    players: [],
+    me: null,
+    picks: {},             // choix de tous les joueurs (alias déjà appliqués)
     results: {},
-    tq: '',        // recherche dans « Athlètes pris »
-    tf: 'all',     // filtre : all | taken | free
+    tq: '',                // recherche dans « Athlètes pris »
+    tf: 'all',             // filtre : all | taken | free
+    // données brutes du stockage
+    raw: { picks: {}, results: {} },
+    overrides: {}, extra: [], aliases: {},
+    admin: { race: null, msg: '' },
   };
 
   /* ---------- Utilitaires ---------- */
@@ -44,25 +60,58 @@
   const ordinal = (n) => (n === 1 ? '1er' : `${n}e`);
   const norm = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const myPicks = () => state.picks[state.me] || (state.picks[state.me] = {});
+  const isAdmin = () => !!state.user && !state.demo && (store.mode === 'local' || (!!CONFIG.adminEmail && state.user.email.toLowerCase() === CONFIG.adminEmail.toLowerCase()));
 
   const allSessions = () => [...D.SESSIONS, D.WORLDS].sort((a, b) => G.sessionDeadline(a) - G.sessionDeadline(b));
   const scopeSessions = (key) => (key === 0 ? [D.WORLDS] : D.SESSIONS.filter((s) => s.desk === key));
   const locked = (session) => G.sessionState(session, now()) !== 'ouverte';
-  const visible = (playerId, session) => playerId === state.me || locked(session);
+  const lockedRace = (race) => G.raceLocked(race, now());
+  const visible = (playerId, race) => playerId === state.me || lockedRace(race);
+  const active = (races) => races.filter((r) => !r.cancelled);
   const sortedRaces = (session) => G.sessionRaces(session)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time) || a.gender.localeCompare(b.gender));
   const upcomingSession = () => allSessions().find((s) => G.sessionState(s, now()) !== 'terminée');
+  const canon = (id) => state.aliases[id] || id;
 
-  function load() {
-    try {
-      const raw = localStorage.getItem(STORE);
-      if (raw) state.picks[state.me] = JSON.parse(raw);
-    } catch (e) { /* stockage indisponible : on continue sans */ }
+  /* ---------- Stockage partagé (Firebase) ou local ---------- */
+  const store = window.SKI_STORE.create(CONFIG);
+  let rafId = 0, pendingRender = false;
+  const editing = () => { const el = document.activeElement; return !!el && el !== document.body && !!el.closest('#panel') && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName); };
+  function scheduleRender() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => { rafId = 0; if (editing()) { pendingRender = true; return; } render(); });
   }
-  function save() {
+  document.addEventListener('focusout', () => { if (pendingRender) setTimeout(() => { if (!editing()) { pendingRender = false; render(); } }, 0); });
+
+  /** Recalcule tout ce qui dérive des données brutes : surcharges du calendrier, liste de skieurs, choix et résultats (alias appliqués). */
+  function recompute() {
     if (state.demo) return;
-    try { localStorage.setItem(STORE, JSON.stringify(myPicks())); } catch (e) { /* ignoré */ }
+    G.setOverrides(state.overrides);
+    rebuildAthletes();
+    const fix = (p) => { const q = Object.assign({}, p); ['a', 'b', 'd'].forEach((k) => { if (q[k]) q[k] = canon(q[k]); }); return q; };
+    const picks = {};
+    Object.keys(state.raw.picks).forEach((uid) => {
+      picks[uid] = {};
+      Object.entries(state.raw.picks[uid] || {}).forEach(([rid, p]) => { if (p && typeof p === 'object') picks[uid][rid] = fix(p); });
+    });
+    state.picks = picks;
+    const res = {};
+    Object.entries(state.raw.results).forEach(([rid, entries]) => { res[rid] = (entries || []).map((e) => Object.assign({}, e, { ath: canon(e.ath) })); });
+    state.results = res;
+    scheduleRender();
   }
+  function startStore() {
+    store.onAuth((u) => { state.user = u; state.me = u ? u.uid : null; if (!state.demo) { state.authError = ''; scheduleRender(); } });
+    store.listen({
+      players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id })).sort((a, b) => a.name.localeCompare(b.name, 'fr')); scheduleRender(); },
+      picks: (m) => { state.raw.picks = m; recompute(); },
+      results: (m) => { state.raw.results = m; recompute(); },
+      overrides: (m) => { state.overrides = m; recompute(); },
+      aliases: (m) => { state.aliases = m; recompute(); },
+      athletes: (list) => { state.extra = list.filter((x) => x.gender === 'M' || x.gender === 'W'); recompute(); },
+    });
+  }
+  const fail = (e) => { alert('Enregistrement impossible : ' + (e && e.message ? e.message : e) + '\nVérifie ta connexion et réessaie.'); };
 
   /* ---------- Éléments récurrents ---------- */
   const discLabel = (r) => D.DISC[r.disc].fr + (r.sub ? ' ' + r.sub : '');
@@ -96,15 +145,16 @@
   /* ---------- Sélecteurs de choix ---------- */
   function options(race, session, slot) {
     const picks = myPicks();
-    const used = G.usedInDesk(session.desk, race.gender, picks, race.id);
+    const used = G.usedInDesk(session.desk, race.gender, picks, race.id, state.results);
     const cur = picks[race.id] || {};
     const head = `<option value="">${slot === 'a' ? 'Choisir un skieur' : 'Remplaçant (facultatif)'}</option>`;
-    return head + ATHL[race.gender].map((a) => {
+    return head + LIST[race.gender].map((a) => {
       const isCur = cur[slot] === a.id;
       const taken = used.has(a.id);
       const dis = !isCur && (taken || (slot === 'b' && cur.a === a.id));
-      return `<option value="${a.id}"${isCur ? ' selected' : ''}${dis ? ' disabled' : ''}>${a.rank}. ${esc(a.name)} (${a.nat}${taken && slot === 'a' ? ', déjà pris' : ''})</option>`;
-    }).join('');
+      const meta = [a.nat, a.pending ? 'à régulariser' : '', taken && slot === 'a' ? 'déjà pris' : ''].filter(Boolean).join(', ');
+      return `<option value="${a.id}"${isCur ? ' selected' : ''}${dis ? ' disabled' : ''}>${a.rank ? a.rank + '. ' : ''}${esc(a.name)}${meta ? ` (${meta})` : ''}</option>`;
+    }).join('') + (slot === 'a' ? '<option value="__free__">Skieur absent de la liste… (nom libre)</option>' : '');
   }
   function pickEditor(race, session) {
     const label = `${placeLabel(race)}, ${genderLabel(race)}, ${discLabel(race)}`;
@@ -132,7 +182,8 @@
   }
   function outcome(race, playerId) {
     const res = state.results[race.id];
-    if (!res) return locked(sessionOf(race)) ? '<span class="soon">En attente</span>' : '';
+    if (race.cancelled) return '<span class="soon">Annulée</span>';
+    if (!res) return lockedRace(race) ? '<span class="soon">En attente</span>' : '';
     const pk = (state.picks[playerId] || {})[race.id];
     const sc = G.scoreRace(race, pk, state.results);
     const eff = pk && G.effectiveAthlete(pk, state.results, race.id);
@@ -147,19 +198,23 @@
   /* ---------- Courses d'une session (vue « Mon desk ») ---------- */
   function raceRow(race, session) {
     const d = at(race.date);
-    return `<li class="race">
+    const flag = race.cancelled ? '<span class="flag flag--off">Annulée</span>'
+      : race.moved ? `<span class="flag flag--moved" title="Choix modifiable jusqu’au nouveau départ">Reportée du ${esc(shortOf(race.originalDate))}, départ ${esc(hourText(G.raceStart(race)))}</span>` : '';
+    const pick = race.cancelled ? '<span class="none">Course annulée : aucun choix</span>' : lockedRace(race) ? pickSummary(state.me, race) : pickEditor(race, session);
+    return `<li class="race${race.cancelled ? ' race--off' : ''}">
       <div class="race__date"><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_WD.format(d)} ${F_MO.format(d)}</span></div>
       <div class="race__info"><strong class="race__place">${esc(placeLabel(race))}</strong>
-        <span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}</span></div>
-      <div class="race__pick">${locked(session) ? pickSummary(state.me, race) : pickEditor(race, session)}</div>
+        <span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${flag}</span></div>
+      <div class="race__pick">${pick}</div>
       <div class="race__out">${outcome(race, state.me)}</div>
     </li>`;
   }
   function sessionCard(session, indexLabel) {
     const races = sortedRaces(session);
+    const live = active(races);
     const dl = G.sessionDeadline(session);
-    const n = races.filter((r) => (myPicks()[r.id] || {}).a).length;
-    const open = !locked(session);
+    const n = live.filter((r) => (myPicks()[r.id] || {}).a).length;
+    const open = live.some((r) => !lockedRace(r));
     const mine = G.sessionScore(session, myPicks(), state.results);
     return `<article class="session" id="s-${session.id}">
       <header class="session__head">
@@ -168,7 +223,7 @@
           <p class="session__meta">${indexLabel ? indexLabel + ', ' : ''}deadline ${dlShort(dl)}</p>
         </div>
         <div class="session__side">${stateBadge(session)}${open
-    ? `<span class="count${n === races.length ? ' count--ok' : ''}">${n}/${races.length} choisis</span>`
+    ? `<span class="count${n === live.length ? ' count--ok' : ''}">${n}/${live.length} choisis</span>`
     : `<span class="count count--pts">${mine} pts</span>`}</div>
       </header>
       <ul class="races">${races.map((r) => raceRow(r, session)).join('')}</ul>
@@ -183,6 +238,8 @@
       const cells = state.players.map((p) => {
         const pk = (state.picks[p.id] || {})[r.id];
         const cls = p.id === state.me ? 'me' : '';
+        if (r.cancelled) return `<td class="${cls}"><span class="none">Annulée</span></td>`;
+        if (!visible(p.id, r)) return `<td class="${cls}"><span class="none">Révélé au départ</span></td>`;
         if (!pk || !pk.a) return `<td class="${cls}"><span class="none">Aucun choix</span></td>`;
         const eff = G.effectiveAthlete(pk, state.results, r.id);
         const sc = G.scoreRace(r, pk, state.results);
@@ -214,8 +271,9 @@
     const totals = { M: {}, W: {} }; // genre -> playerId -> points
     sessions.forEach((s) => {
       G.sessionRaces(s).forEach((r) => {
+        if (r.cancelled) return;
         state.players.forEach((p) => {
-          if (!visible(p.id, s)) return;
+          if (!visible(p.id, r)) return;
           const pk = (state.picks[p.id] || {})[r.id];
           if (!pk || !pk.a) return;
           const sc = G.scoreRace(r, pk, state.results);
@@ -232,7 +290,7 @@
         `<button type="button" class="seg__btn" data-tf="${id}" aria-pressed="${state.tf === id}">${l}</button>`).join('')}</div>
     </div>`;
     return filters + ['M', 'W'].map((g) => {
-      const list = ATHL[g];
+      const list = LIST[g];
       const taken = list.filter((a) => takes[a.id]).length;
       const rows = list.map((a) => {
         const on = !!takes[a.id];
@@ -241,7 +299,7 @@
           const inner = l ? l.map((x) => `<span class="mark" title="${esc(x.tag)}"><span class="mark__l">${esc(x.tag)}</span>${x.sc === null ? '' : `<b class="mark__p ${x.sc > 0 ? 'on' : 'off'}">${x.sc > 0 ? '+' : ''}${x.sc}</b>`}</span>`).join('') : '';
           return `<td class="${p.id === state.me ? 'me' : ''}">${inner}</td>`;
         }).join('');
-        return `<tr class="${on ? 'is-taken' : 'is-free'}" data-name="${esc(norm(a.name + ' ' + (a.fis || '') + ' ' + a.nat))}" data-taken="${on ? 1 : 0}"><th scope="row">${avatar(ATH[a.id], on)}<span class="athname"><span class="rk">${a.rank}</span> ${esc(a.name)} <em class="sub">${a.nat}</em></span></th>${cells}</tr>`;
+        return `<tr class="${on ? 'is-taken' : 'is-free'}" data-name="${esc(norm(a.name + ' ' + (a.fis || '') + ' ' + a.nat))}" data-taken="${on ? 1 : 0}"><th scope="row">${avatar(ATH[a.id], on)}<span class="athname">${a.rank ? `<span class="rk">${a.rank}</span> ` : ''}${esc(a.name)} <em class="sub">${esc(a.nat || (a.pending ? 'à régulariser' : ''))}</em></span></th>${cells}</tr>`;
       }).join('');
       const foot = state.players.map((p) => `<td class="${p.id === state.me ? 'me' : ''}"><strong>${totals[g][p.id] || 0} pts</strong></td>`).join('');
       return `<div class="tablewrap tablewrap--scroll"><table class="grid grid--taken">
@@ -271,8 +329,8 @@
     const sub = state.sub[key];
     const dk = isW ? null : D.DESKS[key - 1];
     const score = isW ? G.worldsScore(myPicks(), state.results).total : G.deskScore(key, myPicks(), state.results);
-    const total = sessions.reduce((n, s) => n + s.races.length, 0);
-    const chosen = sessions.reduce((n, s) => n + s.races.filter((id) => (myPicks()[id] || {}).a).length, 0);
+    const total = sessions.reduce((n, s) => n + active(G.sessionRaces(s)).length, 0);
+    const chosen = sessions.reduce((n, s) => n + active(G.sessionRaces(s)).filter((r) => (myPicks()[r.id] || {}).a).length, 0);
     const title = isW ? 'Championnats du monde' : dk.name;
     const meta = isW ? `Crans-Montana, 4 au 14 février, ${total} courses` : `${shortOf(dk.from)} au ${shortOf(dk.to)}, ${total} courses`;
     const tabs = [['mine', 'Mon desk'], ['recap', 'Récap des joueurs'], ['taken', 'Athlètes pris']].map(([id, label]) =>
@@ -301,8 +359,9 @@
     const isW = up.id === 'X';
     const races = sortedRaces(up);
     const dl = G.sessionDeadline(up);
-    const open = !locked(up);
-    const n = races.filter((r) => (myPicks()[r.id] || {}).a).length;
+    const live = active(races);
+    const open = live.some((r) => !lockedRace(r));
+    const n = live.filter((r) => (myPicks()[r.id] || {}).a).length;
     const inDesk = D.SESSIONS.filter((s) => s.desk === up.desk);
     const where = isW ? 'Hors desk, barème ×3' : `Desk ${up.desk}, session ${inDesk.indexOf(up) + 1} sur ${inDesk.length}`;
     const goto = isW ? 0 : up.desk;
@@ -311,12 +370,12 @@
       return `<li class="mini">
         <span class="mini__when"><b>${F_NUM.format(d)}</b> ${F_MO.format(d)}</span>
         <span class="mini__what"><strong>${esc(placeLabel(r))}</strong> <span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</span>
-        <span class="mini__pick">${(myPicks()[r.id] || {}).a ? pickSummary(state.me, r) : '<span class="todo">À choisir</span>'}</span></li>`;
+        <span class="mini__pick">${r.cancelled ? '<span class="none">Annulée</span>' : (myPicks()[r.id] || {}).a ? pickSummary(state.me, r) : '<span class="todo">À choisir</span>'}</span></li>`;
     }).join('');
     const stub = open
       ? `<p class="forfait__label">Deadline dans</p><p class="countdown" id="countdown" data-dl="${dl.toISOString()}">${countdownText(dl)}</p><p class="forfait__dl">${dlShort(dl)}</p>`
       : `<p class="forfait__label">Choix verrouillés</p><p class="countdown countdown--shut">Course en cours</p><p class="forfait__dl">depuis ${dlShort(dl)}</p>`;
-    const cta = open ? (n === races.length ? 'Modifier mes choix' : 'Faire mes choix') : 'Voir le desk';
+    const cta = open ? (n === live.length ? 'Modifier mes choix' : 'Faire mes choix') : 'Voir le desk';
     return `<section>
       <article class="forfait">
         <div class="forfait__main">
@@ -378,18 +437,44 @@
       { id: '3', label: 'Desk 3', note: `${shortOf(D.DESKS[2].from)} au ${shortOf(D.DESKS[2].to)}` },
       { id: 'w', label: 'Mondiaux', note: '4 au 14 févr.' },
       { id: 'gen', label: 'Classement général', note: '' },
-    ];
+    ].concat(isAdmin() ? [{ id: 'adm', label: 'Admin', note: 'organisateur' }] : []);
   }
-  const TAB_IDS = ['next', '1', '2', '3', 'w', 'gen'];
+  const TAB_IDS = ['next', '1', '2', '3', 'w', 'gen', 'adm'];
   function renderTabs() {
     $('#tabs').innerHTML = tabs().map((t) => `<button type="button" role="tab" class="plate" id="tab-${t.id}" data-tab="${t.id}" aria-selected="${state.tab === t.id}">
       <span class="plate__label">${t.label}</span>${t.note ? `<span class="plate__note">${t.note}</span>` : ''}</button>`).join('');
   }
+  /* ---------- Connexion ---------- */
+  function authPanel() {
+    const up = state.authMode === 'up';
+    return `<section class="auth"><form class="authcard" id="auth-form" novalidate>
+      <h2>${up ? 'Créer mon compte' : 'Connexion'}</h2>
+      <p class="auth__intro">${up ? 'Une adresse e-mail et un mot de passe suffisent. Choisis le nom qui s’affichera dans les classements.' : 'Connecte-toi pour faire tes choix et voir le classement.'}</p>
+      ${up ? '<label for="au-name">Ton nom dans le jeu</label><input id="au-name" name="name" type="text" autocomplete="nickname" maxlength="24" required>' : ''}
+      <label for="au-mail">Adresse e-mail</label><input id="au-mail" name="email" type="email" autocomplete="email" required>
+      <label for="au-pw">Mot de passe${up ? ' (6 caractères minimum)' : ''}</label><input id="au-pw" name="pw" type="password" autocomplete="${up ? 'new-password' : 'current-password'}" required>
+      <p class="auth__err" id="auth-err" role="alert">${esc(state.authError)}</p>
+      <button type="submit" class="btn btn--brique">${up ? 'Créer mon compte' : 'Me connecter'}</button>
+      <p class="auth__alt">${up ? 'Déjà un compte ?' : 'Pas encore de compte ?'} <button type="button" class="linkbtn" data-auth="${up ? 'in' : 'up'}">${up ? 'Me connecter' : 'Créer un compte'}</button>${up ? '' : ' · <button type="button" class="linkbtn" data-auth="reset">Mot de passe oublié</button>'}</p>
+      ${store.mode === 'local' ? '<p class="auth__local">Mode local : les comptes et les choix restent dans ce navigateur (pas de partage entre joueurs).</p>' : ''}
+    </form></section>`;
+  }
+  function renderUserbar() {
+    const el = $('#userbar');
+    if (!el) return;
+    el.hidden = !state.user || state.demo;
+    if (!el.hidden) el.innerHTML = `<span>Connecté : <strong>${esc(state.user.name)}</strong></span> <button type="button" class="linkbtn" data-auth="rename">Changer mon nom</button> <button type="button" class="linkbtn" data-auth="out">Me déconnecter</button>`;
+  }
   function renderPanel() {
     const t = state.tab;
-    const html = t === 'next' ? nextPanel() : t === 'gen' ? generalPanel() : t === 'w' ? deskPanel(0) : deskPanel(Number(t));
+    if (!state.user && !state.demo) {
+      $('#panel').innerHTML = authPanel();
+      return;
+    }
+    if (t === 'adm' && !isAdmin()) state.tab = 'next';
+    const html = state.tab === 'adm' ? window.SKI_ADMIN.render(adminCtx()) : state.tab === 'next' ? nextPanel() : state.tab === 'gen' ? generalPanel() : state.tab === 'w' ? deskPanel(0) : deskPanel(Number(state.tab));
     $('#panel').innerHTML = (state.demo ? '<p class="demo">Démonstration : joueurs, choix et résultats fictifs.</p>' : '') + html;
-    $('#panel').setAttribute('aria-labelledby', 'tab-' + t);
+    $('#panel').setAttribute('aria-labelledby', 'tab-' + state.tab);
     applyTakenFilter();
   }
   /** Recherche et filtre de « Athlètes pris » : on masque des lignes, sans réafficher (le focus reste dans le champ). */
@@ -402,7 +487,11 @@
     });
     document.querySelectorAll('[data-tf]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tf === state.tf)));
   }
-  function render() { renderTabs(); renderPanel(); syncSim(); }
+  function render() {
+    $('#tabs').closest('nav').hidden = !state.user && !state.demo;
+    renderTabs(); renderUserbar(); renderPanel(); syncSim();
+    const f = document.querySelector('.atelier'); if (f) f.hidden = !(state.demo || store.mode === 'local');
+  }
 
   function syncSim() {
     const el = $('#sim-date');
@@ -420,6 +509,77 @@
     window.scrollTo({ top: 0 });
   }
 
+  /* ---------- Actions : connexion ---------- */
+  async function authAction(kind) {
+    if (kind === 'in' || kind === 'up') { state.authMode = kind; state.authError = ''; render(); return; }
+    if (kind === 'out') { await store.signOut(); state.tab = 'next'; state.authMode = 'in'; state.authError = ''; render(); return; }
+    if (kind === 'rename') {
+      const n = (window.prompt('Ton nom dans le jeu :', state.user.name) || '').trim().slice(0, 24);
+      if (n) store.setPlayerName(state.user.uid, n).catch(fail);
+      return;
+    }
+    if (kind === 'reset') {
+      const f = $('#au-mail');
+      const mail = (f && f.value.trim()) || window.prompt('Adresse e-mail du compte :') || '';
+      if (!mail) return;
+      try { await store.resetPassword(mail); state.authError = 'Un e-mail de réinitialisation vient d’être envoyé.'; } catch (err) { state.authError = err.message; }
+      render();
+    }
+  }
+  document.addEventListener('submit', async (e) => {
+    if (e.target.id !== 'auth-form') return;
+    e.preventDefault();
+    const f = e.target, v = (n) => (f.elements[n] ? f.elements[n].value.trim() : '');
+    state.authError = '';
+    try {
+      if (state.authMode === 'up') {
+        if (!v('name')) throw new Error('Choisis un nom pour le jeu.');
+        await store.signUp(v('email'), f.elements.pw.value, v('name'));
+      } else await store.signIn(v('email'), f.elements.pw.value);
+    } catch (err) { state.authError = err.message || String(err); }
+    render();
+  });
+
+  /* ---------- Actions : choix d'un skieur ---------- */
+  const slugOf = (n) => norm(n).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  function findAthleteByName(name, gender) {
+    const k = norm(name).replace(/[^a-z0-9]/g, '');
+    return LIST[gender].find((a) => norm(a.name).replace(/[^a-z0-9]/g, '') === k || norm(a.fis || '').replace(/[^a-z0-9]/g, '') === k);
+  }
+  async function onPick(sel) {
+    const race = G.raceOf(sel.dataset.race);
+    if (lockedRace(race)) { render(); return; } // deadline passée : on ignore
+    const cur = Object.assign({}, myPicks()[race.id] || {});
+    const slot = sel.dataset.slot;
+    let value = sel.value;
+    if (value === '__free__') {
+      const name = (window.prompt('Nom du skieur (prénom et nom) :') || '').trim();
+      if (!name) { render(); return; }
+      const known = findAthleteByName(name, race.gender);
+      if (known) value = known.id;
+      else {
+        const id = 'x-' + slugOf(name) + '-' + Math.random().toString(36).slice(2, 6);
+        const a = { id, name, gender: race.gender, nat: '', pending: true, createdBy: state.me };
+        state.extra.push(a); rebuildAthletes();
+        try { await store.addAthlete(a); } catch (err) { fail(err); return; }
+        value = id;
+      }
+    }
+    if (value) cur[slot] = value; else delete cur[slot];
+    if (slot === 'a') { if (!cur.a || cur.b === cur.a) delete cur.b; }
+    delete cur.ts;
+    const out = cur.a ? cur : null;
+    const picks = myPicks(); // relu ici : les données ont pu être rechargées pendant l'attente
+    // affichage immédiat, puis enregistrement
+    if (out) picks[race.id] = out; else delete picks[race.id];
+    const y = window.scrollY;
+    renderPanel();
+    window.scrollTo({ top: y });
+    const again = document.getElementById(sel.id);
+    if (again) again.focus({ preventScroll: true });
+    if (!state.demo) store.setPick(state.me, race.id, out).catch(fail);
+  }
+
   document.addEventListener('click', (e) => {
     const tab = e.target.closest('[data-tab]');
     if (tab) { setTab(tab.dataset.tab); return; }
@@ -429,30 +589,18 @@
     if (tf) { state.tf = tf.dataset.tf; applyTakenFilter(); return; }
     const sub = e.target.closest('[data-sub]');
     if (sub) { state.sub[Number(sub.dataset.key)] = sub.dataset.sub; renderPanel(); return; }
+    const au = e.target.closest('[data-auth]');
+    if (au) { authAction(au.dataset.auth); return; }
     if (e.target.closest('#btn-demo')) loadDemo();
-    if (e.target.closest('#btn-reset')) { state.picks[state.me] = {}; save(); render(); }
+    if (e.target.closest('#btn-reset') && state.me) {
+      Object.keys(myPicks()).forEach((rid) => { if (!lockedRace(G.raceOf(rid))) store.setPick(state.me, rid, null).catch(fail); });
+    }
     if (e.target.closest('#btn-now')) { state.sim = null; render(); }
   });
 
   document.addEventListener('change', (e) => {
     const sel = e.target.closest('select.pick');
-    if (sel) {
-      const race = D.RACES[sel.dataset.race];
-      if (locked(sessionOf(race))) { render(); return; } // deadline passée : on ignore
-      const picks = myPicks();
-      const cur = picks[race.id] || (picks[race.id] = {});
-      const slot = sel.dataset.slot;
-      if (sel.value) cur[slot] = sel.value; else delete cur[slot];
-      if (slot === 'a') { if (!cur.a || cur.b === cur.a) delete cur.b; }
-      if (!cur.a && !cur.b) delete picks[race.id];
-      save();
-      const y = window.scrollY;
-      renderPanel();
-      window.scrollTo({ top: y });
-      const again = document.getElementById(sel.id);
-      if (again) again.focus({ preventScroll: true });
-      return;
-    }
+    if (sel) { onPick(sel); return; }
     if (e.target.id === 'sim-date' && e.target.value) {
       const [d, t] = e.target.value.split('T');
       state.sim = G.parisInstant(d, t);
@@ -471,6 +619,9 @@
 
   function loadDemo() {
     state.demo = true;
+    state.user = { uid: DEMO.ME, email: '', name: 'Alexandre' };
+    state.me = DEMO.ME;
+    G.setOverrides({});
     state.players = DEMO.PLAYERS.slice();
     state.picks = JSON.parse(JSON.stringify(DEMO.PICKS));
     state.results = JSON.parse(JSON.stringify(DEMO.RESULTS));
@@ -484,9 +635,12 @@
   }, 30000);
 
   /* ---------- Démarrage ---------- */
-  load();
+  const adminCtx = () => ({ state, G, D, store, LIST, ATH, esc, norm, at, F_DAY, hourText, dlShort, shortOf, placeLabel, discLabel, genderLabel, nameOf, avatarOf, sortedRaces, lockedRace, active, canon, rerender: render, fail, isAdmin });
   const q = new URLSearchParams(location.search);
   const h = location.hash.replace('#', '');
   if (TAB_IDS.includes(h)) state.tab = h;
-  if (q.has('demo')) loadDemo(); else render();
+  if (q.has('demo')) loadDemo();
+  else { rebuildAthletes(); startStore(); }
+  render();
+  window.SKI_APP = { state, render, store };
 })();

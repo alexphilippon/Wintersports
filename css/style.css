@@ -272,3 +272,37 @@ button, select, input { font: inherit; color: inherit; }
 
 .credits { max-width: 1080px; margin: 0 auto; padding: 0 16px 14px; font-size: .85rem; color: var(--encre-douce); }
 .credits a{color:inherit}
+
+/* ---------- Connexion, barre du joueur, Admin, statuts de course ---------- */
+.userbar { max-width: 1080px; margin: 0 auto; padding: .5rem 16px 0; font-size: .9rem; color: var(--encre-douce); display: flex; gap: .9rem; flex-wrap: wrap; align-items: baseline; }
+.userbar[hidden] { display: none; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--brique); text-decoration: underline; cursor: pointer; font: inherit; }
+.auth { display: flex; justify-content: center; padding: 1.5rem 0 3rem; }
+.authcard { width: min(440px, 100%); background: var(--neige); border: 2px solid var(--nuit); border-radius: 10px; padding: 1.4rem 1.3rem 1.2rem; box-shadow: 5px 5px 0 var(--ocre); }
+.authcard h2 { font-size: 1.7rem; margin-bottom: .4rem; }
+.authcard label, .adm label { display: block; margin: .8rem 0 .25rem; font-weight: 600; font-size: .92rem; }
+.authcard input, .adm input, .adm select, .adm textarea { width: 100%; padding: .55rem .65rem; border: 1.5px solid var(--nuit); border-radius: 6px; background: #fff; }
+.adm input[type="date"], .adm input[type="time"] { width: auto; }
+.authcard .btn { margin-top: 1rem; width: 100%; }
+.auth__intro, .auth__alt, .auth__local { font-size: .92rem; color: var(--encre-douce); margin-top: .5rem; }
+.auth__alt { margin-top: 1rem; }
+.auth__err { color: var(--brique); font-weight: 600; min-height: 1.4em; margin-top: .6rem; font-size: .92rem; }
+.auth__local { font-size: .82rem; }
+.flag { display: inline-block; margin-left: .35rem; padding: .05rem .45rem; border-radius: 4px; font-size: .78rem; font-weight: 600; }
+.flag--off { background: var(--brique); color: var(--neige); }
+.flag--moved { background: var(--ocre); color: var(--encre); }
+.race--off { opacity: .6; }
+.race--off .race__place { text-decoration: line-through; }
+.adm__body > * + * { margin-top: .4rem; }
+.adm textarea { font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; min-height: 12rem; }
+.adm__msg { background: #e3efe6; border-left: 4px solid var(--vert); padding: .55rem .8rem; margin: .8rem 0; font-weight: 600; }
+.adm__list { list-style: none; margin: .4rem 0 1rem; padding: 0; }
+.adm__list li { padding: .55rem .2rem; border-bottom: 1px solid var(--filet); }
+.adm__list select { margin: .35rem .5rem .2rem 0; width: auto; max-width: 100%; }
+.adm__form { max-width: 520px; }
+.adm .ok { color: var(--vert); font-weight: 600; }
+.adm .warn { color: var(--brique); font-weight: 600; }
+.adm code { background: var(--papier); padding: 0 .3rem; border-radius: 3px; }
+.adm .is-skip td { color: var(--encre-douce); font-style: italic; }
+.adm .atelier__row { display: flex; gap: .6rem; flex-wrap: wrap; margin: .8rem 0; }
+.adm .btn[disabled] { opacity: .45; cursor: not-allowed; }

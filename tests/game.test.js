@@ -91,4 +91,49 @@ assert.strictEqual(G.sessionState(s1, new Date('2026-10-04T08:00:00Z')), 'ouvert
 assert.strictEqual(G.sessionState(s1, new Date('2026-10-24T09:00:00Z')), 'en cours');
 assert.strictEqual(G.sessionState(s1, new Date('2026-10-27T09:00:00Z')), 'terminée');
 
+
+// ---- Calendrier vivant : annulation, report, DNS, tirage
+G.setOverrides({});
+const sess = (id) => D.SESSIONS.find((x) => x.id === id);
+const s4 = sess(4); // Copper Mountain (M04 28/11, M05 29/11) et Killington (W04 28/11, W05 29/11)
+const dl4 = G.sessionDeadline(s4);
+
+// annulation : plus de points, skieur libéré dans le desk
+G.setOverrides({ M04: { status: 'cancelled' } });
+assert.ok(G.raceOf('M04').cancelled);
+assert.strictEqual(G.scoreRace(G.raceOf('M04'), { a: 'a' }, { M04: [{ ath: 'a', rank: 1 }] }), null, 'course annulée : rien à marquer');
+assert.ok(!G.usedInDesk(1, 'M', { M04: { a: 'z' } }, null).has('z'), 'annulée : skieur libéré');
+assert.ok(G.usedInDesk(1, 'M', { M05: { a: 'z' } }, null).has('z'), 'course maintenue : skieur pris');
+assert.strictEqual(G.activeRaces(s4).length, s4.races.length - 1);
+
+// report au lendemain : la course a sa propre deadline, la session garde la sienne
+G.setOverrides({ W04: { date: '2026-11-30', time: '10:00', moved: true } });
+const w04 = G.raceOf('W04');
+assert.strictEqual(w04.date, '2026-11-30');
+assert.strictEqual(G.raceLockTime(w04).toISOString(), G.parisInstant('2026-11-30', '10:00').toISOString(), 'verrou = nouveau départ');
+assert.strictEqual(G.raceLockTime(G.raceOf('M05')).toISOString(), G.raceStart(G.raceOf('M04')).toISOString(), 'les autres courses se verrouillent au 1er départ restant de la session');
+assert.ok(!G.raceLocked(w04, new Date('2026-11-29T20:00:00Z')), 'modifiable après la deadline de session');
+assert.ok(G.raceLocked(G.raceOf('M05'), new Date('2026-11-28T11:00:00Z')), 'les autres courses sont verrouillées');
+assert.ok(G.raceLocked(w04, new Date('2026-11-30T09:30:00Z')), 'verrouillée après le nouveau départ');
+// report très tard : la session ne reste pas « en cours » des mois
+G.setOverrides({ W04: { date: '2027-02-15', time: '10:00', moved: true } });
+assert.strictEqual(G.sessionState(s4, new Date('2026-12-05T10:00:00Z')), 'terminée', 'un report lointain ne retient pas la session');
+assert.strictEqual(G.raceOf('W04').date, '2027-02-15');
+// heure confirmée seulement : change la deadline si c'est la 1re course
+G.setOverrides({ M04: { time: '09:30' } });
+assert.ok(G.raceOf('M04').timeKnown);
+assert.ok(G.sessionDeadline(s4) <= G.parisInstant('2026-11-28', '09:30'));
+G.setOverrides({});
+
+// DNS : le remplaçant joue ; le titulaire DNS reste libre pour les autres courses, le remplaçant est pris
+const r = { M04: [{ ath: 'a', status: 'DNS' }, { ath: 'b', rank: 2 }] };
+assert.strictEqual(G.scoreRace(D.RACES.M04, { a: 'a', b: 'b' }, r), 80, 'remplaçant : 2e = 80 pts');
+assert.strictEqual(G.scoreRace(D.RACES.M04, { a: 'a' }, r), 0, 'DNS sans remplaçant : 0 pt');
+assert.strictEqual(G.effectiveAthlete({ a: 'a', d: 'c' }, { M04: [{ ath: 'a', status: 'DNS' }, { ath: 'c', rank: 1 }] }, 'M04'), 'c', 'tirage au sort');
+const usedDns = G.usedInDesk(1, 'M', { M04: { a: 'a', b: 'b' } }, null, r);
+assert.ok(usedDns.has('b') && !usedDns.has('a'), 'DNS : titulaire libéré, remplaçant grillé');
+assert.ok(G.usedInDesk(1, 'M', { M04: { a: 'a', b: 'b' } }, null).has('a'), 'avant résultat : le titulaire compte');
+assert.ok(G.usedInDesk(1, 'M', { M04: { a: 'a' } }, null, { M04: [{ ath: 'a', rank: 3 }] }).has('a'), 'a pris le départ : grillé');
+assert.ok(G.usedInDesk(1, 'M', { M04: { a: 'a' } }, null, { M04: [{ ath: 'a', status: 'DNF' }] }).has('a'), 'DNF : grillé');
+
 console.log('Tous les tests passent.');

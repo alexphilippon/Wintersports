@@ -116,6 +116,9 @@ W|40|Sun Valley|2027-03-25|SL
     };
   });
 
+  // Heures confirmées (source : programme publié, 22/10/2026). Les autres restent provisoires jusqu'à confirmation par l'admin.
+  ['W01', 'M01'].forEach((id) => { RACES[id].timeKnown = true; });
+
   // Mondiaux de Crans-Montana (1er-14 février 2027), épreuves individuelles seulement. Barème ×3.
   const WORLDS_RAW = [
     ['W', 'SG', '2027-02-04', '11:15'],
