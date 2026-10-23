@@ -171,26 +171,87 @@
     const w = a.name.trim().split(/\s+/); return w[w.length - 1];
   }
   function listName(a) {
-    if (a.fis) { const sn = surnameOf(a); const first = a.fis.slice(sn.length).trim(); return first ? sn.toLowerCase().replace(/(^|[\s'’\-])([a-zà-ÿ])/g, (m, p, c) => p + c.toUpperCase()).replace(/\bMc([a-z])/g, (m, c) => 'Mc' + c.toUpperCase()) + ' ' + first : a.name; }
-    const w = a.name.trim().split(/\s+/); return w.length > 1 ? w[w.length - 1] + ' ' + w.slice(0, -1).join(' ') : a.name;
+    if (a.fis) { const sn = surnameOf(a); const first = a.fis.slice(sn.length).trim(); return first ? sn.toUpperCase() + ' ' + first : a.name; }
+    const w = a.name.trim().split(/\s+/); return w.length > 1 ? w[w.length - 1].toUpperCase() + ' ' + w.slice(0, -1).join(' ') : a.name;
   }
   function bySurname(a, b) { return norm(listName(a)).localeCompare(norm(listName(b))); }
   function freeLink(race, slot) {
     return `<button type="button" class="freelink" data-free="${race.id}" data-slot="${slot}">Skieur absent de la liste ? Saisir son nom</button>`;
   }
-  function options(race, session, slot) {
+  /** Liste déroulante avec recherche : on tape quelques lettres, la liste ne garde que les noms qui les contiennent. */
+  function combo(race, session, slot) {
     const picks = myPicks();
     const used = G.usedInDesk(session.desk, race.gender, picks, race.id, state.results);
     const cur = picks[race.id] || {};
-    const head = `<option value="">${slot === 'a' ? 'Choisir un skieur' : 'Remplaçant (facultatif)'}</option>`;
-    return head + LIST[race.gender].slice().sort(bySurname).map((a) => {
+    const items = LIST[race.gender].slice().sort(bySurname).map((a) => {
       const isCur = cur[slot] === a.id;
       const taken = used.has(a.id);
       const dis = !isCur && (taken || (slot === 'b' && cur.a === a.id));
       const meta = [a.nat, a.pending ? 'à régulariser' : '', taken && slot === 'a' ? 'déjà pris' : ''].filter(Boolean).join(', ');
-      return `<option value="${a.id}"${isCur ? ' selected' : ''}${dis ? ' disabled' : ''}>${esc(listName(a))}${meta ? ` (${meta})` : ''}</option>`;
-    }).join('');
+      return { a, isCur, dis, label: listName(a) + (meta ? ` (${meta})` : '') };
+    });
+    const curItem = items.find((x) => x.isCur);
+    const ph = slot === 'a' ? 'Choisir un skieur (tape quelques lettres)' : 'Remplaçant (facultatif)';
+    const id = `p${slot}-${race.id}`;
+    const dis = slot === 'b' && !cur.a;
+    return `<div class="combo${slot === 'b' ? ' combo--sub' : ''}" data-race="${race.id}" data-slot="${slot}">
+      <input type="text" id="${id}" class="pick${slot === 'b' ? ' pick--sub' : ''} combo__in" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(ph)}" value="${esc(curItem ? curItem.label : '')}" data-cur="${esc(curItem ? curItem.label : '')}"${dis ? ' disabled' : ''}>
+      <ul class="combo__list" role="listbox" hidden>${curItem ? '<li role="option" class="combo__opt combo__opt--clear" data-v="">— Aucun —</li>' : ''}${items.map((x) => `<li role="option" class="combo__opt${x.dis ? ' is-off' : ''}${x.isCur ? ' is-cur' : ''}" data-v="${x.a.id}" data-l="${esc(norm(listName(x.a)))}" data-s="${esc(norm(x.a.name + ' ' + (x.a.fis || '') + ' ' + listName(x.a) + ' ' + (x.a.nat || '')))}"${x.dis ? ' aria-disabled="true"' : ''}>${esc(x.label)}</li>`).join('')}</ul>
+    </div>`;
   }
+  const comboClose = () => document.querySelectorAll('.combo__list').forEach((l) => { l.hidden = true; const i = l.parentElement.querySelector('.combo__in'); if (i) { i.setAttribute('aria-expanded', 'false'); i.value = i.dataset.cur; } });
+  function comboFilter(box) {
+    const q = norm(box.querySelector('.combo__in').value.trim());
+    const list = box.querySelector('.combo__list');
+    let n = 0;
+    // les noms qui commencent par les lettres tapées passent devant
+    const opts = [...list.querySelectorAll('.combo__opt:not(.combo__opt--clear)')];
+    opts.forEach((li, k) => { if (li.dataset.k === undefined) li.dataset.k = k; });
+    opts.sort((x, y) => ((q && y.dataset.l.startsWith(q) ? 1 : 0) - (q && x.dataset.l.startsWith(q) ? 1 : 0)) || x.dataset.k - y.dataset.k).forEach((li) => list.appendChild(li));
+    const none0 = list.querySelector('.combo__none'); if (none0) list.appendChild(none0);
+    list.querySelectorAll('.combo__opt').forEach((li) => {
+      const ok = li.classList.contains('combo__opt--clear') || !q || li.dataset.s.includes(q);
+      li.hidden = !ok; li.classList.remove('is-hl'); if (ok && !li.classList.contains('combo__opt--clear')) n++;
+    });
+    const first = [...list.querySelectorAll('.combo__opt:not([hidden]):not(.is-off):not(.combo__opt--clear)')][0];
+    if (first && q) first.classList.add('is-hl');
+    let none = list.querySelector('.combo__none');
+    if (!n) { if (!none) { none = document.createElement('li'); none.className = 'combo__none'; none.textContent = 'Aucun skieur ne correspond. Utilise le lien « Skieur absent de la liste » ci-dessous.'; list.appendChild(none); } } else if (none) none.remove();
+  }
+  function comboOpen(box) {
+    comboClose();
+    const i = box.querySelector('.combo__in'), list = box.querySelector('.combo__list');
+    i.value = ''; list.hidden = false; i.setAttribute('aria-expanded', 'true'); comboFilter(box);
+    const cur = list.querySelector('.is-cur'); if (cur) cur.scrollIntoView({ block: 'center' });
+  }
+  function comboChoose(box, li) {
+    if (!li || li.classList.contains('is-off')) return;
+    const i = box.querySelector('.combo__in');
+    box.querySelector('.combo__list').hidden = true;
+    onPick({ dataset: { race: box.dataset.race, slot: box.dataset.slot }, value: li.dataset.v, id: i.id });
+  }
+  document.addEventListener('focusin', (e) => { const i = e.target.closest('.combo__in'); if (i) comboOpen(i.parentElement); });
+  document.addEventListener('click', (e) => {
+    const i = e.target.closest('.combo__in');
+    if (i && i.parentElement.querySelector('.combo__list').hidden && !i.disabled) comboOpen(i.parentElement);
+    if (!e.target.closest('.combo')) comboClose();
+  });
+  document.addEventListener('pointerdown', (e) => {
+    const li = e.target.closest('.combo__opt');
+    if (li) { e.preventDefault(); comboChoose(li.closest('.combo'), li); }
+  });
+  document.addEventListener('input', (e) => { const i = e.target.closest('.combo__in'); if (i) comboFilter(i.parentElement); });
+  document.addEventListener('keydown', (e) => {
+    const i = e.target.closest && e.target.closest('.combo__in'); if (!i) return;
+    const box = i.parentElement, list = box.querySelector('.combo__list');
+    const vis = () => [...list.querySelectorAll('.combo__opt:not([hidden]):not(.is-off)')];
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault(); if (list.hidden) { comboOpen(box); return; }
+      const v = vis(), k = v.findIndex((x) => x.classList.contains('is-hl')), n = e.key === 'ArrowDown' ? Math.min(v.length - 1, k + 1) : Math.max(0, k - 1);
+      v.forEach((x) => x.classList.remove('is-hl')); if (v[n]) { v[n].classList.add('is-hl'); v[n].scrollIntoView({ block: 'nearest' }); }
+    } else if (e.key === 'Enter') { e.preventDefault(); const h = list.querySelector('.is-hl'); if (h) comboChoose(box, h); }
+    else if (e.key === 'Escape') { comboClose(); i.blur(); }
+  });
   function pickEditor(race, session) {
     const label = `${placeLabel(race)}, ${genderLabel(race)}, ${discLabel(race)}`;
     const cur = myPicks()[race.id] || {};
@@ -199,9 +260,9 @@
       ${face}
       <div class="pickbox__sel">
         <label class="sr" for="pa-${race.id}">Skieur, ${esc(label)}</label>
-        <select id="pa-${race.id}" class="pick" data-race="${race.id}" data-slot="a">${options(race, session, 'a')}</select>
+        ${combo(race, session, 'a')}
         <label class="sr" for="pb-${race.id}">Remplaçant, ${esc(label)}</label>
-        <span class="pickhelp"><select id="pb-${race.id}" class="pick pick--sub" data-race="${race.id}" data-slot="b"${cur.a ? '' : ' disabled'}>${options(race, session, 'b')}</select>${info('Le remplaçant est facultatif : il joue à ta place seulement si ton titulaire ne prend pas le départ (blessure, malade). Dans ce cas, seul le remplaçant est « grillé ». Si le titulaire chute ou abandonne, il marque 0 et reste grillé : le remplaçant ne joue pas.')}</span>
+        <span class="pickhelp">${combo(race, session, 'b')}${info('Le remplaçant est facultatif : il joue à ta place seulement si ton titulaire ne prend pas le départ (blessure, malade). Dans ce cas, seul le remplaçant est « grillé ». Si le titulaire chute ou abandonne, il marque 0 et reste grillé : le remplaçant ne joue pas.')}</span>
         ${freeLink(race, 'auto')}
       </div>
     </div>`;
@@ -781,7 +842,7 @@
     renderPanel();
     window.scrollTo({ top: y });
     const again = document.getElementById(sel.id);
-    if (again) again.focus({ preventScroll: true });
+    if (again && again.tagName === 'SELECT') again.focus({ preventScroll: true });
     if (!state.demo) store.setPick(state.me, race.id, out).catch(fail);
   }
 

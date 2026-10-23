@@ -441,3 +441,18 @@ body.noscroll { overflow: hidden; }
 .check { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; font-size: .92rem; cursor: pointer; }
 .check input { width: 1.15rem; height: 1.15rem; accent-color: var(--nuit); }
 .grid--tk [hidden] { display: none !important; }
+
+/* Liste déroulante avec recherche */
+.combo { position: relative; width: 100%; }
+.combo__in { width: 100%; padding: .4rem .5rem; background: var(--papier); border: 1.5px solid var(--nuit); border-radius: 6px; min-height: 2.4rem; cursor: text; text-overflow: ellipsis; }
+.combo__in:focus { background: #fff; }
+.combo--sub { flex: 1; min-width: 0; }
+.combo__list { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 2px); max-height: 16rem; overflow-y: auto; margin: 0; padding: .25rem; list-style: none; background: #fff; border: 1.5px solid var(--nuit); border-radius: 8px; box-shadow: 0 8px 22px rgba(27, 43, 68, .25); }
+.combo__list[hidden], .combo__opt[hidden] { display: none; }
+.combo__opt { padding: .4rem .55rem; border-radius: 5px; cursor: pointer; font-size: .92rem; }
+.combo__opt:hover, .combo__opt.is-hl { background: #dfe9f2; }
+.combo__opt.is-cur { font-weight: 700; }
+.combo__opt.is-off { color: #9a9285; cursor: not-allowed; text-decoration: line-through; }
+.combo__opt--clear { color: var(--encre-douce); font-style: italic; }
+.combo__none { padding: .6rem; font-size: .85rem; color: var(--encre-douce); }
+.pickhelp .combo { flex: 1; }
