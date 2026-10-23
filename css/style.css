@@ -306,3 +306,5 @@ button, select, input { font: inherit; color: inherit; }
 .adm .is-skip td { color: var(--encre-douce); font-style: italic; }
 .adm .atelier__row { display: flex; gap: .6rem; flex-wrap: wrap; margin: .8rem 0; }
 .adm .btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+.freelink{display:block;margin:.25rem 0 .5rem;padding:0;background:none;border:0;font:inherit;font-size:.82rem;color:var(--accent,#b3402a);text-decoration:underline;cursor:pointer;text-align:left}

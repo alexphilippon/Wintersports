@@ -143,18 +143,31 @@
   }
 
   /* ---------- Sélecteurs de choix ---------- */
+  // Tri et affichage par nom de famille (le classement FIS stocke « NOM Prénom »).
+  function surnameOf(a) {
+    if (a.fis) { const m = a.fis.match(/^((?:[A-ZÀ-ÖØ-Þ'’\-]+\s+)*[A-ZÀ-ÖØ-Þ'’\-]+)(?=\s|$)/); if (m) return m[1].replace(/\s+[A-Z]$/, '').replace(/\s+[A-Z]$/, ''); }
+    const w = a.name.trim().split(/\s+/); return w[w.length - 1];
+  }
+  function listName(a) {
+    if (a.fis) { const sn = surnameOf(a); const first = a.fis.slice(sn.length).trim(); return first ? sn.toLowerCase().replace(/(^|[\s'’\-])([a-zà-ÿ])/g, (m, p, c) => p + c.toUpperCase()) + ' ' + first : a.name; }
+    const w = a.name.trim().split(/\s+/); return w.length > 1 ? w[w.length - 1] + ' ' + w.slice(0, -1).join(' ') : a.name;
+  }
+  function bySurname(a, b) { return norm(listName(a)).localeCompare(norm(listName(b))); }
+  function freeLink(race, slot) {
+    return `<button type="button" class="freelink" data-free="${race.id}" data-slot="${slot}">Skieur absent de la liste ? Saisir son nom</button>`;
+  }
   function options(race, session, slot) {
     const picks = myPicks();
     const used = G.usedInDesk(session.desk, race.gender, picks, race.id, state.results);
     const cur = picks[race.id] || {};
     const head = `<option value="">${slot === 'a' ? 'Choisir un skieur' : 'Remplaçant (facultatif)'}</option>`;
-    return head + LIST[race.gender].map((a) => {
+    return head + LIST[race.gender].slice().sort(bySurname).map((a) => {
       const isCur = cur[slot] === a.id;
       const taken = used.has(a.id);
       const dis = !isCur && (taken || (slot === 'b' && cur.a === a.id));
       const meta = [a.nat, a.pending ? 'à régulariser' : '', taken && slot === 'a' ? 'déjà pris' : ''].filter(Boolean).join(', ');
-      return `<option value="${a.id}"${isCur ? ' selected' : ''}${dis ? ' disabled' : ''}>${a.rank ? a.rank + '. ' : ''}${esc(a.name)}${meta ? ` (${meta})` : ''}</option>`;
-    }).join('') + (slot === 'a' ? '<option value="__free__">Skieur absent de la liste… (nom libre)</option>' : '');
+      return `<option value="${a.id}"${isCur ? ' selected' : ''}${dis ? ' disabled' : ''}>${esc(listName(a))}${meta ? ` (${meta})` : ''}</option>`;
+    }).join('');
   }
   function pickEditor(race, session) {
     const label = `${placeLabel(race)}, ${genderLabel(race)}, ${discLabel(race)}`;
@@ -165,8 +178,10 @@
       <div class="pickbox__sel">
         <label class="sr" for="pa-${race.id}">Skieur, ${esc(label)}</label>
         <select id="pa-${race.id}" class="pick" data-race="${race.id}" data-slot="a">${options(race, session, 'a')}</select>
+        ${freeLink(race, 'a')}
         <label class="sr" for="pb-${race.id}">Remplaçant, ${esc(label)}</label>
         <select id="pb-${race.id}" class="pick pick--sub" data-race="${race.id}" data-slot="b"${cur.a ? '' : ' disabled'}>${options(race, session, 'b')}</select>
+        ${freeLink(race, 'b')}
       </div>
     </div>`;
   }
@@ -553,7 +568,7 @@
     const slot = sel.dataset.slot;
     let value = sel.value;
     if (value === '__free__') {
-      const name = (window.prompt('Nom du skieur (prénom et nom) :') || '').trim();
+      const name = (window.prompt('ATTENTION : vérifie d\'abord que ce skieur n\'est vraiment pas dans la liste déroulante (cherche-le par son nom de famille).\n\nNom du skieur (prénom et nom) :') || '').trim();
       if (!name) { render(); return; }
       const known = findAthleteByName(name, race.gender);
       if (known) value = known.id;
@@ -589,6 +604,8 @@
     if (tf) { state.tf = tf.dataset.tf; applyTakenFilter(); return; }
     const sub = e.target.closest('[data-sub]');
     if (sub) { state.sub[Number(sub.dataset.key)] = sub.dataset.sub; renderPanel(); return; }
+    const fr = e.target.closest('[data-free]');
+    if (fr) { onPick({ dataset: { race: fr.dataset.free, slot: fr.dataset.slot }, value: '__free__', id: `p${fr.dataset.slot}-${fr.dataset.free}` }); return; }
     const au = e.target.closest('[data-auth]');
     if (au) { authAction(au.dataset.auth); return; }
     if (e.target.closest('#btn-demo')) loadDemo();
