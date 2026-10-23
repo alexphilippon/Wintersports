@@ -688,7 +688,7 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 @media (max-width: 759px) {
   .themesw { display: none; }
   .tabs__wrap { padding: 0 8px; gap: 0; }
-  .tabs__wrap .tabs__row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; overflow: visible; padding-top: 8px; }
+  .tabs__wrap .tabs__row { display: grid; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; overflow: visible; padding-top: 8px; }
   .plate { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; padding: .4rem .1rem .35rem; text-align: center; border-top-width: 4px; border-radius: 8px 8px 0 0; min-width: 0; }
   .plate .plate__label, .plate .plate__note { display: none; }
   .plate__ico { display: block; flex: none; }
@@ -865,3 +865,14 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
   .acct > .acct__board .gl--big .gl__t b { font-size: 1.4rem; }
   .acct > .acct__board .gl--big .globe--big { width: 1.7rem; }
 }
+
+/* ---------- Onglets : dégradation progressive quand la rangée déborde (classes posées par fitTabs) ---------- */
+.tabs--nolabel .themesw > span:first-child { display: none; }
+.tabs--nolabel .tabs__wrap .themesw { padding-left: .45rem; }
+.tabs--nodots .themesw, .tabs--ico .themesw { display: none; }
+.tabs--ico .tabs__wrap { padding: 0 8px; gap: 8px; }
+.tabs--ico .tabs__wrap .tabs__row { display: grid; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; overflow: visible; padding-top: 8px; }
+.tabs--ico .plate { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; padding: .4rem .1rem .35rem; text-align: center; border-top-width: 4px; border-radius: 8px 8px 0 0; min-width: 0; }
+.tabs--ico .plate .plate__label, .tabs--ico .plate .plate__note { display: none; }
+.tabs--ico .plate__ico { display: block; flex: none; }
+.tabs--ico .plate__short { display: block; font-size: .6rem; font-weight: 700; line-height: 1.1; white-space: nowrap; letter-spacing: -.01em; }

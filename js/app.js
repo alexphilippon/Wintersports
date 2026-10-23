@@ -1098,9 +1098,21 @@
     });
     document.querySelectorAll('[data-tf]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tf === state.tf)));
   }
+  /** Onglets : si la rangée déborde, on dégrade par étapes (libellé « Ambiance », puces d'ambiance, puis onglets en pictos). */
+  function fitTabs() {
+    const nav = document.querySelector('.tabs'), row = $('#tabs');
+    if (!nav || !row || nav.hidden) return;
+    const steps = ['tabs--nolabel', 'tabs--nodots', 'tabs--ico'];
+    nav.classList.remove(...steps);
+    const over = () => row.scrollWidth > row.clientWidth + 1;
+    for (const c of steps) { if (!over()) break; nav.classList.add(c); }
+  }
+  let fitT = 0;
+  window.addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(fitTabs, 80); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTabs);
   function render() {
     $('#tabs').closest('nav').hidden = !state.user && !state.demo;
-    renderTabs(); renderUserbar(); renderPanel(); syncSim();
+    renderTabs(); fitTabs(); renderUserbar(); renderPanel(); syncSim();
     setTimeout(gateCheck, 400); syncInstall();
     const f = document.querySelector('.atelier'); if (f) f.hidden = !(state.demo || store.mode === 'local');
   }
