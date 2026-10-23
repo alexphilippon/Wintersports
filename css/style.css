@@ -315,7 +315,8 @@ button, select, input { font: inherit; color: inherit; }
 .lg__w--b { background: var(--neige); color: var(--nuit); border-left: 0; position: relative; }
 .lg__w--b::after { content: ''; position: absolute; left: 0; right: 0; bottom: -9px; height: 5px; background: repeating-linear-gradient(90deg, var(--ocre) 0 14px, transparent 14px 20px); }
 .masthead__sub { text-transform: none; letter-spacing: .04em; margin-top: .9rem; font-weight: 500; }
-.mast-actions { position: absolute; z-index: 2; top: 10px; right: 12px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.mast-actions { position: absolute; z-index: 2; top: 10px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.mast-actions__row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .mast-actions[hidden] { display: none; }
 .mastbtn { cursor: pointer; border: 1.5px solid var(--hd-btn-line); background: var(--hd-btn-bg); color: var(--hd-text); border-radius: 999px; padding: .3rem .8rem; font-size: .82rem; font-weight: 600; backdrop-filter: blur(2px); }
 .mastbtn:hover { background: var(--neige); color: var(--nuit); }
@@ -644,3 +645,19 @@ html[data-theme='nuit'] .cap--d1 caption, html[data-theme='nuit'] .cap--d2 capti
 .tabs__wrap .themesw { flex: none; margin-left: auto; padding: .25rem .45rem .25rem .7rem; background: rgba(0, 0, 0, .28); color: #fff; border-color: rgba(255, 255, 255, .55); }
 .tabs__wrap .themesw button[aria-pressed='true'] { border-color: #fff; box-shadow: 0 0 0 2px var(--pine-deep), inset 0 0 0 1.5px rgba(0, 0, 0, .25); }
 @media (max-width: 560px) { .tabs__wrap .themesw > span:first-child { display: none; } .tabs__wrap .themesw { padding-left: .45rem; } }
+
+/* Bouton Admin (sous Règles / Boîte à idées) */
+.mastbtn--admin { background: #b8321f; border-color: #ffd9d2; color: #fff; }
+.mastbtn--admin:hover, .mastbtn--admin[aria-pressed='true'] { background: #fff; color: #b8321f; border-color: #fff; }
+/* Filtres du desk */
+.deskbar { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .7rem 1rem; margin-bottom: 1.4rem; }
+.deskbar .seg { margin-bottom: 0; }
+.ff { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .45rem .8rem; }
+.ff__g { display: inline-flex; gap: .3rem; }
+.ffc { cursor: pointer; min-width: 2.5rem; padding: .32rem .6rem; border-radius: 8px; border: 2px solid var(--c, var(--nuit)); background: var(--neige); color: var(--c, var(--nuit)); font-weight: 700; font-size: .88rem; }
+.ffc[aria-pressed='true'] { background: var(--c, var(--nuit)); color: #fff; }
+.ffc--DH { --c: #b8412f; } .ffc--SG { --c: #cf6f1f; } .ffc--GS { --c: #1f7f94; } .ffc--SL { --c: #2c5aa6; }
+.ffc--W { --c: #9a3f78; } .ffc--M { --c: #44596b; }
+html[data-theme='nuit'] .ffc--M { --c: #9db4cf; } html[data-theme='nuit'] .ffc--M[aria-pressed='true'] { color: #111a26; }
+html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--W[aria-pressed='true'] { color: #111a26; }
+.ff__x { border: 0; background: none; padding: 0; cursor: pointer; color: var(--brique); text-decoration: underline; font-size: .85rem; }

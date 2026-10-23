@@ -21,6 +21,7 @@
   const freshSubs = () => ({ 1: 'mine', 2: 'mine', 3: 'mine', 0: 'mine' });
   const state = {
     tab: 'next',
+    ff: { disc: [], gender: [] },   // filtres d'affichage des desks (vide = tout)
     sub: freshSubs(),
     sim: null,
     demo: false,
@@ -91,6 +92,7 @@
   const lockedRace = (race) => G.raceLocked(race, now());
   const visible = (playerId, race) => playerId === state.me || lockedRace(race);
   const active = (races) => races.filter((r) => !r.cancelled);
+  const passF = (r) => (!state.ff.disc.length || state.ff.disc.includes(r.disc)) && (!state.ff.gender.length || state.ff.gender.includes(r.gender));
   const sortedRaces = (session) => G.sessionRaces(session)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time) || a.gender.localeCompare(b.gender));
   const upcomingSession = () => allSessions().find((s) => G.sessionState(s, now()) !== 'terminée');
@@ -334,13 +336,13 @@
     ? `<span class="count${n === live.length ? ' count--ok' : ''}">${n}/${live.length} choisis</span>${remindBtn(session)}`
     : `<span class="count count--pts">${mine} pts</span>`}</div>
       </header>
-      <ul class="races">${races.map((r) => raceRow(r, session)).join('')}</ul>
+      <ul class="races">${races.filter(passF).map((r) => raceRow(r, session)).join('') || '<li class="race"><span class="none">Aucune course avec ces filtres.</span></li>'}</ul>
     </article>`;
   }
 
   /* ---------- Récap des joueurs ---------- */
   function recapTable(session) {
-    const races = sortedRaces(session);
+    const races = sortedRaces(session).filter(passF);
     const head = state.players.map((p) => `<th scope="col" class="${p.id === state.me ? 'me' : ''}">${pname(p)}</th>`).join('');
     const rows = races.map((r) => {
       const cells = state.players.map((p) => {
@@ -381,7 +383,7 @@
   }
   function trendsView(key, onlySession, topCum) {
     const sessions = scopeSessions(key);
-    const live = sessions.flatMap((s) => sortedRaces(s)).filter((r) => !r.cancelled && lockedRace(r));
+    const live = sessions.flatMap((s) => sortedRaces(s)).filter((r) => !r.cancelled && lockedRace(r) && passF(r));
     if (!live.length) return '<p class="empty">Les tendances apparaissent à la deadline de la première session.</p>';
     const cum = shareOf(live).list.slice(0, topCum || 8);
     const g = (id) => (ATH[id] ? ` <span class="gender gender--${ATH[id].gender}">${ATH[id].gender === 'M' ? 'H' : 'F'}</span>` : '');
@@ -413,7 +415,7 @@
     const totals = { M: {}, W: {} }; // genre -> playerId -> points
     sessions.forEach((s) => {
       G.sessionRaces(s).forEach((r) => {
-        if (r.cancelled) return;
+        if (r.cancelled || !passF(r)) return;
         state.players.forEach((p) => {
           if (!visible(p.id, r)) return;
           const pk = (state.picks[p.id] || {})[r.id];
@@ -489,9 +491,19 @@
           <p class="rule">${isW ? 'Barème ×3. Un skieur ne peut être choisi qu’une fois.' : 'Un skieur ne peut être choisi qu’une fois dans ce desk.'} ${info(isW ? 'Aux Mondiaux, les points sont multipliés par 3 et un skieur ne peut servir qu’une fois sur l’ensemble des 8 épreuves. Messieurs et dames comptent à part.' : 'Dans un même desk, un skieur ne peut être choisi qu’une seule fois chez les messieurs et une seule fois chez les dames. Un skieur déjà pris apparaît grisé.')}</p></div>
         <dl class="deskhead__stats"><div><dt>Choix faits ${info('Nombre de courses de ce desk pour lesquelles tu as déjà choisi un skieur.')}</dt><dd>${chosen}/${total}</dd></div><div><dt>Points ${info('Total de tes points sur ce desk, d’après les résultats déjà saisis.')}</dt><dd>${score}</dd></div></dl>
       </header>
-      <div class="seg" role="tablist" aria-label="Vue du desk">${tabs}</div>
+      <div class="deskbar"><div class="seg" role="tablist" aria-label="Vue du desk">${tabs}</div>${filterBar()}</div>
       <div class="deskbody">${body}</div>
     </section>`;
+  }
+
+  /* ---------- Filtres du desk : disciplines (vitesse → technique) et genre ---------- */
+  function filterBar() {
+    const chip = (kind, v, label, cls) => `<button type="button" class="ffc ${cls}" data-ff="${kind}:${v}" aria-pressed="${state.ff[kind].includes(v)}">${label}</button>`;
+    const any = state.ff.disc.length || state.ff.gender.length;
+    return `<div class="ff" role="group" aria-label="Filtrer les courses">
+      <span class="ff__g">${['DH', 'SG', 'GS', 'SL'].map((d) => chip('disc', d, D.DISC[d].short, 'ffc--' + d)).join('')}</span>
+      <span class="ff__g">${chip('gender', 'W', 'F', 'ffc--W')}${chip('gender', 'M', 'H', 'ffc--M')}</span>
+      ${any ? '<button type="button" class="ff__x" data-ff="clear">Tout afficher</button>' : ''}</div>`;
   }
 
   /* ---------- Session à venir / en cours (forfait) ---------- */
@@ -579,7 +591,7 @@
       { id: 'w', label: 'Mondiaux', note: '4 au 14 févr.' },
       { id: '3', label: 'Desk 3', note: `${shortOf(D.DESKS[2].from)} au ${shortOf(D.DESKS[2].to)}` },
       { id: 'gen', label: 'Classements', note: '' },
-    ].concat(isAdmin() ? [{ id: 'adm', label: 'Admin', note: newPlayers().length ? `🔔 ${plural(newPlayers().length, 'nouveau joueur', 'nouveaux joueurs')}` : 'organisateur' }] : []);
+    ];
   }
   const TAB_IDS = ['next', '1', '2', 'w', '3', 'gen', 'adm'];
   function renderTabs() {
@@ -772,7 +784,7 @@
   function renderUserbar() {
     const el = $('#userbar');
     if (!el) return;
-    const ma = $('#mastact'); if (ma) { ma.hidden = !state.user && !state.demo; ma.innerHTML = '<button type="button" class="mastbtn" data-rules>Règles du jeu</button><button type="button" class="mastbtn" data-ideas>Boîte à idées</button>'; }
+    const ma = $('#mastact'); if (ma) { ma.hidden = !state.user && !state.demo; ma.innerHTML = '<span class="mast-actions__row"><button type="button" class="mastbtn" data-rules>Règles du jeu</button><button type="button" class="mastbtn" data-ideas>Boîte à idées</button></span>' + (isAdmin() ? `<button type="button" class="mastbtn mastbtn--admin" data-tab="adm" aria-pressed="${state.tab === 'adm'}">Admin${newPlayers().length ? ` · 🔔 ${newPlayers().length}` : ''}</button>` : ''); }
     el.hidden = !state.user || (state.demo && !state.user);
     if (!el.hidden) el.innerHTML = accountBar();
   }
@@ -1004,6 +1016,13 @@
     if (go) { setTab(go.dataset.goto === '0' ? 'w' : go.dataset.goto); return; }
     const tf = e.target.closest('[data-tf]');
     if (tf) { state.tf = tf.dataset.tf; applyTakenFilter(); return; }
+    const ffb = e.target.closest('[data-ff]');
+    if (ffb) {
+      const v = ffb.dataset.ff;
+      if (v === 'clear') state.ff = { disc: [], gender: [] };
+      else { const [k, x] = v.split(':'); const a = state.ff[k]; state.ff[k] = a.includes(x) ? a.filter((y) => y !== x) : a.concat(x); }
+      renderPanel(); return;
+    }
     const sub = e.target.closest('[data-sub]');
     if (sub) { state.sub[Number(sub.dataset.key)] = sub.dataset.sub; renderPanel(); return; }
     const fr = e.target.closest('[data-free]');
