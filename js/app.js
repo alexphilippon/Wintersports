@@ -619,7 +619,7 @@
     (L.out || []).forEach((r) => { const a = codeAth[r.code]; if (a && r.status !== 'DNS') by[a] = { status: r.status, out: true }; });
     return { L, by };
   }
-  const liveChip = (lv, a) => { const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) + ' en 1re manche' : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
+  const liveChip = (lv, a) => { const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
   function liveNote(race) {
     const lv = liveOf(race); if (!lv) return '';
     const { picks } = racePeople(race), hit = picks.filter((x) => lv.by[x.ath] && lv.by[x.ath].out);

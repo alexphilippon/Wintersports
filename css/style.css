@@ -995,3 +995,5 @@ html[data-theme='nuit'] .seg__btn--past:not([aria-selected="true"]) { color: #c4
 .lockbar__mine .rank { font-size: .8rem; margin-left: .25rem; }
 .livenote__l { margin: .25rem 0 0; padding-left: 1.1rem; font-size: .85rem; }
 @media (max-width: 560px) { .gauge { row-gap: .25rem; } .gauge__bar { height: .5rem; } }
+
+.lockbar__mine .rank { display: block; width: fit-content; margin: .15rem 0 .35rem 0; }
