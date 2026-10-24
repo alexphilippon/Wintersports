@@ -389,6 +389,35 @@
     const sc = G.scoreRace(race, (state.picks[state.me] || {})[race.id], state.results) || 0;
     return sc > 0 ? ' race--done race--hot' : ' race--done race--cold';
   }
+
+  /* ---------- Rentabilité de mon choix : skieur et course comparés aux autres joueurs, note en flocons ---------- */
+  const f1 = (x) => (Math.round(x * 10) / 10).toString().replace('.', ',');
+  function flakeRow(v) {
+    return `<span class="flk" role="img" aria-label="${f1(v)} flocons sur 5">${[0, 1, 2, 3, 4].map((i) => `<span class="flk__i"><i style="width:${Math.round(100 * Math.max(0, Math.min(1, v - i)))}%">❄</i>❄</span>`).join('')}</span>`;
+  }
+  function anaCmp(title, who, mine, avg, n, max, min) {
+    const head = `<h4 class="anab__t">${esc(title)}</h4>`;
+    if (avg == null || n < min) return `<section class="anab anab--wait">${head}<p class="anab__q">${who}</p><p class="anab__w">Calcul en attente : pas encore assez de données (${n} autre${n > 1 ? 's' : ''} joueur${n > 1 ? 's' : ''}, ${min} nécessaires).</p></section>`;
+    const d = Math.round(mine - avg), top = Math.max(mine, avg, 1);
+    return `<section class="anab">${head}<p class="anab__q">${who}</p>
+      <div class="anab__bars"><span class="anab__l">Toi</span><span class="anab__bar"><i class="is-me" style="width:${Math.round(100 * mine / top)}%"></i></span><b>${mine} pt${mine > 1 ? 's' : ''}</b>
+      <span class="anab__l">Moyenne</span><span class="anab__bar"><i style="width:${Math.round(100 * avg / top)}%"></i></span><b>${f1(avg)} pt${avg >= 2 ? 's' : ''}</b></div>
+      <p class="anab__d ${d > 0 ? 'is-up' : d < 0 ? 'is-dn' : ''}">${d > 0 ? '+' + d + ' pts au-dessus' : d < 0 ? Math.abs(d) + ' pts en dessous' : 'Dans la moyenne'}<span> · ${n} autre${n > 1 ? 's' : ''} joueur${n > 1 ? 's' : ''}</span></p></section>`;
+  }
+  function analysisBlock(race) {
+    if (race.cancelled || !resOf(race)) return '';
+    const an = G.pickAnalysis(race, state.me, state.picks, state.results, state.players.map((p) => p.id));
+    if (!an) return '';
+    const nm = esc(nameOf(an.ath));
+    const lab = ['Raté', 'Décevant', 'Correct', 'Bon pick', 'Très bon pick', 'Coup de maître'];
+    const concl = an.flakes == null
+      ? '<p class="anab__w">Note du choix : calcul en attente, pas encore assez de données.</p>'
+      : `<div class="ana__note" title="Note = 5 × (0,5 × √(points ÷ max) + 0,25 × écart à la moyenne de la course + 0,25 × écart à la moyenne du skieur).">${flakeRow(an.flakes)}<b>${f1(an.flakes)} / 5</b><span>${lab[Math.min(5, Math.max(0, Math.ceil(an.flakes - 0.5)))] }</span>${an.provisional ? '<em>provisoire : s’affinera quand d’autres joueurs auront pris ce skieur dans le desk</em>' : '<em>évolue si d’autres joueurs prennent ce skieur dans le desk</em>'}</div>`;
+    return `<div class="ana"><div class="ana__grid">
+      ${anaCmp('Rentabilité du skieur', `Ce que ${nm} t’a rapporté, face aux autres joueurs qui l’ont pris dans ce desk`, an.mine, an.skier.avg, an.skier.n, an.max, an.min)}
+      ${anaCmp('Rentabilité de la course', `Ce que cette course t’a rapporté, face aux autres joueurs, quel que soit leur skieur`, an.mine, an.race.avg, an.race.n, an.max, an.min)}
+      </div>${concl}</div>`;
+  }
   function raceRow(race, session) {
     const flag = race.cancelled ? '<span class="flag flag--off">Annulée</span>'
       : race.moved ? `<span class="flag flag--moved" title="Choix modifiable jusqu’au nouveau départ">Reportée du ${esc(shortOf(race.originalDate))}, départ ${esc(hourText(G.raceStart(race)))}</span>` : '';
@@ -396,7 +425,7 @@
     return `<li class="race race--card race--${race.gender}${race.cancelled ? ' race--off' : ''}${doneCls(race)}">
       ${raceCard(race, { noWait: true, extra: `${flag}${race.cancelled ? '' : slLink(race)}` })}
       <div class="race__main"><div class="race__pick">${pick}</div>
-      <div class="race__out">${outcome(race, state.me)}</div></div>
+      <div class="race__out">${outcome(race, state.me)}</div>${analysisBlock(race)}</div>
     </li>`;
   }
   function sessionCard(session, indexLabel) {

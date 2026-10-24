@@ -1336,17 +1336,16 @@ html[data-skin='arcade'] {
   --teal: #18b5d6; --teal-deep: #0b6f86;
   --hd-top: #2a1a6e; --hd-bot: #0d0b2a; --hd-text: #ffffff; --hd-line: #ff3ea5; --hd-btn-bg: rgba(13, 11, 42, .75); --hd-btn-line: #29e6ff; --hd-hover: #0d0b2a;
   --logo-fill: #ffe83a; --logo-line: #ff3ea5; --ski-rim: #29e6ff; --ski-body: #ff3ea5; --ski-bind: #0d0b2a;
-  --m-sun: #ffe83a; --m-back: #3a1a6e; --m-cap: #ff3ea5; --m-mid: #2a0f55; --m-front: #160a35; --m-tree: #0a0520; --m-ground: #0f0a2a; --m-flake: #29e6ff; --m-star: 1;
+  --tex-sapin: none; --tex: none; --m-sun: #ffe83a; --m-back: #3a1a6e; --m-cap: #ff3ea5; --m-mid: #2a0f55; --m-front: #160a35; --m-tree: #0a0520; --m-ground: #0f0a2a; --m-flake: #29e6ff; --m-star: 1;
 }
 .th--arcade { background: conic-gradient(#ff3ea5 25%, #29e6ff 0 50%, #ffe83a 0 75%, #0d0b2a 0) 0 0 / 8px 8px; image-rendering: pixelated; border-radius: 0 !important;
   clip-path: polygon(0 25%, 25% 25%, 25% 0, 75% 0, 75% 25%, 100% 25%, 100% 75%, 75% 75%, 75% 100%, 25% 100%, 25% 75%, 0 75%); }
 .themesw button.th--arcade[aria-pressed='true'] { transform: scale(1.22); filter: brightness(1.25); }
-html[data-skin='arcade'] *:not(svg):not(svg *) { border-radius: 0 !important; }
-html[data-skin='arcade'] .th--sapin, html[data-skin='arcade'] .th--glace, html[data-skin='arcade'] .th--nuit, html[data-skin='arcade'] .th--noel, html[data-skin='arcade'] .th--halloween { border-radius: 50% !important; }
+html[data-skin='arcade'] .masthead *:not(svg):not(svg *):not(.th--sapin):not(.th--glace):not(.th--nuit):not(.th--noel):not(.th--halloween):not(.th--minimal) { border-radius: 0 !important; }   /* bords carrés : logo et en-tête seulement */
 html[data-skin='arcade'] h1, html[data-skin='arcade'] h2 { font-family: 'Press Start 2P', 'Bricolage Grotesque', monospace; line-height: 1.45; letter-spacing: 0; }
 html[data-skin='arcade'] h2 { font-size: clamp(1rem, 2.4vw, 1.45rem); }
 html[data-skin='arcade'] .masthead__title { font-family: 'Press Start 2P', monospace; font-size: 2.1rem; letter-spacing: 0; text-shadow: 4px 4px 0 #ff3ea5; }
-html[data-skin='arcade'] .mastbtn, html[data-skin='arcade'] .btn, html[data-skin='arcade'] .fsbtn { box-shadow: 3px 3px 0 #000; font-weight: 700; }
+html[data-skin='arcade'] .mastbtn { box-shadow: 3px 3px 0 #000; font-weight: 700; }
 html[data-skin='arcade'] .rule { background: #25206a; }
 html[data-skin='arcade'] .grid .me, html[data-skin='arcade'] .grid--rank .me, html[data-skin='arcade'] .grid--tk tbody tr.me th { background: #2c2680; }
 html[data-skin='arcade'] .empty { background: #0f0d30; }
@@ -1515,7 +1514,49 @@ html .pav.pav--t-glace { background: linear-gradient(145deg, #e9f6ff 0%, #9fd2ee
 html .pav.pav--t-nuit { background: radial-gradient(120% 90% at 20% 15%, #35e0a1 0%, rgba(53,224,161,0) 55%), radial-gradient(100% 90% at 85% 80%, #8a5bd8 0%, rgba(138,91,216,0) 60%), #0e2447; color: #fff; text-shadow: 0 0 6px rgba(120,255,200,.9); border-color: #5fe3b4; box-shadow: 0 0 0 1.5px #0e2447; }
 html .pav.pav--t-noel { background: repeating-linear-gradient(135deg, #b3262d 0 5px, #9a1f26 5px 10px); color: #fff; border-color: #f4f0e6; box-shadow: 0 0 0 1.5px #1f6b45; }
 html .pav.pav--t-halloween { background: radial-gradient(circle at 50% 40%, #ff9a2e 0%, #e8710a 70%); color: #140c05; border-color: #140c05; box-shadow: 0 0 0 1.5px #ff9a2e; }
-html .pav.pav--t-arcade { background: #1a1456; color: #ffe83a; border: 2px solid #29e6ff; border-radius: 22%; box-shadow: 2px 2px 0 #ff3ea5; font-family: 'Press Start 2P', monospace; font-weight: 400; text-shadow: 1px 1px 0 #ff3ea5; image-rendering: pixelated; }
+html .pav.pav--t-arcade { background: #1a1456; color: #ffe83a; border: 2px solid #29e6ff; border-radius: 50%; box-shadow: 2px 2px 0 #ff3ea5; font-family: 'Press Start 2P', monospace; font-weight: 400; text-shadow: 1px 1px 0 #ff3ea5; image-rendering: pixelated; }
 html .pav.pav--t-arcade.pav--xs { font-size: .5rem; } html .pav.pav--t-arcade.pav--sm { font-size: .62rem; } html .pav.pav--t-arcade.pav--lg { font-size: 1.05rem; }
 html .pav.pav--t-minimal { background: #fff; color: #111; border: 2px solid #111; box-shadow: none; }
 html .pav.pav--t-minimal.pav--xs { border-width: 1px; }
+
+/* ---------- Ambiances sombres (Aurore, Halloween, Arcade) : texte clair sur les bandeaux « pin » (en-tête de session, souche du compte à rebours) ---------- */
+html[data-theme='nuit'] :is(.session__head, .forfait__stub) :is(.session__name, .session__meta, .count, .forfait__label, .forfait__dl, .countdown, .countdown *, .remindbtn, .info) { color: #eef4fb; }
+html[data-theme='nuit'] .session__head .count--draft { color: #fff; }
+html[data-theme='nuit'] .state--ouverte { color: #9ff0c8; border-color: #4aa57f; }
+html[data-theme='nuit'] .freelink { color: #ff9a80; }
+html[data-theme='nuit'] .grid:not([class*='cap--']) caption { background: #1c3052; color: #fff; }
+html[data-skin='halloween'] .grid:not([class*='cap--']) caption { background: #1d0f08; }
+html[data-skin='arcade'] .grid:not([class*='cap--']) caption { background: #2a1a6e; }
+html[data-theme='nuit'] .disc, html[data-theme='nuit'] .dr__ds.disc { color: #fff; }
+
+/* Arcade : en-têtes de session et compte à rebours sans motif, texte net et contrasté */
+html[data-skin='arcade'] :is(.session__head, .tabs, .forfait__stub) { background-image: none; }
+html[data-skin='arcade'] .session__head { background-color: #2a1a6e; border-bottom: 3px solid #ff3ea5; }
+html[data-skin='arcade'] .forfait__stub { background-image: linear-gradient(180deg, #2a1a6e, #160f4a); }
+html[data-skin='arcade'] .session__name { color: #fff; font-size: 1.4rem; text-shadow: none; letter-spacing: 0; }
+html[data-skin='arcade'] .session__meta { color: #bff6ff; font-size: .92rem; }
+
+/* ---------- Rentabilité du choix (onglet desk) ---------- */
+.ana { margin-top: .4rem; padding-top: .8rem; border-top: 1px dashed var(--filet); display: flex; flex-direction: column; gap: .8rem; }
+.ana__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+@media (min-width: 900px) { .ana__grid { grid-template-columns: 1fr 1fr; } }
+.anab { background: var(--chip); border-radius: 10px; padding: .75rem .9rem; display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.anab__t { margin: 0; font-size: .95rem; font-weight: 700; }
+.anab__q, .anab__w { margin: 0; font-size: .82rem; color: var(--encre-douce); }
+.anab--wait .anab__w, .ana > .anab__w { font-style: italic; }
+.anab__bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .3rem .6rem; font-size: .85rem; }
+.anab__bar { height: .6rem; background: var(--track); border-radius: 999px; overflow: hidden; }
+.anab__bar i { display: block; height: 100%; background: var(--encre-douce); border-radius: 999px; }
+.anab__bar i.is-me { background: var(--sapin); }
+.anab__d { margin: 0; font-size: .85rem; font-weight: 700; }
+.anab__d span { font-weight: 400; color: var(--encre-douce); }
+.anab__d.is-up { color: var(--sapin); } .anab__d.is-dn { color: var(--brique); }
+.ana__note { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .8rem; }
+.ana__note b { font-size: 1.05rem; } .ana__note span:not(.flk) { font-weight: 600; }
+.ana__note em { font-size: .8rem; color: var(--encre-douce); }
+.flk { display: inline-flex; gap: .1rem; font-size: 1.5rem; line-height: 1; --flk: #2a86c0; }
+.flk__i { position: relative; display: inline-block; color: var(--filet); }
+.flk__i i { position: absolute; left: 0; top: 0; overflow: hidden; white-space: nowrap; color: var(--flk); font-style: normal; }
+html[data-theme='nuit'] .flk { --flk: #8fd3ff; } html[data-skin='halloween'] .flk { --flk: #ff9a2e; } html[data-skin='arcade'] .flk { --flk: #29e6ff; }
+html[data-theme='minimal'] .flk { --flk: #111; } html[data-theme='noel'] .flk { --flk: #c8323a; }
+html[data-theme='nuit'] .flk__i { color: rgba(255,255,255,.2); }
