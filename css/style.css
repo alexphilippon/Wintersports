@@ -1022,3 +1022,5 @@ html[data-theme='nuit'] .seg__btn--past:not([aria-selected="true"]) { color: #c4
   .acct__ib .lbl-lg, .acct__ib .lbl-sm { display: none; }
   .acct__ib .ico-sm { display: block; }
 }
+
+.sk__tiles { grid-template-columns: repeat(3, 1fr); } @media (min-width: 560px) { .sk__tiles { grid-template-columns: repeat(6, 1fr); } }

@@ -199,14 +199,14 @@
     const pn = a ? a.name : (code && past && past.ath[code] ? titleCase(past.ath[code][0].split(' ').filter((w) => w !== w.toUpperCase()).join(' ')) + ' ' + titleCase(past.ath[code][0].split(' ').filter((w) => w === w.toUpperCase()).join(' ')) : '');
     const nat = a ? a.nat : (code && past && past.ath[code] ? past.ath[code][1] : '');
     const rows = skierRows(id, code, sk.season), pts = rows.reduce((s, r) => s + r.pts, 0);
-    const podium = rows.filter((r) => r.rank && r.rank <= 3).length, top10 = rows.filter((r) => r.rank && r.rank <= 10).length, zero = rows.filter((r) => r.status !== 'DNS' && !r.pts).length;   // bulle : 0 point hors DNS
+    const wins = rows.filter((r) => r.rank === 1).length, podium = rows.filter((r) => r.rank && r.rank <= 3).length, top10 = rows.filter((r) => r.rank && r.rank <= 10).length, zero = rows.filter((r) => r.status !== 'DNS' && !r.pts).length;   // bulle : 0 point hors DNS
     const byD = {}; rows.forEach((r) => { byD[r.disc] = (byD[r.disc] || 0) + r.pts; });
     const used = id ? mine()[id] : null;
     const tile = (v, l) => `<div class="sk__t"><b>${v}</b><span>${l}</span></div>`;
     const list = rows.map((r) => `<li class="sk__r"><span class="sk__d">${frDate(r)}</span><span class="sk__p">${C.esc(placeOf(r))}</span><span class="disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="sk__k ${cellCls(r.rank ? { rank: r.rank } : { status: r.status })}">${r.rank || r.status}</span><span class="sk__pt">${r.pts ? '+' + r.pts : '0'}</span></li>`).join('');
     return `<div class="sk"><header class="sk__h">${id ? C.avatarOf(id, 'lg') : ''}<div><h2 class="sk__n">${C.esc(pn)}</h2><p class="sk__m">${C.esc(nat)}${a && a.rank ? ` · n° ${a.rank} du classement ${a.rank ? '2025-26' : ''}` : ''}</p>${used ? `<p class="sk__m">Déjà pris : ${['1', '2', '3', 'M'].filter((k) => used.has(k)).map((k) => (k === 'M' ? 'Mondiaux' : 'Desk ' + k)).join(', ')}</p>` : ''}</div></header>
       <div class="seg sk__seg" role="tablist"><button type="button" role="tab" class="seg__btn" aria-selected="${sk.season === 'now'}" data-dr="skseason:now">2026-27</button><button type="button" role="tab" class="seg__btn seg__btn--past" aria-selected="${sk.season === 'past'}" data-dr="skseason:past">2025-26</button></div>
-      ${sk.season === 'past' && !past ? '<p class="hint">Chargement…</p>' : `<div class="sk__tiles">${tile(pts, 'points')}${tile(rows.length, rows.length > 1 ? 'courses' : 'course')}${tile(podium, 'podiums')}${tile(top10, 'top 10')}${tile(zero, zero > 1 ? 'bulles' : 'bulle')}</div>
+      ${sk.season === 'past' && !past ? '<p class="hint">Chargement…</p>' : `<div class="sk__tiles">${tile(pts, 'points')}${tile(rows.length, rows.length > 1 ? 'courses' : 'course')}${tile(wins, wins > 1 ? 'victoires' : 'victoire')}${tile(podium, podium > 1 ? 'podiums' : 'podium')}${tile(top10, 'top 10')}${tile(zero, zero > 1 ? 'bulles' : 'bulle')}</div>
       <p class="sk__disc">${['DH', 'SG', 'GS', 'SL'].filter((d) => byD[d] != null).map((d) => `<span class="disc disc--${d}">${C.D.DISC[d].short}</span> <b>${byD[d]}</b>`).join(' · ') || ''}</p>
       <ul class="sk__list">${list || '<li class="none">Aucun résultat sur cette saison.</li>'}</ul>`}</div>`;
   }
