@@ -65,7 +65,8 @@
     const authCbs = []; let current = null, resolved = false;
     const ready = (async () => {
       if (!root.firebase) for (const f of FB_FILES) await loadScript(`https://www.gstatic.com/firebasejs/${FB_VERSION}/firebase-${f}-compat.js`);
-      fb = root.firebase; fb.initializeApp(cfg); auth = fb.auth(); db = fb.firestore(); FV = fb.firestore.FieldValue;
+      fb = root.firebase; fb.initializeApp(cfg); auth = fb.auth(); db = fb.firestore();
+      try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) { /* déjà initialisé */ }   // réseaux, extensions ou navigateurs qui bloquent le flux temps réel : repli automatique FV = fb.firestore.FieldValue;
       auth.onAuthStateChanged(async (u) => {
         if (!u) { current = null; resolved = true; authCbs.forEach((cb) => cb(null)); return; }
         let name = u.email;
@@ -102,7 +103,7 @@
       async resetPassword(email) { await ready; try { await auth.sendPasswordResetEmail(email.trim()); } catch (e) { throw msg(e); } },
       listen(h) {
         ready.then(() => {
-          const fail = (e) => console.error('Firestore :', e);
+          const fail = (e) => { console.error('Firestore :', e); if (h.error) h.error(e); };
           if (h.players) db.collection('players').onSnapshot((s) => h.players(s.docs.map((d) => Object.assign({ id: d.id }, d.data()))), fail);
           if (h.picks) db.collection('picks').onSnapshot((s) => { const o = {}; s.docs.forEach((d) => { const m = d.data(); Object.keys(m).forEach((k) => { if (m[k] && m[k].ts) m[k] = Object.assign({}, m[k], { ts: ms(m[k].ts) }); }); o[d.id] = m; }); h.picks(o); }, fail);
           if (h.results) db.collection('results').onSnapshot((s) => { const o = {}; s.docs.forEach((d) => { o[d.id] = d.data().entries || []; }); h.results(o); }, fail);

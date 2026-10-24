@@ -144,13 +144,15 @@
   }
   function startStore() {
     store.onAuth((u) => { state.authReady = true; state.user = u; state.me = u ? u.uid : null; introRules(); if (isAdmin() && !state.contactsOn) { state.contactsOn = true; store.listenContacts((m) => { state.contacts = m; scheduleRender(); }); } if (!state.demo) { state.authError = ''; scheduleRender(); } });
+    setTimeout(() => { if (!state.picksReady) { state.picksLate = true; scheduleRender(); } }, 12000);   // les choix n'arrivent pas : on prévient
     store.listen({
       players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id, photo: x.photo || '', blocked: !!x.photoBlocked, lastSeen: Number(x.lastSeen) || 0 })).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
         // un simple « vu à l'instant » n'oblige pas à redessiner la page : seulement l'onglet Admin
         const sig = JSON.stringify(state.players.map((p) => [p.id, p.name, p.photo, p.blocked]));
         const same = sig === state.playersSig; state.playersSig = sig;
         if (!same || state.tab === 'adm') scheduleRender(); },
-      picks: (m) => { state.raw.picks = m; state.picksReady = true; recompute(); },
+      picks: (m) => { state.raw.picks = m; state.picksReady = true; state.syncErr = false; recompute(); },
+      error: () => { state.syncErr = true; scheduleRender(); },
       results: (m) => { state.raw.results = m; recompute(); },
       overrides: (m) => { state.overrides = m; recompute(); },
       aliases: (m) => { state.aliases = m; recompute(); },
@@ -1467,7 +1469,8 @@
     }
     if (t === 'adm' && !isAdmin()) state.tab = 'next';
     const html = state.tab === 'adm' ? window.SKI_ADMIN.render(adminCtx()) : state.tab === 'next' ? nextPanel() : state.tab === 'gen' ? generalPanel() : state.tab === 'data' ? window.SKI_DR.render() : state.tab === 'w' ? deskPanel(0) : deskPanel(Number(state.tab));
-    $('#panel').innerHTML = (state.demo ? '<p class="demo">Démonstration : joueurs, choix et résultats fictifs.</p>' : '') + html;
+    const syncWarn = !state.demo && state.user && !state.picksReady && (state.syncErr || state.picksLate) ? '<div class="syncwarn" role="alert"><strong>Tes choix et ceux des autres ne se chargent pas.</strong> Ce n’est pas une perte : ils sont enregistrés. Recharge la page ; si ça persiste, désactive ton bloqueur de publicités ou le mode « protection renforcée » du navigateur pour ce site, ou essaie un autre navigateur.</div>' : '';
+    $('#panel').innerHTML = (state.demo ? '<p class="demo">Démonstration : joueurs, choix et résultats fictifs.</p>' : '') + syncWarn + html;
     $('#panel').setAttribute('aria-labelledby', 'tab-' + state.tab);
     applyTakenFilter();
   }

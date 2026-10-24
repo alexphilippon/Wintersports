@@ -1203,3 +1203,6 @@ html[data-theme='nuit'] .pk__pt { color: #7fd6a6; }
 .rf__tb tbody th[scope="row"] { white-space: nowrap; } .rf__ath { min-width: 16rem; }
 @media (max-width: 640px) { .rf__ath { min-width: 0; } }
 .rf__ath .fl { flex: none; }
+
+.syncwarn { margin: .8rem 0; padding: .8rem 1rem; border: 2px solid var(--brique, #b3281f); border-radius: 12px; background: #fdecea; color: #7a1f17; font-size: .92rem; line-height: 1.45; }
+html[data-theme='nuit'] .syncwarn { background: #44221f; color: #ffd6cf; }
