@@ -76,12 +76,12 @@
     Object.keys(res).forEach((id) => { const r = C.G.raceOf(id); if (r && !r.cancelled && res[id] && res[id].length && (!best || C.G.raceStart(r) > C.G.raceStart(best))) best = r; });
     if (best) ui.g = best.gender;
   }
-  /* ---------- 1. Classements (version légère) ---------- */
+  /* ---------- 1. Globes (version légère) ---------- */
   function light() {
     initG(); const { rows } = table(ui.g, ui.disc), used = mine(), dr = mine(true);
     const shown = ui.more ? rows : rows.slice(0, 30);
     const globe = !ui.disc.length ? 'Gros globe (cumul des quatre disciplines)' : ui.disc.length === 1 ? `Petit globe de ${DNAME[ui.disc[0]].toLowerCase()}` : `Cumul : ${ui.disc.map((d) => DNAME[d].toLowerCase()).join(' + ')}`;
-    const badges = (id) => ['1', '2', '3', 'M'].map((k) => { const on = used[id] && used[id].has(k), dft = !on && dr[id] && dr[id].has(k); return `<span class="db${on ? ' is-on' : dft ? ' is-draft' : ''}" style="--c:${DESKC[k]}" title="${on ? 'Déjà pris' : dft ? 'Brouillon (non confirmé)' : 'Pas encore pris'} (${k === 'M' ? 'Mondiaux' : 'Desk ' + k})">${k === 'M' ? 'M' : 'D' + k}</span>`; }).join('');
+    const badges = (id) => ['1', '2', 'M', '3'].map((k) => { const on = used[id] && used[id].has(k), dft = !on && dr[id] && dr[id].has(k); return `<span class="db${on ? ' is-on' : dft ? ' is-draft' : ''}" style="--c:${DESKC[k]}" title="${on ? 'Déjà pris' : dft ? 'Brouillon (non confirmé)' : 'Pas encore pris'} (${k === 'M' ? 'Mondiaux' : 'Desk ' + k})">${k === 'M' ? 'M' : 'D' + k}</span>`; }).join('');
     const xb = root.SKI_SHARE.xbar({ key: 'dr:light:' + ui.g + ui.disc.join(''), title: globe.replace(/ \(.*\)/, ''), sub: (ui.g === 'M' ? 'Messieurs' : 'Dames') + ' · Coupe du monde 2026-27', unit: ' pts', head: ['Rang', 'Skieur', 'Points'], rows: rows.slice(0, 30).map((r) => ({ c: [String(r.rank), C.nameOf(r.ath), String(r.pts)] })) });
     const body = shown.map((r) => `<tr class="${used[r.ath] ? 'is-mine' : ''}"><td class="num">${rnkc(r.rank)}</td>
       <th scope="row"><button type="button" class="dr__sk dr__lnk" data-dr="sk:id~${r.ath}">${C.avatarOf(r.ath, 'sm')}${C.flag((C.ATH()[r.ath] || {}).nat)}<span class="dr__nm">${C.esc(C.nameOf(r.ath))}</span></button></th>
@@ -272,7 +272,7 @@
     const used = id ? mine()[id] : null;
     const tile = (v, l, k) => `<div class="sk__t sk__t--${k}"><b>${v}</b><span>${l}</span></div>`;
     const list = rows.slice().reverse().map((r) => `<li class="sk__r"><span class="sk__d">${frDate(r)}</span><span class="sk__p">${C.esc(placeOf(r))}</span><span class="disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="sk__k ${cellCls(r.rank ? { rank: r.rank } : { status: r.status })}">${r.rank || r.status}</span><span class="sk__pt">${r.pts ? '+' + r.pts : '0'}</span></li>`).join('');
-    return `<div class="sk"><header class="sk__h">${id ? C.avatarOf(id, 'lg') : ''}<div><h2 class="sk__n">${C.esc(pn)}</h2><p class="sk__m">${C.esc(nat)}${rankTags(id, a)}</p>${used ? `<p class="sk__m">Déjà pris : ${['1', '2', '3', 'M'].filter((k) => used.has(k)).map((k) => (k === 'M' ? 'Mondiaux' : 'Desk ' + k)).join(', ')}</p>` : ''}</div></header>
+    return `<div class="sk"><header class="sk__h">${id ? C.avatarOf(id, 'lg') : ''}<div><h2 class="sk__n">${C.esc(pn)}</h2><p class="sk__m">${C.esc(nat)}${rankTags(id, a)}</p>${used ? `<p class="sk__m">Déjà pris : ${['1', '2', 'M', '3'].filter((k) => used.has(k)).map((k) => (k === 'M' ? 'Mondiaux' : 'Desk ' + k)).join(', ')}</p>` : ''}</div></header>
       <div class="seg sk__seg" role="tablist"><button type="button" role="tab" class="seg__btn" aria-selected="${sk.season === 'now'}" data-dr="skseason:now">2026-27</button><button type="button" role="tab" class="seg__btn seg__btn--past" aria-selected="${sk.season === 'past'}" data-dr="skseason:past">2025-26</button>${id ? `<button type="button" role="tab" class="seg__btn" aria-selected="${sk.season === 'picks'}" data-dr="skseason:picks">Choix des joueurs</button>` : ''}</div>
       ${sk.season === 'picks' ? picksTab(id) : sk.season === 'past' && !past ? '<p class="hint">Chargement…</p>' : `<div class="sk__tiles">${tile(pts, 'points', 'pts')}${tile(rows.length, rows.length > 1 ? 'courses' : 'course', 'c')}${tile(wins, wins > 1 ? 'victoires' : 'victoire', 'win')}${tile(podium, podium > 1 ? 'podiums' : 'podium', 'pod')}${tile(top10, 'top 10', 'top')}${tile(zero, zero > 1 ? 'bulles' : 'bulle', 'bub')}</div>
       <p class="sk__disc">${['DH', 'SG', 'GS', 'SL'].filter((d) => byD[d] != null).map((d) => `<span class="disc disc--${d}">${C.D.DISC[d].short}</span> <b>${byD[d]}</b>`).join(' · ') || ''}</p>
@@ -299,7 +299,7 @@
   function render() {
     const body = ui.sub === 'light' ? light() : ui.sub === 'bub' ? bulles() : premium(ui.sub === 'past');
     return `<section class="dr"><header class="deskhead"><div><h2>Data room</h2><p class="deskhead__meta">Classement de la Coupe du monde et résultats bruts${C.state.demo && ui.sub !== 'past' ? ' · données fictives pour les courses pas encore courues' : ''}</p></div></header>
-      <div class="deskbar"><div class="seg" role="tablist" aria-label="Data room"><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'light'}" data-dr="sub:light">Classements</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'prem'}" data-dr="sub:prem">Par course</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'bub'}" data-dr="sub:bub">Bulles</button><button type="button" role="tab" class="seg__btn seg__btn--past" aria-selected="${ui.sub === 'past'}" data-dr="sub:past">2025-26</button></div></div>
+      <div class="deskbar"><div class="seg" role="tablist" aria-label="Data room"><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'light'}" data-dr="sub:light">Globes</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'prem'}" data-dr="sub:prem">Par course</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'bub'}" data-dr="sub:bub">Bulles</button><button type="button" role="tab" class="seg__btn seg__btn--past" aria-selected="${ui.sub === 'past'}" data-dr="sub:past">2025-26</button></div></div>
       ${body}</section>`;
   }
   document.addEventListener('click', (e) => {

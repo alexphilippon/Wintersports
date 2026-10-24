@@ -942,8 +942,9 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 .dr__filters { margin: 0 0 .8rem; justify-content: flex-start; }
 .dr__sk { display: inline-flex; align-items: center; gap: .5rem; } .dr__nm { font-weight: 600; }
 .dr__bd { white-space: nowrap; }
-.db { display: inline-block; min-width: 1.7rem; margin-right: .25rem; padding: .05rem .3rem; text-align: center; border-radius: 6px; font-size: .72rem; font-weight: 800; border: 1.5px solid color-mix(in srgb, var(--c) 45%, transparent); color: color-mix(in srgb, var(--c) 55%, var(--encre-douce)); background: transparent; }
+.db { display: inline-block; min-width: 1.7rem; margin-right: .25rem; padding: .05rem .3rem; text-align: center; border-radius: 6px; font-size: .72rem; font-weight: 800; border: 1.5px solid transparent; color: color-mix(in srgb, var(--encre) 13%, transparent); background: transparent; font-weight: 600; }
 .db.is-on { background: var(--c); border-color: var(--c); color: #fff; }
+.db.is-on { font-weight: 800; }
 .dr__light tr.is-mine th { font-weight: 800; }
 .dr__more { margin: -.6rem 0 1rem; }
 .dr__wrap { max-height: 75vh; overflow: auto; }
