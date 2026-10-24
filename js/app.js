@@ -1278,13 +1278,13 @@
     const results = (qv) => {
       const t = norm(qv.trim()).split(/\s+/).filter(Boolean); if (!t.length) return '';
       const hits = [];
-      ['W', 'M'].forEach((g) => (LIST[g] || []).forEach((a) => { const n = norm(nameOf(a.id) + ' ' + (a.name || '') + ' ' + (a.nat || '')); if (t.every((x) => n.includes(x))) hits.push(a); }));
+      ['W', 'M'].forEach((g) => (LIST[g] || []).forEach((a) => { const n = norm(nameOf(a.id) + ' ' + (a.name || '')); if (t.every((x) => n.includes(x))) hits.push(a); }));
       hits.sort((x, y) => nameOf(x.id).localeCompare(nameOf(y.id)));
       return hits.slice(0, 12).map((a) => `<li><button type="button" data-dr="sk:id~${esc(a.id)}">${avatarOf(a.id, 'sm')}${flagOf(a.id)}<span>${esc(nameOf(a.id))}</span>${a.g || a.gender ? '' : ''}</button></li>`).join('') || '<li class="none">Aucun skieur trouvé.</li>';
     };
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#skfind')) return;
-      openModal('<h2>Chercher un skieur</h2><input id="skq" class="skq" type="search" placeholder="Nom, prénom ou pays…" autocomplete="off" aria-label="Chercher un skieur ou une skieuse"><ul class="skres" id="skres"></ul>');
+      openModal('<h2>Chercher un skieur</h2><input id="skq" class="skq" type="search" placeholder="Nom ou prénom…" autocomplete="off" aria-label="Chercher un skieur ou une skieuse"><ul class="skres" id="skres"></ul>');
       setTimeout(() => { const q = $('#skq'); if (q) q.focus(); }, 50);
     });
     document.addEventListener('input', (e) => { if (e.target.id === 'skq') { const r = $('#skres'); if (r) r.innerHTML = results(e.target.value); } });
