@@ -116,6 +116,8 @@ W|40|Sun Valley|2027-03-25|SL
 
   // Heures confirmées (source : programme publié, 22/10/2026). Les autres restent provisoires jusqu'à confirmation par l'admin.
   ['W01', 'M01'].forEach((id) => { RACES[id].timeKnown = true; });
+  // Sölden dames : départ reporté de 10 h à 10 h 30 (24/10/2026).
+  RACES.W01.time = '10:30';
 
   // Mondiaux de Crans-Montana (1er-14 février 2027), épreuves individuelles seulement. Barème ×3.
   const WORLDS_RAW = [
