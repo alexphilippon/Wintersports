@@ -10,7 +10,7 @@
   const say = (m) => { A.msg = m; C.rerender(); };
 
   const allRaces = () => Object.keys(C.D.RACES).map((id) => C.G.raceOf(id)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time) || a.gender.localeCompare(b.gender));
-  const raceLabel = (r) => `${C.shortOf(r.date)} · ${C.placeLabel(r)} · ${r.gender === 'M' ? 'Messieurs' : 'Dames'} · ${C.discLabel(r)}${r.cancelled ? ' (annulée)' : r.moved ? ' (reportée)' : ''}`;
+  const raceLabel = (r) => `${C.shortOf(r.date)} · ${C.placeLabel(r)} · ${C.discLabel(r)} ${r.gender === 'M' ? 'messieurs' : 'dames'}${r.cancelled ? ' (annulée)' : r.moved ? ' (reportée)' : ''}`;
   const raceOptions = (sel, filter) => allRaces().filter(filter || (() => true)).map((r) => `<option value="${r.id}"${sel === r.id ? ' selected' : ''}>${C.esc(raceLabel(r))}</option>`).join('');
   const entryText = (e) => e.status ? `${e.status} ${C.ATH[e.ath] ? C.ATH[e.ath].name : e.ath}` : `${e.rank} ${C.ATH[e.ath] ? C.ATH[e.ath].name : e.ath}`;
 

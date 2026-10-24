@@ -1070,3 +1070,44 @@ html[data-theme='nuit'] .rc__chip.me { background: #3a5fa8; color: #fff; }
 /* Course terminée : ligne teintée selon l'ambiance */
 .race--hot { background: linear-gradient(90deg, rgba(220, 138, 34, .22), rgba(220, 138, 34, .06) 75%); box-shadow: inset 4px 0 0 #dc8a22; }
 .race--cold { background: linear-gradient(90deg, rgba(106, 165, 207, .24), rgba(106, 165, 207, .07) 75%); box-shadow: inset 4px 0 0 #6aa5cf; }
+/* ---------- Session en cours : cartouche de course, repères Dames/Messieurs, résultats ---------- */
+.race--W, .rcard--W, .lb--W { --gc: #9a3f78; } .race--M, .rcard--M, .lb--M { --gc: #44596b; }
+html[data-theme='nuit'] .race--W, html[data-theme='nuit'] .rcard--W, html[data-theme='nuit'] .lb--W { --gc: #e08fbd; }
+html[data-theme='nuit'] .race--M, html[data-theme='nuit'] .rcard--M, html[data-theme='nuit'] .lb--M { --gc: #9db4cf; }
+.race.race--live { display: grid; grid-template-columns: minmax(0, 1fr); gap: .9rem 1.4rem; padding: 1.1rem 1rem 1.1rem 1.1rem; align-items: start; position: relative; overflow: hidden; }
+.race.race--live .race__pick { grid-column: auto; min-width: 0; }
+@media (min-width: 760px) { .race.race--live { grid-template-columns: 15.5rem minmax(0, 1fr); padding: 1.3rem 1.4rem; } }
+.rcard { display: flex; flex-direction: column; gap: .25rem; padding: .9rem 1rem 1rem; border-radius: 12px; border: 1.5px solid color-mix(in srgb, var(--gc) 45%, transparent); border-left: 7px solid var(--gc); background: color-mix(in srgb, var(--gc) 9%, var(--neige)); }
+.rcard__date { font-size: .82rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--gc); }
+.rcard__place { font: 800 1.45rem/1.1 var(--display); color: var(--nuit); }
+.rcard__race { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-top: .1rem; }
+.rcard__time { font-size: .95rem; font-weight: 600; color: var(--encre); }
+.rcard__st--wait { font-size: .82rem; font-weight: 700; color: var(--brique); }
+.morebtn { margin-top: .7rem; align-self: stretch; padding: .55rem 1rem; border: 0; border-radius: 99px; background: linear-gradient(135deg, var(--teal), var(--pine)); color: #fff; font: 700 .95rem var(--sans, inherit); cursor: pointer; box-shadow: 0 2px 6px rgba(20, 40, 60, .25); }
+.morebtn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.ribbon { position: absolute; top: 0; right: 0; z-index: 2; display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .8rem .3rem 1rem; background: #2f9e5b; color: #fff; font-size: .78rem; font-weight: 800; letter-spacing: .03em; border-bottom-left-radius: 14px; box-shadow: -2px 2px 5px rgba(0, 0, 0, .2); }
+.ribbon::after { content: ''; position: absolute; right: 0; bottom: -7px; border-style: solid; border-width: 7px 0 0 7px; border-color: #1c6b3b transparent transparent transparent; }
+/* mes choix dans la barre de session */
+.lockbar__mine { flex-direction: column; align-items: stretch; gap: .45rem; flex: 1 1 22rem; }
+.lb { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .7rem; padding: .35rem .7rem; border-left: 5px solid var(--gc); border-radius: 8px; background: color-mix(in srgb, var(--gc) 8%, transparent); }
+.lb__tag { display: inline-flex; align-items: center; gap: .3rem; }
+.lb__rk { display: inline-flex; align-items: center; gap: .3rem; font-size: .88rem; color: var(--encre); cursor: pointer; }
+.lb__rk b { font-size: 1rem; } .lb__rk--bad b { color: var(--brique); }
+.lb__pts { padding: .15rem .8rem; border-radius: 99px; border: 1.5px solid; font: 800 1rem var(--display); cursor: pointer; }
+.lb__pts--pos { background: #cdeed9; border-color: #2f9e5b; color: #12663a; }
+.lb__pts--neg { background: #f6d0c9; border-color: #c44a3a; color: #8b2a1f; }
+html[data-theme='nuit'] .lb__pts--pos { background: #1c4d33; border-color: #4cc88a; color: #9be8bf; }
+html[data-theme='nuit'] .lb__pts--neg { background: #5a2520; border-color: #e0715f; color: #ffb4a8; }
+.lock { display: inline-flex; align-items: center; color: var(--encre); }
+.lockbar__mine .rank { display: inline-block; margin: 0; }
+/* jauges en nombre de joueurs */
+.gauge { grid-template-columns: minmax(0, 13rem) minmax(0, 1fr) 5.6rem; }
+.gauge__v--n { font-size: .85rem; white-space: nowrap; }
+@media (max-width: 560px) { .gauge { grid-template-columns: minmax(0, 1fr) 4.6rem; } .gauge .gauge__bar { grid-column: 1 / -1; grid-row: 2; } }
+/* classement du skieur après la course */
+.rk { display: inline-block; padding: .05rem .55rem; border-radius: 6px; font: 800 .95rem var(--display); background: var(--chip); color: var(--encre); }
+.rk--top { background: #f0c94a; color: #1b2b44; } .rk--good { background: #cdeed9; color: #12663a; }
+.rk--bad { background: #c44a3a; color: #fff; } .rk--dns { background: color-mix(in srgb, #8a6d1f 22%, transparent); color: #6e5513; }
+html[data-theme='nuit'] .rk--good { background: #1c4d33; color: #9be8bf; } html[data-theme='nuit'] .rk--dns { color: #e8cf86; }
+.rkpts { margin-left: .4rem; font: 800 .9rem var(--display); } .rkpts--on { color: #12663a; } .rkpts--0 { color: var(--encre-douce); }
+html[data-theme='nuit'] .rkpts--on { color: #7fd6a6; }

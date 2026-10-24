@@ -36,7 +36,8 @@
     const podium = res ? res.filter((e) => !e.status && e.rank && e.rank <= 3).sort((a, b) => a.rank - b.rank) : [];
     return { res, rows, shares, podium, N, show: C.lockedRace(race) };
   }
-  const titleOf = (race) => `${C.placeLabel(race)} · ${C.genderLabel(race)} · ${C.discLabel(race)}`;
+  const gname = (r) => `${C.discLabel(r)} ${C.genderLabel(r).toLowerCase()}`;   // « Géant messieurs »
+  const titleOf = (race) => `${C.placeLabel(race)} · ${gname(race)}`;
   const pts = (p) => (p.pts == null ? '' : ` (${p.pts > 0 ? '+' : ''}${p.pts})`);
   const how = (r) => (r.status ? r.status : r.rank ? C.ordinal(r.rank) : 'hors classement');
 
@@ -155,7 +156,7 @@
     g.fillStyle = K.head; g.font = `800 62px ${FD}`;
     const t1 = C.placeLabel(race); g.fillText(t1, padX, 150);
     g.font = `600 34px ${F}`; g.fillStyle = K.sub;
-    g.fillText(`${C.genderLabel(race)} · ${C.discLabel(race)} · ${C.dayOf(race.date)}`, padX, 200);
+    g.fillText(`${gname(race)} · ${C.dayOf(race.date)}`, padX, 200);
     g.font = `700 26px ${F}`; g.fillStyle = K.gold;
     g.textAlign = 'right'; g.fillText(res ? 'Résultat et choix' : 'Qui a pris qui', W - padX, 70); g.textAlign = 'left';
     if (all.podium.length) { g.font = `600 26px ${F}`; g.fillStyle = K.sub; g.fillText('Podium : ' + all.podium.map((e) => `${e.rank}. ${C.nameOf(e.ath)}`).join('  ·  '), padX, 250); }
@@ -225,7 +226,7 @@
     return { races, all, rows, per, partial: races.length < all.length };
   }
   const MED = ['🥇', '🥈', '🥉'];
-  const raceShort = (r) => `${C.placeLabel(r)} · ${C.genderLabel(r)} · ${C.discLabel(r)}`;
+  const raceShort = (r) => `${C.placeLabel(r)} · ${gname(r)}`;
   const sgn = (n) => (n > 0 ? '+' : '') + n;
   function sessionText(session) {
     const { rows, per, races, all, partial } = sessionRows(session);
@@ -356,7 +357,7 @@
   const mvTxt = (d) => (d > 0 ? `▲${d}` : d < 0 ? `▼${-d}` : '=');
   function generalText(race) {
     const rows = generalRows(race);
-    const L = [`📊 *Classement général* — après ${C.placeLabel(race)} ${C.genderLabel(race)} ${C.discLabel(race)}`, ''];
+    const L = [`📊 *Classement général* — après ${C.placeLabel(race)} ${gname(race)}`, ''];
     rows.forEach((r) => L.push(`${r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank + '.'} ${r.p.name} : *${r.v} pts* (${sg(r.gain)}) ${mvTxt(r.mv)}`));
     L.push('', 'skigame-2627.vercel.app');
     return L.join('\n');
@@ -386,7 +387,7 @@
     const H = headH + 20 + lay.reduce((a, l) => a + l.h, 0) + 30 + footH;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
-    headerCanvas(g, K, true, C.placeLabel(race), `${C.genderLabel(race)} · ${C.discLabel(race)} · ${C.dayOf(race.date)}`, 'Résultat', F, FD, headH);
+    headerCanvas(g, K, true, C.placeLabel(race), `${gname(race)} · ${C.dayOf(race.date)}`, 'Résultat', F, FD, headH);
     let y = headH + 20;
     lay.forEach((l, i) => {
       const r = l.r, cy = y + l.h / 2;
@@ -407,7 +408,7 @@
     const H = headH + 30 + rows.length * rowH + 30 + footH;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
-    headerCanvas(g, K, true, 'Classement général', `après ${C.placeLabel(race)} · ${C.genderLabel(race)} · ${C.discLabel(race)}`, 'Mise à jour', F, FD, headH);
+    headerCanvas(g, K, true, 'Classement général', `après ${C.placeLabel(race)} · ${gname(race)}`, 'Mise à jour', F, FD, headH);
     let y = headH + 30;
     rows.forEach((r, i) => {
       if (i % 2) { g.fillStyle = K.band; g.fillRect(0, y, W, rowH); }
