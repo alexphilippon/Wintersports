@@ -1,5 +1,22 @@
 {
- "M": [],
+ "M": [
+  { "id": "christian-borgnaes", "name": "Christian Borgnaes", "fis": "BORGNAES Christian", "nat": "DEN", "rank": null, "code": "54368", "from": "M01" },
+  { "id": "freddy-carrick-smith", "name": "Freddy Carrick-Smith", "fis": "CARRICK-SMITH Freddy", "nat": "GBR", "rank": null, "code": "221675", "from": "M01" },
+  { "id": "nickco-palamaras", "name": "Nickco Palamaras", "fis": "PALAMARAS Nickco", "nat": "GER", "rank": null, "code": "6533474", "from": "M01" },
+  { "id": "andrej-drukarov", "name": "Andrej Drukarov", "fis": "DRUKAROV Andrej", "nat": "LTU", "rank": null, "code": "780023", "from": "M01" },
+  { "id": "thomas-lardon", "name": "Thomas Lardon", "fis": "LARDON Thomas", "nat": "FRA", "rank": null, "code": "6191078", "from": "M01" },
+  { "id": "noel-zwischenbrugger", "name": "Noel Zwischenbrugger", "fis": "ZWISCHENBRUGGER Noel", "nat": "AUT", "rank": null, "code": "54631", "from": "M01" },
+  { "id": "aingeru-garay-fernandez", "name": "Aingeru Garay Fernandez", "fis": "GARAY FERNANDEZ Aingeru", "nat": "ESP", "rank": null, "code": "492197", "from": "M01" },
+  { "id": "patrick-kenney", "name": "Patrick Kenney", "fis": "KENNEY Patrick", "nat": "USA", "rank": null, "code": "6531928", "from": "M01" },
+  { "id": "piotr-habdas", "name": "Piotr Habdas", "fis": "HABDAS Piotr", "nat": "POL", "rank": null, "code": "430783", "from": "M01" },
+  { "id": "diego-orecchioni", "name": "Diego Orecchioni", "fis": "ORECCHIONI Diego", "nat": "FRA", "rank": null, "code": "6190876", "from": "M01" },
+  { "id": "miha-oserban", "name": "Miha Oserban", "fis": "OSERBAN Miha", "nat": "SLO", "rank": null, "code": "561489", "from": "M01" },
+  { "id": "jeongwoo-shin", "name": "Jeongwoo Shin", "fis": "SHIN Jeongwoo", "nat": "KOR", "rank": null, "code": "320453", "from": "M01" },
+  { "id": "ryoma-katayama", "name": "Ryoma Katayama", "fis": "KATAYAMA Ryoma", "nat": "JPN", "rank": null, "code": "6301499", "from": "M01" },
+  { "id": "adam-zampa", "name": "Adam Zampa", "fis": "ZAMPA Adam", "nat": "SVK", "rank": null, "code": "700830", "from": "M01" },
+  { "id": "giuliano-fux", "name": "Giuliano Fux", "fis": "FUX Giuliano", "nat": "SUI", "rank": null, "code": "512678", "from": "M01" },
+  { "id": "jakob-eisner", "name": "Jakob Eisner", "fis": "EISNER Jakob", "nat": "AUT", "rank": null, "code": "54765", "from": "M01" }
+ ],
  "W": [
   { "id": "petra-vlhova", "name": "Petra Vlhová", "fis": "VLHOVA Petra", "nat": "SVK", "rank": null, "code": "705423", "from": "W01" },
   { "id": "sophie-mathiou", "name": "Sophie Mathiou", "fis": "MATHIOU Sophie", "nat": "ITA", "rank": null, "code": "6295752", "from": "W01" },
