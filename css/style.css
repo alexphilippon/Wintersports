@@ -1024,3 +1024,12 @@ html[data-theme='nuit'] .seg__btn--past:not([aria-selected="true"]) { color: #c4
 }
 
 .sk__tiles { grid-template-columns: repeat(3, 1fr); } @media (min-width: 560px) { .sk__tiles { grid-template-columns: repeat(6, 1fr); } }
+
+/* Fiche skieur : points en or, courses/victoires/podiums/top 10 en dégradé de vert (victoire = le plus intense), bulles en rouge */
+.sk__t--pts { background: #e0b13a; border-color: #c99a22; color: #1b2b44; } .sk__t--pts span { color: #3d3515; }
+.sk__t--c { background: color-mix(in srgb, #2f8a63 10%, var(--neige)); border-color: color-mix(in srgb, #2f8a63 22%, var(--filet)); }
+.sk__t--top { background: color-mix(in srgb, #2f8a63 24%, var(--neige)); border-color: color-mix(in srgb, #2f8a63 40%, var(--filet)); }
+.sk__t--pod { background: color-mix(in srgb, #2f8a63 48%, var(--neige)); border-color: #2f8a63; }
+.sk__t--win { background: #1f6b4a; border-color: #174f37; color: #fff; } .sk__t--win span { color: #d8efe3; }
+.sk__t--bub { background: color-mix(in srgb, #d4443a 16%, var(--neige)); border-color: #d4443a; color: #b3281f; } .sk__t--bub span { color: #b3281f; }
+html[data-theme='nuit'] .sk__t--pts { color: #1b2b44; } html[data-theme='nuit'] .sk__t--bub, html[data-theme='nuit'] .sk__t--bub span { color: #ff8f86; }
