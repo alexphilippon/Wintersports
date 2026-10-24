@@ -1248,3 +1248,6 @@ body.fs-lock { overflow: hidden; }
 .pk .fh small { margin-left: .5rem; }
 .sk__disc .sep { color: var(--filet); margin: 0 .25rem; }
 button.sk__t { font: inherit; cursor: pointer; text-align: center; } button.sk__t:hover, button.sk__t:focus-visible { filter: brightness(.95); outline: 2px solid var(--nuit); outline-offset: 1px; }
+.gauge { grid-template-columns: minmax(0, 19rem) minmax(4rem, 1fr) 5.6rem; }
+@media (max-width: 900px) and (min-width: 561px) { .gauge { grid-template-columns: minmax(0, 15rem) minmax(3rem, 1fr) 5rem; } }
+@media (max-width: 560px) { .gauge { grid-template-columns: minmax(0, 1fr) 4.6rem; } }
