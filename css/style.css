@@ -977,3 +977,7 @@ html[data-theme='nuit'] .c-1, html[data-theme='nuit'] .c-2, html[data-theme='nui
 .bb__c { font-size: .8rem; padding: .1rem .5rem; border-radius: 999px; background: color-mix(in srgb, var(--brique) 12%, transparent); border: 1px solid color-mix(in srgb, var(--brique) 30%, transparent); }
 
 .bb__n small { color: var(--brique); font-size: 1rem; font-weight: 900; }
+
+.seg__btn--past { color: #6b3fa0; } .seg__btn--past[aria-selected="true"] { background: #6b3fa0; color: #fff; }
+html[data-theme='nuit'] .seg__btn--past:not([aria-selected="true"]) { color: #c4a3ee; }
+.dr__grid--past .dr__rh .dr__pl { color: #6b3fa0; } html[data-theme='nuit'] .dr__grid--past .dr__rh .dr__pl { color: #c4a3ee; }

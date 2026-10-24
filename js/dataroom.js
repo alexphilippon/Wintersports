@@ -3,7 +3,7 @@
 (function (root) {
   'use strict';
   let C = null;
-  const ui = { bub: {}, sub: 'light', g: 'M', disc: [], more: false, last: 8, rows: 'top', prem: { disc: [] } };
+  const ui = { pp: { disc: [] }, bub: {}, sub: 'light', g: 'M', disc: [], more: false, last: 8, rows: 'top', prem: { disc: [] } };
   const init = (ctx) => { C = ctx; };
   const DISC = ['DH', 'SG', 'GS', 'SL'], DNAME = { DH: 'Descente', SG: 'Super-G', GS: 'Géant', SL: 'Slalom' };
   const DESKC = { 1: '#2f7fb0', 2: '#2f8a63', 3: '#d27a2a', M: '#2c8f94' };
@@ -86,19 +86,55 @@
   /* ---------- 2. Résultats bruts (version complète) ---------- */
   const mo = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'numeric', timeZone: 'UTC' });
   const cellCls = (e) => (!e ? 'c-none' : e.status ? 'c-st' : e.rank === 1 ? 'c-1' : e.rank === 2 ? 'c-2' : e.rank === 3 ? 'c-3' : e.rank <= 10 ? 'c-top' : 'c-in');
-  function premium() {
-    const t = table(ui.g, ui.prem.disc), used = mine(), mp = myPick();
+  /** Code de 3 lettres par lieu, distinct d'une colonne à l'autre (Val d'Isère / Val Gardena…). */
+  function codes(races) {
+    const out = {}, by = {};
+    const base = (p) => p.replace(/[^A-Za-zÀ-ÿ ]/g, '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+    races.forEach((r) => { const p = placeOf(r); if (out[p]) return; const w = base(p).split(/\s+/).filter(Boolean); out[p] = (w[0] || '').slice(0, 3).toUpperCase(); (by[out[p]] = by[out[p]] || new Set()).add(p); });
+    Object.entries(by).forEach(([c, set]) => { if (set.size > 1) [...set].forEach((p) => { const w = base(p).split(/\s+/).filter(Boolean); out[p] = ((w[0] || '')[0] + (w[w.length - 1] || '').slice(0, 2)).toUpperCase(); }); });
+    return out;
+  }
+  const placeOf = (r) => (r.place && !r.kind ? r.place : C.placeLabel(r));
+  const frDate = (r) => mo.format(new Date(r.date + 'T12:00:00Z'));
+  /** Saison passée (données FIS). */
+  let past = null, pastLoading = false;
+  function loadPast() {
+    if (past || pastLoading) return; pastLoading = true;
+    fetch('data/season-2026.json').then((r) => r.json()).then((d) => { past = d; C.rerender(); }).catch(() => { past = { races: [], ath: {}, error: true }; C.rerender(); });
+  }
+  const byFid = () => { const m = {}; Object.entries(C.ATH()).forEach(([id, a]) => { if (a.fid) m[a.fid] = id; }); return m; };
+  const titleCase = (s) => s.toLowerCase().replace(/(^|[ -])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Von|Van|De|Di|Da|Du|Der|Del|Della)\b/g, (x) => x.toLowerCase()).replace(/\bMc([a-z])/g, (m, c) => 'Mc' + c.toUpperCase());
+  function pastTable(g, discs) {
+    const races = past.races.filter((r) => r.g === g && (!discs.length || discs.includes(r.disc)));
+    const by = {}; const map = byFid();
+    races.forEach((r) => r.res.forEach(([code, v]) => {
+      const s = (by[code] = by[code] || { ath: code, pts: 0, cells: {}, n: 0 });
+      s.cells[r.id] = typeof v === 'number' ? { rank: v } : { status: v }; s.n++;
+      if (typeof v === 'number') s.pts += C.G.pointsForRank(v);
+    }));
+    const nameOfCode = (code) => { const id = map[code]; if (id) return fam(id); const n = (past.ath[code] || [code])[0].split(' '); const up = []; while (n.length && n[0] === n[0].toUpperCase()) up.push(n.shift()); return titleCase((up.length ? up : n).join(' ')); };
+    const rows = Object.values(by).sort((a, b) => b.pts - a.pts || a.n - b.n);
+    rows.forEach((r) => { r.name = nameOfCode(r.ath); });
+    let last = null, rk = 0; rows.forEach((r, i) => { if (r.pts !== last) { rk = i + 1; last = r.pts; } r.rank = rk; });
+    return { races, rows };
+  }
+  function premium(isPast) {
+    if (isPast) { loadPast(); if (!past) return '<p class="hint">Chargement des résultats 2025-26…</p>'; if (past.error) return '<p class="hint">Résultats 2025-26 indisponibles.</p>'; }
+    const P = isPast ? ui.pp : ui.prem;
+    const t = isPast ? pastTable(ui.g, P.disc) : table(ui.g, P.disc), used = isPast ? {} : mine(), mp = isPast ? {} : myPick();
     const races = ui.last ? t.races.slice(-ui.last) : t.races;
     let rows = t.rows;
-    if (ui.rows === 'top') rows = rows.slice(0, 30); else if (ui.rows === 'mine') rows = rows.filter((r) => used[r.ath]);
-    const head = races.map((r) => `<th scope="col" class="dr__rh" title="${C.esc(`${C.placeLabel(r)} · ${C.discLabel(r)} · ${mo.format(new Date(r.date + 'T12:00:00Z'))}`)}"><span class="dr__pl">${C.esc(C.placeLabel(r).replace(/[^A-Za-zÀ-ÿ]/g, '').slice(0, 3).toUpperCase())}</span><span class="dr__ds disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="dr__dt">${mo.format(new Date(r.date + 'T12:00:00Z'))}</span></th>`).join('');
-    const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><span class="dr__nm">${used[s.ath] ? '★ ' : ''}${C.esc(fam(s.ath))}</span></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
+    if (ui.rows === 'top') rows = rows.slice(0, 30); else if (ui.rows === 'mine') rows = isPast ? rows.slice(0, 30) : rows.filter((r) => used[r.ath]);
+    const cd = codes(races), pk = isPast ? 'ppdisc' : 'pdisc';
+    const head = races.map((r) => `<th scope="col" class="dr__rh" title="${C.esc(`${placeOf(r)} · ${C.D.DISC[r.disc].short} · ${frDate(r)}`)}"><span class="dr__pl">${C.esc(cd[placeOf(r)])}</span><span class="dr__ds disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="dr__dt">${frDate(r)}</span></th>`).join('');
+    const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><span class="dr__nm">${used[s.ath] ? '★ ' : ''}${C.esc(isPast ? s.name : fam(s.ath))}</span></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
     const sel = (k, opts) => `<span class="ff__g">${opts.map(([v, l]) => chip(k, v, l, String(ui[k]) === String(v))).join('')}</span>`;
-    return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(ui.prem.disc).replace(/data-dr="disc:/g, 'data-dr="pdisc:')}</div>
-      <div class="ff dr__filters"><span class="sub">Courses</span>${sel('last', [[6, '6 dernières'], [12, '12'], [0, 'Toutes']])}<span class="sub">Skieurs</span>${sel('rows', [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']])}</div>
-      <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid"><caption>Résultats, ${ui.g === 'M' ? 'messieurs' : 'dames'} · ${races.length} course${races.length > 1 ? 's' : ''}</caption>
+    const rowOpts = isPast ? [['top', 'Top 30'], ['all', 'Tous']] : [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']];
+    return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(P.disc).replace(/data-dr="disc:/g, `data-dr="${pk}:`)}</div>
+      <div class="ff dr__filters"><span class="sub">Courses</span>${sel('last', [[6, '6 dernières'], [12, '12'], [0, 'Toutes']])}<span class="sub">Skieurs</span>${sel('rows', rowOpts)}</div>
+      <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid${isPast ? ' dr__grid--past' : ''}"><caption>${isPast ? 'Saison 2025-26 · ' : ''}${ui.g === 'M' ? 'Messieurs' : 'Dames'} · ${races.length} course${races.length > 1 ? 's' : ''}</caption>
       <thead><tr><th scope="col" class="dr__sticky">Skieur</th><th scope="col" class="dr__pts">Pts</th>${head}</tr></thead><tbody>${body || `<tr><td colspan="${races.length + 2}"><span class="none">Aucun résultat.</span></td></tr>`}</tbody></table></div>
-      <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS, DNQ, DSQ sont notés. Case vide : hors des 30 premiers. ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course. Fais glisser le tableau pour voir les courses.</p>`;
+      <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS, DNQ, DSQ sont notés. Case vide : hors des 30 premiers.${isPast ? ' Points : barème Coupe du monde sur les courses affichées.' : ' ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course.'} Fais glisser le tableau pour voir les courses.</p>`;
   }
 
   /* ---------- 3. Bulles : un skieur choisi qui ne marque aucun point (hors DNS) ---------- */
@@ -136,9 +172,9 @@
   }
 
   function render() {
-    const body = ui.sub === 'light' ? light() : ui.sub === 'bub' ? bulles() : premium();
-    return `<section class="dr"><header class="deskhead"><div><h2>Data room</h2><p class="deskhead__meta">Classement de la Coupe du monde et résultats bruts${C.state.demo ? ' · données fictives pour les courses pas encore courues' : ''}</p></div></header>
-      <div class="deskbar"><div class="seg" role="tablist" aria-label="Data room"><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'light'}" data-dr="sub:light">Classements</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'prem'}" data-dr="sub:prem">Course par course</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'bub'}" data-dr="sub:bub">Bulles</button></div></div>
+    const body = ui.sub === 'light' ? light() : ui.sub === 'bub' ? bulles() : premium(ui.sub === 'past');
+    return `<section class="dr"><header class="deskhead"><div><h2>Data room</h2><p class="deskhead__meta">Classement de la Coupe du monde et résultats bruts${C.state.demo && ui.sub !== 'past' ? ' · données fictives pour les courses pas encore courues' : ''}</p></div></header>
+      <div class="deskbar"><div class="seg" role="tablist" aria-label="Data room"><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'light'}" data-dr="sub:light">Classements</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'prem'}" data-dr="sub:prem">Par course</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'bub'}" data-dr="sub:bub">Bulles</button><button type="button" role="tab" class="seg__btn seg__btn--past" aria-selected="${ui.sub === 'past'}" data-dr="sub:past">2025-26</button></div></div>
       ${body}</section>`;
   }
   document.addEventListener('click', (e) => {
@@ -148,7 +184,7 @@
     else if (k === 'g') ui.g = v;
     else if (k === 'bub') ui.bub[v] = !ui.bub[v];
     else if (k === 'more') ui.more = !ui.more;
-    else if (k === 'disc' || k === 'pdisc') { const a = k === 'disc' ? ui : ui.prem; if (v === 'clear') a.disc = []; else a.disc = a.disc.includes(v) ? a.disc.filter((x) => x !== v) : a.disc.concat(v); }
+    else if (k === 'disc' || k === 'pdisc' || k === 'ppdisc') { const a = k === 'disc' ? ui : k === 'pdisc' ? ui.prem : ui.pp; if (v === 'clear') a.disc = []; else a.disc = a.disc.includes(v) ? a.disc.filter((x) => x !== v) : a.disc.concat(v); }
     else if (k === 'last') ui.last = Number(v);
     else if (k === 'rows') ui.rows = v;
     C.rerender();
