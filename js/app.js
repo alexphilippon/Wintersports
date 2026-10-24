@@ -53,6 +53,7 @@
   const fmt = (opts) => new Intl.DateTimeFormat('fr-FR', Object.assign({ timeZone: TZ }, opts));
   const F_DAY = fmt({ weekday: 'short', day: 'numeric', month: 'short' });
   const F_WD = fmt({ weekday: 'short' });
+  const F_HM = fmt({ hour: '2-digit', minute: '2-digit' });
   const F_MO = fmt({ month: 'short' });
   const F_NUM = fmt({ day: 'numeric' });
   const F_HOUR = fmt({ hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
@@ -606,12 +607,33 @@
     const max = Math.max(0, ...Object.values(cnt));
     return { picks, cnt, max, top: Object.keys(cnt).filter((a) => cnt[a] === max) };
   }
+  /* ---------- Suivi en direct (après la 1re manche) : data/live.json, écrit par tools/live.js ---------- */
+  const hm = (t) => (t ? t.replace(':', 'h') : '');
+  function liveOf(race) {
+    const L = state.live && state.live.races && state.live.races[race.id];
+    if (!L || !L.hasResults || resOf(race)) return null;
+    const sl = startListOf(race), codeAth = {};
+    ((sl && sl.rows) || []).forEach((r) => { const c = (state.startlists.races[race.id].start.find((x) => x.bib === r.bib) || {}).code; if (c && r.ath) codeAth[c] = r.ath; });
+    const by = {}, q = L.qualify || 30;
+    (L.rows || []).forEach((r) => { const a = codeAth[r.code]; if (a) by[a] = { rank: r.rank, out: r.rank > q }; });
+    (L.out || []).forEach((r) => { const a = codeAth[r.code]; if (a && r.status !== 'DNS') by[a] = { status: r.status, out: true }; });
+    return { L, by };
+  }
+  const liveChip = (lv, a) => { const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ ${e.status ? esc(e.status) + ' en 1re manche' : e.rank + 'e après la 1re manche, éliminé'} : 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
+  function liveNote(race) {
+    const lv = liveOf(race); if (!lv) return '';
+    const { picks } = racePeople(race), hit = picks.filter((x) => lv.by[x.ath] && lv.by[x.ath].out);
+    const upd = new Date(lv.L.fetched);
+    return `<div class="livenote"><p><strong>1re manche terminée</strong>${lv.L.run2 ? ` · 2e manche à <strong>${hm(lv.L.run2)}</strong>` : ''} <span class="livenote__t">(mis à jour à ${F_HM.format(upd)})</span></p>
+      ${hit.length ? `<p class="livenote__b">⚠ <strong>Bulle${hit.length > 1 ? 's' : ''} potentielle${hit.length > 1 ? 's' : ''}</strong> (skieur non qualifié pour la 2e manche) : ${hit.map((x) => `${esc(x.p.name)} (${esc(nameOf(x.ath))})`).join(', ')}.</p>` : '<p class="livenote__b livenote__b--ok">Aucune bulle : tous les skieurs choisis passent en 2e manche.</p>'}</div>`;
+  }
   function shareTable(race) {
     const { picks, cnt } = racePeople(race), N = picks.length;
     if (!N) return '<span class="none">Aucun choix</span>';
     const mine = picks.find((x) => x.p.id === state.me), res = resOf(race);
     const rows = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || nameOf(a).localeCompare(nameOf(b)));
-    const how = (a) => { const e = res && res.find((x) => x.ath === a); return e ? ` <span class="rank">${esc(e.status || ordinal(e.rank))}</span>` : ''; };
+    const lv = liveOf(race);
+    const how = (a) => { const e = res && res.find((x) => x.ath === a); if (!e && lv) return liveChip(lv, a); return e ? ` <span class="rank">${esc(e.status || ordinal(e.rank))}</span>` : ''; };
     const pts = mine ? ptsChip(state.me, race) : '';
     return `<ul class="gauges sh">${rows.map((a) => gauge(a, Math.round(100 * cnt[a] / N), (mine && mine.ath === a ? ' <em class="sh__me">ton choix</em>' : '') + how(a), mine && mine.ath === a ? 'gauge--mine' : '')).join('')}</ul>
       <p class="sub sh__foot">${plural(N, 'joueur', 'joueurs')} ${N > 1 ? 'ont' : 'a'} choisi${mine ? '' : ' (pas toi : aucun choix)'}${pts ? ` · tes points ${pts}` : ''}</p>`;
@@ -626,7 +648,7 @@
     return `<li class="race${race.cancelled ? ' race--off' : ''}">
       <div class="race__date race__date--${race.gender}"><span class="race__wd">${F_WD.format(d).replace('.', '')}</span><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_MO.format(d)}</span></div>
       <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong><span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${raceStatus(race)}</span></div>
-      <div class="race__pick">${race.cancelled ? '<span class="none">Course annulée</span>' : lockedRace(race) ? shareTable(race) : ''}
+      <div class="race__pick">${race.cancelled ? '' : lockedRace(race) ? liveNote(race) : ''}${race.cancelled ? '<span class="none">Course annulée</span>' : lockedRace(race) ? shareTable(race) : ''}
         ${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="linkbtn rcbtn" data-racecard="${race.id}">Détail et export</button>`}</div></li>`;
   }
   function coursPanel(s) {
@@ -1556,8 +1578,11 @@
     rebuildAthletes(); startStore();
     fetch('data/results.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.file = j; recompute(); } }).catch(() => {});
     fetch('data/extra-athletes.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { state.addl = { M: j.M || [], W: j.W || [] }; recompute(); } }).catch(() => {});
-    fetch('data/startlists.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.startlists = j; scheduleRender(); } }).catch(() => {});
   }
+  const loadLive = () => fetch('data/live.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { const sg = JSON.stringify(j); if (sg !== state.liveSig) { state.liveSig = sg; state.live = j; scheduleRender(); } } }).catch(() => {});
+  loadLive(); setInterval(() => { if (document.visibilityState === 'visible') loadLive(); }, 60000);
+  fetch('data/startlists.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.startlists = j; scheduleRender(); } }).catch(() => {});
+
   render();
   window.SKI_APP = { state, render, store };
 })();

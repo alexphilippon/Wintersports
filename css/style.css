@@ -983,3 +983,8 @@ html[data-theme='nuit'] .seg__btn--past:not([aria-selected="true"]) { color: #c4
 .dr__grid--past .dr__rh .dr__pl { color: #6b3fa0; } html[data-theme='nuit'] .dr__grid--past .dr__rh .dr__pl { color: #c4a3ee; }
 
 .session__note { margin: 0; padding: .5rem .9rem; font-size: .88rem; background: color-mix(in srgb, var(--ocre) 22%, var(--neige)); border-bottom: 1px solid var(--filet); }
+
+.livenote { margin: 0 0 .5rem; padding: .5rem .7rem; border-radius: 10px; background: color-mix(in srgb, #3b7fc4 12%, var(--neige)); border: 1px solid color-mix(in srgb, #3b7fc4 30%, transparent); font-size: .9rem; }
+.livenote p { margin: 0; } .livenote__t { color: var(--encre-douce); font-size: .8rem; }
+.livenote__b { margin-top: .3rem !important; color: var(--brique); } .livenote__b--ok { color: var(--encre-douce); }
+.rank--live { background: color-mix(in srgb, #3b7fc4 18%, transparent); } .rank--bubble { background: color-mix(in srgb, var(--brique) 18%, transparent); color: var(--brique); font-weight: 700; }
