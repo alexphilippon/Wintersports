@@ -64,9 +64,9 @@
     if (!show) return head + '<p class="hint">Les choix de chacun seront visibles au départ de la première course de la session.</p>';
     const { shares, podium, N } = all;
     const body = shares.length ? `<ol class="rc__list">${shares.map((r) => {
-      const chips = r.pickers.map((x) => `<span class="rc__chip${x.p.id === C.state.me ? ' me' : ''}${x.out ? ' is-out' : ''}${res && !x.out && !x.pts ? ' is-zero' : ''}" title="${esc(x.kind)}">${esc(x.p.name)}${x.kind === 'remplaçant' ? ' <i>rempl.</i>' : x.kind === 'tiré au sort' ? ' <i>tirage</i>' : x.out ? ' <i>non-partant</i>' : ''}${res && !x.out && x.pts != null ? `<b>${x.pts > 0 ? '+' : ''}${x.pts}</b>` : ''}</span>`).join('');
+      const chips = r.pickers.map((x) => `<span class="rc__chip${x.p.id === C.state.me ? ' me' : ''}${x.out ? ' is-out' : ''}${res && !x.out && !x.pts ? ' is-zero' : ''}" title="${esc(x.kind)}">${C.pln(x.p)}${x.kind === 'remplaçant' ? ' <i>rempl.</i>' : x.kind === 'tiré au sort' ? ' <i>tirage</i>' : x.out ? ' <i>non-partant</i>' : ''}${res && !x.out && x.pts != null ? `<b>${x.pts > 0 ? '+' : ''}${x.pts}</b>` : ''}</span>`).join('');
       const mine = r.pickers.some((x) => x.p.id === C.state.me && !x.out);
-      return `<li class="rc__row${mine ? ' is-mine' : ''}"><span class="rc__rk">${res ? (r.status ? esc(r.status) : r.rank ? r.rank : '–') : ''}</span>${C.avatarOf(r.ath, 'sm')}<span class="rc__sk">${esc(C.nameOf(r.ath))} <b class="rc__pct">${r.pct} %</b> <span class="sub">${r.n}/${N}</span></span><span class="rc__bar"><i style="width:${Math.max(r.pct, 3)}%"></i></span><span class="rc__who">${chips}</span></li>`;
+      return `<li class="rc__row${mine ? ' is-mine' : ''}"><span class="rc__rk">${res ? (r.status ? esc(r.status) : r.rank ? r.rank : '–') : ''}</span>${C.avatarOf(r.ath, 'sm')}<span class="rc__sk">${C.skn(r.ath)} <b class="rc__pct">${r.pct} %</b> <span class="sub">${r.n}/${N}</span></span><span class="rc__bar"><i style="width:${Math.max(r.pct, 3)}%"></i></span><span class="rc__who">${chips}</span></li>`;
     }).join('')}</ol>` : '<p class="hint">Aucun choix pour cette course.</p>';
     const pod = podium.length ? `<p class="rc__pod"><b>Podium</b> ${podium.map((e) => `${e.rank}. ${esc(C.nameOf(e.ath))}`).join(' · ')}</p>` : '';
     const note = res ? '' : '<p class="hint">Résultat pas encore saisi.</p>';

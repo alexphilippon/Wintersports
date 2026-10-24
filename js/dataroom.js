@@ -156,19 +156,21 @@
     let last = null, rk = 0; rows.forEach((r, i) => { if (r.n !== last) { rk = i + 1; last = r.n; } r.rank = rk; });
     return rows;
   }
-  function bubbleList(rows, nameF, subNameF, id) {
+  function bubbleList(rows, linkF, subLinkF, id) {
     const shown = ui.bub[id] ? rows : rows.slice(0, 10);
-    const li = shown.map((r) => `<li class="bb"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span><div class="bb__main"><div class="bb__h"><b>${C.esc(nameF(r.k))}</b><span class="bb__n" title="${r.n} bulle${r.n > 1 ? 's' : ''}">${r.n} <small>✗</small></span></div>
-      <div class="bb__d">${Object.values(r.sub).sort((a, b) => b.n - a.n).map((s) => `<span class="bb__c" title="${C.esc(s.why.join(' · '))}">${C.esc(subNameF(s.s))}${s.n > 1 ? ` <b>×${s.n}</b>` : ''}</span>`).join('')}</div></div></li>`).join('');
+    const li = shown.map((r) => `<li class="bb"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span><div class="bb__main"><div class="bb__h"><b>${linkF(r.k)}</b><span class="bb__n" title="${r.n} bulle${r.n > 1 ? 's' : ''}">${r.n} <small>✗</small></span></div>
+      <div class="bb__d">${Object.values(r.sub).sort((a, b) => b.n - a.n).map((s) => `<span class="bb__c" title="${C.esc(s.why.join(' · '))}">${subLinkF(s.s)}${s.n > 1 ? ` <b>×${s.n}</b>` : ''}</span>`).join('')}</div></div></li>`).join('');
     return `<ol class="bblist">${li || '<li class="none">Aucune bulle pour l’instant.</li>'}</ol>${rows.length > 10 ? `<p class="dr__more"><button type="button" class="btn btn--ghost btn--sm" data-dr="bub:${id}">${ui.bub[id] ? 'Réduire' : `Voir les ${rows.length}`}</button></p>` : ''}`;
   }
   function bulles() {
     const ev = bubbles(), pn = (id) => (C.state.players.find((p) => p.id === id) || {}).name || id;
+    const skLink = (id) => `<button type="button" class="dr__lnk" data-dr="sk:id~${id}">${C.esc(C.nameOf(id))}</button>`;
+    const plLink = (pid) => `<button type="button" class="dr__lnk" data-player="${C.esc(pid)}">${C.esc(pn(pid))}</button>`;
     const lab = (x) => `${C.placeLabel(x.r)} ${C.D.DISC[x.r.disc].short} : ${x.why}`;
     const bySk = rankBy(ev, (x) => x.ath, (x) => x.pl.id, lab), byPl = rankBy(ev, (x) => x.pl.id, (x) => x.ath, lab);
     return `<p class="hint">Une bulle : le skieur choisi fait 0 point (DNF, disqualifié, non qualifié ou hors des 30 premiers). Un DNS n’en est pas une. Tous desks confondus, remplaçants pris en compte.</p>
-      <h3 class="subtitle">Les skieurs qui font le plus de bulles <span class="bb__tot">${ev.length} au total</span></h3>${bubbleList(bySk, (id) => C.nameOf(id), pn, 'sk')}
-      <h3 class="subtitle">Les joueurs les plus touchés</h3>${bubbleList(byPl, pn, (id) => C.nameOf(id), 'pl')}`;
+      <h3 class="subtitle">Les skieurs qui font le plus de bulles <span class="bb__tot">${ev.length} au total</span></h3>${bubbleList(bySk, (id) => skLink(id), (pid) => plLink(pid), 'sk')}
+      <h3 class="subtitle">Les joueurs les plus touchés</h3>${bubbleList(byPl, (pid) => plLink(pid), (id) => skLink(id), 'pl')}`;
   }
 
   /* ---------- Fiche skieur : saison en cours (2026-27) et saison passée (2025-26) ---------- */

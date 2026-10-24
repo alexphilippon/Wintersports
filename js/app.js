@@ -174,6 +174,9 @@
   }
   const avatarOf = (id, size) => (ATH[id] ? avatar(ATH[id], true, size) : '');
   const nameOf = (id) => (ATH[id] ? ATH[id].name : id);
+  /** Nom de skieur cliquable (ouvre sa fiche) et nom de joueur cliquable (ouvre sa fiche). */
+  const skn = (id, label) => `<button type="button" class="lnk" data-dr="sk:id~${esc(id)}" title="Voir la fiche">${esc(label != null ? label : nameOf(id))}</button>`;
+  const pln = (p) => `<button type="button" class="lnk" data-player="${esc(p.id)}" title="Voir la fiche">${esc(p.name)}</button>`;
 
   /** Start list FIS d'une course (data/startlists.json), ou null si elle n'est pas disponible.
       Retourne { rows: [{ bib, name, nat, ath }], fetched } ; ath = identifiant du skieur dans le jeu, null s'il n'est pas dans la liste. */
@@ -312,10 +315,10 @@
     const swapped = p.b && eff === p.b;
     const drawn = p.d && eff === p.d;
     const text = drawn
-      ? `<span class="who"><s class="who--out">${esc(nameOf(p.a))}</s>${p.b ? ` <s class="who--out">${esc(nameOf(p.b))}</s>` : ''} ${esc(nameOf(p.d))}</span><span class="sub">Tiré au sort</span>`
+      ? `<span class="who"><s class="who--out">${skn(p.a)}</s>${p.b ? ` <s class="who--out">${skn(p.b)}</s>` : ''} ${skn(p.d)}</span><span class="sub">Tiré au sort</span>`
       : swapped
-      ? `<span class="who"><s class="who--out">${esc(nameOf(p.a))}</s> ${esc(nameOf(p.b))}</span><span class="sub">Remplaçant en piste</span>`
-      : `<span class="who">${esc(nameOf(p.a))}</span>${p.b ? `<span class="sub">Remplaçant : ${esc(nameOf(p.b))}</span>` : ''}`;
+      ? `<span class="who"><s class="who--out">${skn(p.a)}</s> ${skn(p.b)}</span><span class="sub">Remplaçant en piste</span>`
+      : `<span class="who">${skn(p.a)}</span>${p.b ? `<span class="sub">Remplaçant : ${skn(p.b)}</span>` : ''}`;
     return `<div class="pickline">${avatarOf(eff)}<div class="pickline__txt">${text}</div></div>`;
   }
   function outcome(race, playerId) {
@@ -405,7 +408,7 @@
         if (!pk || !pk.a) return `<td class="${cls}"><span class="none">Aucun choix</span></td>`;
         const eff = G.effectiveAthlete(pk, state.results, r.id);
         const sc = G.scoreRace(r, pk, state.results);
-        return `<td class="${cls}"><div class="cell">${avatarOf(eff, 'sm')}<div class="cell__txt"><span class="who" title="${esc(nameOf(eff))}">${esc(surname(nameOf(eff)))}</span>${eff !== pk.a ? '<span class="sub">Remplaçant</span>' : ''}${sc === null ? '' : `<span class="cellpts ${sc > 0 ? 'on' : 'off'}">${sc > 0 ? '+' : ''}${sc}</span>`}</div></div></td>`;
+        return `<td class="${cls}"><div class="cell">${avatarOf(eff, 'sm')}<div class="cell__txt"><span class="who" title="${esc(nameOf(eff))}">${skn(eff, surname(nameOf(eff)))}</span>${eff !== pk.a ? '<span class="sub">Remplaçant</span>' : ''}${sc === null ? '' : `<span class="cellpts ${sc > 0 ? 'on' : 'off'}">${sc > 0 ? '+' : ''}${sc}</span>`}</div></div></td>`;
       }).join('');
       return `<tr><th scope="row"><span class="rowhead__day">${dayOf(r.date)}</span> ${fl(placeLabel(r))}<br><span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}${r.cancelled || !lockedRace(r) ? '' : `<br><button type="button" class="linkbtn rcbtn" data-racecard="${r.id}">Détail et export</button>`}</th>${cells}</tr>`;
     }).join('');
@@ -420,7 +423,7 @@
   /* ---------- Tendances : jauges indicatives, une fois la deadline passée ---------- */
   function trendsAny(key) { return scopeSessions(key).some((s) => sortedRaces(s).some((r) => !r.cancelled && lockedRace(r))); }
   function gauge(ath, pct, extra, cls) {
-    return `<li class="gauge${cls ? ' ' + cls : ''}"><span class="gauge__who">${avatarOf(ath, 'sm')}<span class="gauge__t"><span class="gauge__n">${esc(nameOf(ath))}</span>${extra ? `<span class="gauge__x">${extra}</span>` : ''}</span></span><span class="gauge__bar" role="img" aria-label="${pct} %"><i style="width:${Math.max(pct, 3)}%"></i></span><b class="gauge__v">${pct} %</b></li>`;
+    return `<li class="gauge${cls ? ' ' + cls : ''}"><span class="gauge__who">${avatarOf(ath, 'sm')}<span class="gauge__t"><span class="gauge__n">${skn(ath)}</span>${extra ? `<span class="gauge__x">${extra}</span>` : ''}</span></span><span class="gauge__bar" role="img" aria-label="${pct} %"><i style="width:${Math.max(pct, 3)}%"></i></span><b class="gauge__v">${pct} %</b></li>`;
   }
   /** Part des joueurs ayant pris chaque skieur, sur un ensemble de courses verrouillées : { ath: part } triée, et le nombre de joueurs pris en compte. */
   function shareOf(races, perRace) {
@@ -502,7 +505,7 @@
           const inner = l ? l.map((x) => `<span class="mark" title="${esc(x.tag)}"><span class="mark__l">${esc(x.tag)}</span>${x.sc === null ? '' : `<b class="mark__p ${x.sc > 0 ? 'on' : 'off'}">${x.sc > 0 ? '+' : ''}${x.sc}</b>`}</span>`).join('') : '';
           return `<td ${attrs(a)}>${inner}</td>`;
         }).join('');
-        return `<tr class="${p.id === state.me ? 'me' : ''}"><th scope="row"><strong>${esc(p.name)}</strong><span class="sub">${totals[g][p.id] || 0} pts rapportés</span></th>${cells}</tr>`;
+        return `<tr class="${p.id === state.me ? 'me' : ''}"><th scope="row"><strong>${pln(p)}</strong><span class="sub">${totals[g][p.id] || 0} pts rapportés</span></th>${cells}</tr>`;
       }).join('');
       return `<div class="tablewrap tablewrap--scroll"><table class="grid grid--tk">
         <caption>${g === 'M' ? 'Messieurs' : 'Dames'}, ${taken} sur ${list.length} déjà pris</caption>
@@ -625,7 +628,7 @@
     const { picks } = racePeople(race), hit = picks.filter((x) => lv.by[x.ath] && lv.by[x.ath].out);
     const upd = new Date(lv.L.fetched);
     return `<div class="livenote"><p><strong>1re manche terminée</strong>${lv.L.run2 ? ` · 2e manche à <strong>${hm(lv.L.run2)}</strong>` : ''} <span class="livenote__t">(mis à jour à ${F_HM.format(upd)})</span></p>
-      ${hit.length ? `<p class="livenote__b">⚠ <strong>Bulle${hit.length > 1 ? 's' : ''} actée${hit.length > 1 ? 's' : ''}</strong> : non qualifié${hit.length > 1 ? 's' : ''} pour la 2e manche, 0 point.</p><ul class="livenote__l">${Object.entries(hit.reduce((m, x) => { (m[x.ath] = m[x.ath] || []).push(x.p.name); return m; }, {})).map(([a, ps]) => `<li><strong>${esc(nameOf(a))}</strong> : ${ps.map(esc).join(', ')}</li>`).join('')}</ul>` : '<p class="livenote__b livenote__b--ok">Aucune bulle : tous les skieurs choisis passent en 2e manche.</p>'}</div>`;
+      ${hit.length ? `<p class="livenote__b">⚠ <strong>Bulle${hit.length > 1 ? 's' : ''} actée${hit.length > 1 ? 's' : ''}</strong> : non qualifié${hit.length > 1 ? 's' : ''} pour la 2e manche, 0 point.</p><ul class="livenote__l">${Object.entries(hit.reduce((m, x) => { (m[x.ath] = m[x.ath] || []).push(x.p); return m; }, {})).map(([a, ps]) => `<li><strong>${skn(a)}</strong> : ${ps.map(pln).join(', ')}</li>`).join('')}</ul>` : '<p class="livenote__b livenote__b--ok">Aucune bulle : tous les skieurs choisis passent en 2e manche.</p>'}</div>`;
   }
   function shareTable(race) {
     const { picks, cnt } = racePeople(race), N = picks.length;
@@ -656,7 +659,7 @@
     const mine = active(races).map((r) => {
       const pk = (state.picks[state.me] || {})[r.id];
       const eff = pk && pk.a ? G.effectiveAthlete(pk, state.results, r.id) : null;
-      return `<li><span class="gender gender--${r.gender}">${genderLabel(r)}</span> ${discBadge(r)} ${eff ? `<strong>${esc(nameOf(eff))}</strong>${liveChip(liveOf(r), eff)}` : '<span class="none">aucun choix</span>'}</li>`;
+      return `<li><span class="gender gender--${r.gender}">${genderLabel(r)}</span> ${discBadge(r)} ${eff ? `<strong>${skn(eff)}</strong>${liveChip(liveOf(r), eff)}` : '<span class="none">aucun choix</span>'}</li>`;
     }).join('');
     return `<section>
       <div class="lockbar"><div class="lockbar__t"><span class="state state--en-cours">Session clôturée</span><strong>${fl(s.name)}</strong><span class="sub">Choix verrouillés</span></div>
@@ -698,7 +701,7 @@
     const gen = rankRows((pk) => G.generalScore(pk, R)).find((r) => r.p.id === state.me);
     const podium = rows.filter((r) => r.rank <= 3).slice(0, 5).map((r) => `<li><span class="rnk rnk--${r.rank}">${r.rank}</span>${pname(r.p)}<b>${r.v.total} pts</b></li>`).join('');
     const bc = bestContrarian(s);
-    const bcHtml = bc ? `<div class="bilan__card"><h4>Le coup à contre-courant</h4><p><span class="wp__sk">${avatarOf(bc.ath, 'sm')}<b>${esc(nameOf(bc.ath))}</b></span> à ${fl(placeLabel(bc.race))} <span class="gender gender--${bc.race.gender}">${genderLabel(bc.race)}</span>${discBadge(bc.race)}</p>
+    const bcHtml = bc ? `<div class="bilan__card"><h4>Le coup à contre-courant</h4><p><span class="wp__sk">${avatarOf(bc.ath, 'sm')}<b>${skn(bc.ath)}</b></span> à ${fl(placeLabel(bc.race))} <span class="gender gender--${bc.race.gender}">${genderLabel(bc.race)}</span>${discBadge(bc.race)}</p>
       <p class="sub">Choisi par ${esc(bc.who.map((p) => p.name).join(', '))} seulement (${bc.n} sur ${bc.N}), alors que ${bc.top} joueurs en avaient pris un autre. Résultat : +${bc.pts} points.</p></div>` : '';
     const nx = hm.next;
     const nxHtml = nx
@@ -808,7 +811,7 @@
       { id: 'w', label: 'Mondiaux', note: '4 au 14 févr.' },
       { id: '3', label: 'Desk 3', note: `${shortOf(D.DESKS[2].from)} au ${shortOf(D.DESKS[2].to)}` },
       { id: 'gen', label: 'Classements', note: '' },
-    ].concat(state.demo ? [{ id: 'data', label: 'Data room', note: '' }] : []);
+    ].concat([{ id: 'data', label: 'Data room', note: '' }]);
   }
   const TAB_IDS = ['next', '1', '2', 'w', '3', 'gen', 'data', 'adm'];
   /** Pictos des onglets (affichés sur mobile à la place des libellés longs). */
@@ -1089,7 +1092,7 @@
     const init = esc((p.name || '?').trim()[0] ? (p.name || '?').trim()[0].toUpperCase() : '?');
     return `<span class="pav pav--${size || 'sm'}" aria-hidden="true">${p.photo ? `<img src="${p.photo}" alt="">` : `<span>${init}</span>`}</span>`;
   }
-  const FICHE_ON = false; // fiche joueur : désactivée pour le moment (passer à true pour la réactiver)
+  const FICHE_ON = true; // fiche joueur : désactivée pour le moment (passer à true pour la réactiver)
   const pname = (p) => !FICHE_ON ? `<span class="pn">${pav(p, 'xs')}<span>${esc(p.name)}</span></span>` : `<button type="button" class="pn pn--btn" data-player="${esc(p.id)}" title="Voir la fiche">${pav(p, 'xs')}<span>${esc(p.name)}</span></button>`;
   const PH = { img: null, zoom: 1, x: 0, y: 0 };
   function photoModal() {
@@ -1215,13 +1218,13 @@
     const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => [c === 'SG' ? 'Super-G' : D.DISC[c].fr, G.disciplineScore(c, picks, R)]);
     const tile = (v, l) => `<div class="ftile"><b>${v}</b><span>${l}</span></div>`;
     const lastRows = rows.slice(-6).reverse().map((x) => {
-      const how = !x.has ? '<span class="none">Pas de choix</span>' : `${esc(nameOf(x.eff))}${x.how ? ` <em class="sub">${x.how}</em>` : ''}`;
+      const how = !x.has ? '<span class="none">Pas de choix</span>' : `${skn(x.eff)}${x.how ? ` <em class="sub">${x.how}</em>` : ''}`;
       const res = !x.has ? '' : x.e ? (x.e.status || ordinal(x.e.rank)) : '';
       return `<li class="flast"><span class="flast__r"><strong>${fl(placeLabel(x.r))}</strong> <span class="sub">${esc(genderLabel(x.r))}, ${esc(discLabel(x.r))}</span></span><span class="flast__a">${how}</span><span class="flast__p">${res ? `<em>${esc(res)}</em> ` : ''}<b>+${x.pts}</b></span></li>`;
     }).join('');
     const body = !rows.length ? '<p class="hint">Aucune course terminée pour l’instant : les statistiques apparaîtront après la première.</p>' : `
       <div class="ftiles">${tile(avg, 'pts par course jouée')}${tile(played.length ? Math.round(scored.length / played.length * 100) + ' %' : '–', 'courses qui marquent')}${tile(nb(podium.length), 'podiums')}${tile(nb(wins.length), 'victoires')}${tile(nb(streak), 'meilleure série')}${tile(nb(rows.length - played.length), 'courses sans choix')}</div>
-      ${best && best.pts > 0 ? `<p class="fbest"><span>Meilleur coup</span><strong>+${best.pts}</strong> ${esc(nameOf(best.eff))}, ${esc(placeLabel(best.r))} ${esc(discLabel(best.r))} (${esc(genderLabel(best.r))})</p>` : ''}
+      ${best && best.pts > 0 ? `<p class="fbest"><span>Meilleur coup</span><strong>+${best.pts}</strong> ${skn(best.eff)}, ${esc(placeLabel(best.r))} ${esc(discLabel(best.r))} (${esc(genderLabel(best.r))})</p>` : ''}
       <h3 class="fh">Évolution</h3><div class="fchart">${sparkline(rows) || '<span class="hint">Pas encore assez de courses.</span>'}</div>
       <div class="fcols"><div><h3 class="fh">Par desk</h3>${bars(desks)}</div><div><h3 class="fh">Par discipline</h3>${bars(discs)}</div></div>
       ${top.length ? `<h3 class="fh">Skieurs les plus rentables</h3>${bars(top.map(([id, v]) => [nameOf(id), v]))}` : ''}
@@ -1568,7 +1571,7 @@
 
   /* ---------- Démarrage ---------- */
   window.SKI_DR.init({ state, G, D, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
-  SHARE.init({ state, G, D, esc, nameOf, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
+  SHARE.init({ state, G, D, esc, nameOf, skn, pln, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
   const adminCtx = () => ({ state, G, D, store, LIST, ATH, esc, norm, at, F_DAY, hourText, dlShort, shortOf, placeLabel, discLabel, genderLabel, nameOf, avatarOf, sortedRaces, lockedRace, active, canon, newPlayers, markPlayersSeen, rerender: render, fail, isAdmin });
   const q = new URLSearchParams(location.search);
   const h = location.hash.replace('#', '');
