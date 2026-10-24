@@ -1246,7 +1246,7 @@
   function renderUserbar() {
     const el = $('#userbar');
     if (!el) return;
-    const ma = $('#mastact'); if (ma) { ma.hidden = !state.user && !state.demo; ma.innerHTML = '<span class="mast-actions__row"><button type="button" class="mastbtn" data-rules>Règles du jeu</button><button type="button" class="mastbtn" data-ideas>Boîte à idées</button></span>' + (isAdmin() ? `<button type="button" class="mastbtn mastbtn--admin" data-tab="adm" aria-pressed="${state.tab === 'adm'}">Admin${newPlayers().length ? ` · 🔔 ${newPlayers().length}` : ''}</button>` : ''); }
+    const ma = $('#mastact'); if (ma) { ma.hidden = !state.user && !state.demo; ma.innerHTML = '<span class="mast-actions__row">' + THEMESW + '<button type="button" class="mastbtn" data-rules>Règles du jeu</button><button type="button" class="mastbtn" data-ideas>Boîte à idées</button></span>' + (isAdmin() ? `<button type="button" class="mastbtn mastbtn--admin" data-tab="adm" aria-pressed="${state.tab === 'adm'}">Admin${newPlayers().length ? ` · 🔔 ${newPlayers().length}` : ''}</button>` : ''); }
     el.hidden = !state.user || (state.demo && !state.user);
     if (!el.hidden) el.innerHTML = accountBar();
   }
@@ -1260,6 +1260,7 @@
   document.addEventListener('visibilitychange', beat);
   setTimeout(beat, 3000);
 
+  const THEMESW = "<div class=\"themesw\" role=\"group\" aria-label=\"Ambiance du site\"><span>Ambiance</span><span class=\"themesw__dots\"><button type=\"button\" class=\"th--sapin\" data-theme-set=\"sapin\" aria-pressed=\"true\" title=\"Sapin\" aria-label=\"Ambiance Sapin\"></button><button type=\"button\" class=\"th--glace\" data-theme-set=\"glace\" aria-pressed=\"false\" title=\"Glace\" aria-label=\"Ambiance Glace\"></button><button type=\"button\" class=\"th--nuit\" data-theme-set=\"nuit\" aria-pressed=\"false\" title=\"Nuit\" aria-label=\"Ambiance Nuit\"></button></span></div>";
   /* ---------- Ambiance (Sapin, Glace, Nuit), mémorisée dans le navigateur ---------- */
   const THEME_COLOR = { sapin: '#163629', glace: '#a8cfe4', nuit: '#0b1322' };
   function setTheme(t, save) {
@@ -1271,6 +1272,23 @@
   }
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-theme-set]'); if (b) setTheme(b.dataset.themeSet, true); });
   (function () { let t = 'sapin'; try { t = localStorage.getItem('skigame.theme') || 'sapin'; } catch (e) { /* ignoré */ } setTheme(t, false); })();
+
+  /* ---------- Recherche de skieurs (ordinateur) : ouvre la fiche ---------- */
+  (function () {
+    const q = $('#skq'), res = $('#skres'); if (!q || !res) return;
+    const close = () => { res.hidden = true; res.innerHTML = ''; };
+    q.addEventListener('input', () => {
+      const t = norm(q.value.trim()).split(/\s+/).filter(Boolean);
+      if (!t.length) { close(); return; }
+      const hits = [];
+      ['W', 'M'].forEach((g) => (LIST[g] || []).forEach((a) => { const n = norm(nameOf(a.id) + ' ' + (a.name || '') + ' ' + (a.nat || '')); if (t.every((x) => n.includes(x))) hits.push(a); }));
+      hits.sort((x, y) => nameOf(x.id).localeCompare(nameOf(y.id)));
+      res.innerHTML = hits.slice(0, 8).map((a) => `<li><button type="button" data-dr="sk:id~${esc(a.id)}" data-skres>${avatarOf(a.id, 'sm')}${flagOf(a.id)}<span>${esc(nameOf(a.id))}</span></button></li>`).join('') || '<li class="none">Aucun skieur trouvé.</li>';
+      res.hidden = false;
+    });
+    q.addEventListener('keydown', (e) => { if (e.key === 'Escape') { q.value = ''; close(); } if (e.key === 'Enter') { const b = res.querySelector('button'); if (b) b.click(); } });
+    document.addEventListener('click', (e) => { if (e.target.closest('[data-skres]')) { q.value = ''; setTimeout(close, 0); } else if (!e.target.closest('#skfind')) close(); });
+  })();
 
   /* ---------- Photo de profil ---------- */
   const playerOf = (id) => state.players.find((p) => p.id === id) || { id, name: '', photo: '' };
@@ -1508,7 +1526,7 @@
   function fitTabs() {
     const nav = document.querySelector('.tabs'), row = $('#tabs');
     if (!nav || !row || nav.hidden) return;
-    const steps = ['tabs--nolabel', 'tabs--nodots', 'tabs--ico'];
+    const steps = ['tabs--nolabel', 'tabs--nodots', 'tabs--ico'];  // 1 : champ de recherche réduit, 2 : masqué
     nav.classList.remove(...steps);
     const over = () => row.scrollWidth > row.clientWidth + 1;
     for (const c of steps) { if (!over()) break; nav.classList.add(c); }

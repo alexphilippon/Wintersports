@@ -1233,3 +1233,17 @@ body.fs-lock { overflow: hidden; }
 .c-st--dnq { background: color-mix(in srgb, #e0607a 20%, var(--neige)); color: #b03a55; }
 .c-st--dsq { background: color-mix(in srgb, #8a2f5a 20%, var(--neige)); color: #7a2450; }
 .c-st--dns { background: transparent; color: color-mix(in srgb, var(--encre) 14%, transparent); font-weight: 400; }
+
+/* recherche de skieurs (ordinateur) */
+.skfind { position: relative; flex: none; margin-left: auto; display: flex; align-items: center; gap: .4rem; padding: .25rem .7rem; border-radius: 999px; border: 1.5px solid rgba(255, 255, 255, .55); background: rgba(0, 0, 0, .28); color: #fff; }
+.skfind input { width: 5.2rem; border: 0; outline: 0; background: transparent; color: #fff; font: inherit; font-size: .9rem; padding: .15rem 0; }
+.skfind input::placeholder { color: rgba(255, 255, 255, .7); }
+.skfind:focus-within { background: rgba(0, 0, 0, .45); border-color: #fff; }
+.skfind__res { position: absolute; z-index: 60; right: 0; top: calc(100% + 6px); width: 20rem; max-height: 22rem; overflow-y: auto; margin: 0; padding: .25rem; list-style: none; background: var(--neige); color: var(--encre); border: 1.5px solid var(--nuit); border-radius: 10px; box-shadow: 0 8px 22px rgba(0, 0, 0, .3); }
+.skfind__res[hidden] { display: none; }
+.skfind__res button { display: flex; align-items: center; gap: .5rem; width: 100%; text-align: left; border: 0; background: transparent; padding: .35rem .5rem; border-radius: 7px; cursor: pointer; font: inherit; font-weight: 600; color: inherit; }
+.skfind__res button:hover, .skfind__res button:focus-visible { background: color-mix(in srgb, var(--ocre) 25%, var(--neige)); }
+.skfind__res .none { padding: .5rem; color: var(--encre-douce); }
+.tabs--nolabel .skfind input { width: 4rem; }
+.tabs--nodots .skfind, .tabs--ico .skfind { display: none; }
+@media (max-width: 759px) { .skfind { display: none; } }
