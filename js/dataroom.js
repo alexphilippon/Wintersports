@@ -143,7 +143,7 @@
     let rows = t.rows;
     if (ui.rows === 'top') rows = rows.slice(0, 30); else if (ui.rows === 'mine') rows = isPast ? rows.slice(0, 30) : rows.filter((r) => used[r.ath]);
     const cd = codes(races), pk = isPast ? 'ppdisc' : 'pdisc';
-    const head = races.map((r) => `<th scope="col" class="dr__rh" title="${C.esc(`${placeOf(r)} · ${C.D.DISC[r.disc].short} · ${frDate(r)}`)}"><span class="dr__pl">${C.esc(cd[placeOf(r)])}</span><span class="dr__ds disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="dr__dt">${frDate(r)}</span></th>`).join('');
+    const head = races.map((r) => `<th scope="col" class="dr__rh${isPast || C.state.results[r.id] ? ' is-click' : ''}"${isPast ? ` data-dr="${'pastrace'}:${r.id}"` : C.state.results[r.id] ? ` data-dr="race:${r.id}"` : ''} title="${C.esc(`${placeOf(r)} · ${C.D.DISC[r.disc].short} · ${frDate(r)}${isPast || C.state.results[r.id] ? ' : voir le classement' : ''}`)}"><span class="dr__pl">${C.esc(cd[placeOf(r)])}</span><span class="dr__ds disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="dr__dt">${frDate(r)}</span></th>`).join('');
     const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><button type="button" class="dr__sk dr__lnk" data-dr="sk:${isPast ? 'code' : 'id'}~${s.ath}">${(isPast ? s.id : s.ath) ? `<span class="dr__av">${C.avatarOf(isPast ? s.id : s.ath, 'sm')}</span>` : ''}<span class="dr__fl">${C.flag(isPast ? s.nat : (C.ATH()[s.ath] || {}).nat)}</span><span class="dr__nm">${used[s.ath] ? '★ ' : ''}${C.esc(isPast ? s.name : C.nameOf(s.ath))}</span></button></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : mpd[r.id] === s.ath ? ' c-pick c-pick--draft' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : mpd[r.id] === s.ath ? ' title="Ton brouillon pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
     const sel = (k, opts) => `<span class="ff__g">${opts.map(([v, l]) => chip(k, v, l, String(ui[k]) === String(v))).join('')}</span>`;
     const rowOpts = isPast ? [['top', 'Top 30'], ['all', 'Tous']] : [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']];
@@ -273,6 +273,22 @@
       <p class="sk__disc">${['DH', 'SG', 'GS', 'SL'].filter((d) => byD[d] != null).map((d) => `<span class="disc disc--${d}">${C.D.DISC[d].short}</span> <b>${byD[d]}</b>`).join(' · ') || ''}</p>
       <ul class="sk__list">${list || '<li class="none">Aucun résultat sur cette saison.</li>'}</ul>`}</div>`;
   }
+  /** Classement complet d'une course de la saison passée (pas de jeu : pas de classement des joueurs). */
+  function pastRaceModal(id) {
+    if (!past) return;
+    const r = past.races.find((x) => String(x.id) === String(id)); if (!r) return;
+    const map = byFid(), ix = pastIndex();
+    const who = (code) => { const aid = map[code] || (ix.byCode || {})[code] || null, info = past.ath[code] || [code, ''];
+      const nm = aid ? C.nameOf(aid) : (() => { const n = info[0].split(' '), up = []; while (n.length && n[0] === n[0].toUpperCase()) up.push(n.shift()); return (n.length ? n.join(' ') + ' ' : '') + (up.length ? up : n).join(' ').toUpperCase(); })();
+      return { aid, nm, nat: info[1] || (aid && (C.ATH()[aid] || {}).nat) || '', code }; };
+    const rk = (n) => `<span class="rnk rnk--${n <= 3 ? n : n <= 10 ? 'c' : 'n'}">${n}</span>`;
+    const ranked = r.res.filter((x) => typeof x[1] === 'number').sort((a, b) => a[1] - b[1]), others = r.res.filter((x) => typeof x[1] !== 'number');
+    const line = (x, first) => { const w = who(x[0]); const link = w.aid ? `data-dr="sk:id~${w.aid}"` : `data-dr="sk:code~${x[0]}"`;
+      return `<tr><td class="num">${first}</td><th scope="row"><button type="button" class="dr__sk dr__lnk" ${link}>${w.aid ? C.avatarOf(w.aid, 'sm') : ''}${C.flag(w.nat)}<span class="dr__nm">${C.esc(w.nm)}</span></button></th><td class="num">${typeof x[1] === 'number' ? (x[2] != null ? x[2] : C.G.pointsForRank(x[1])) : ''}</td></tr>`; };
+    const body = ranked.map((x) => line(x, rk(x[1]))).concat(others.map((x) => line(x, `<span class="rnk rnk--n rnk--st">${C.esc(x[1])}</span>`))).join('');
+    C.openModal(`<div class="rc"><h3 class="rc__title">${C.esc(r.place.replace(/\s*\([^)]*\)\s*$/, ''))} · ${C.D.DISC[r.disc].fr} ${r.g === 'M' ? 'messieurs' : 'dames'}</h3><p class="rc__date">${C.esc(frDate(r))} · saison 2025-26</p>
+      <div class="tablewrap"><table class="grid grid--rank rf__tb cap--gen"><caption>Classement de la course</caption><thead><tr><th scope="col" class="num">Rang</th><th scope="col">Skieur</th><th scope="col" class="num th--tot">Pts</th></tr></thead><tbody>${body}</tbody></table></div></div>`, 'modal__card--wide');
+  }
   const openSkier = (id, code, season) => { sk.id = id || null; sk.code = code || null; sk.season = season || sk.season; loadPast(); C.openModal(skierSheet(), 'modal__card--sk'); };
 
   function render() {
@@ -285,6 +301,8 @@
     const b = e.target.closest('[data-dr]'); if (!b || !C) return;
     const [k, v] = b.dataset.dr.split(':');
     if (k === 'sk') { const [t, x] = v.split('~'); openSkier(t === 'id' ? x : null, t === 'code' ? x : null, ui.sub === 'past' ? 'past' : 'now'); return; }
+    if (k === 'race') { if (root.SKI_SHARE) root.SKI_SHARE.open(v); return; }
+    if (k === 'pastrace') { pastRaceModal(v); return; }
     if (k === 'skseason') { sk.season = v; C.openModal(skierSheet(), 'modal__card--sk'); return; }
     if (k === 'sub') ui.sub = v;
     else if (k === 'g') ui.g = v;

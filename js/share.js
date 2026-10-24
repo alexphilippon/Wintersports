@@ -107,7 +107,7 @@
     const dnq = res.filter((e) => e.status === 'DNQ').sort((a, b) => (cs(a.time) == null) - (cs(b.time) == null) || (cs(a.time) || 0) - (cs(b.time) || 0));
     if (dnq.length) {
       rows.push(`<tr class="rf__sec"><th colspan="${hasT ? 4 : 3}" scope="colgroup">Did not qualify <span class="sub">· classés au temps de la 1re manche</span></th></tr>`);
-      dnq.forEach((e) => rows.push(`<tr class="is-nq ${mineRow(e.ath)}"><td class="num"><span class="rnk rnk--n rnk--st">NQ</span></td><th scope="row"><span class="rf__ath">${C.avatarOf(e.ath, 'sm')}<span>${C.skn(e.ath)}</span></span></th>${hasT ? `<td class="num">${esc(e.time || '')}${e.time ? '<br><span class="sub">1re manche</span>' : ''}</td>` : ''}<td>${chips(e.ath)}</td></tr>`));
+      dnq.forEach((e) => rows.push(`<tr class="is-nq ${mineRow(e.ath)}"><td class="num"><span class="rnk rnk--n rnk--st">NQ</span></td><th scope="row"><span class="rf__ath">${C.avatarOf(e.ath, 'sm')}<span>${C.skn(e.ath)}</span></span></th>${hasT ? `<td class="num">${esc(e.time || '')}${e.time ? ' <span class="sub">· 1re manche</span>' : ''}</td>` : ''}<td>${chips(e.ath)}</td></tr>`));
     }
     const nq = 0, ns = res.filter((e) => e.status === 'DNS' && !picked[e.ath]).length;
     const foot = [nq ? `${nq} non qualifié${nq > 1 ? 's' : ''} (DNQ)` : '', ns ? `${ns} non-partant${ns > 1 ? 's' : ''} (DNS)` : ''].filter(Boolean).join(' · ');

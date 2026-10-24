@@ -1196,3 +1196,6 @@ html[data-theme='nuit'] .pk__pt { color: #7fd6a6; }
 
 .rf__tb tr.rf__sec th { background: color-mix(in srgb, var(--ocre) 30%, var(--neige)); text-align: left; font-weight: 800; padding: .55rem .6rem; border-top: 2px solid var(--ocre); }
 .rf__tb tr.is-nq .rnk--st { border-color: var(--encre-douce); color: var(--encre-douce); }
+
+.dr__rh.is-click { cursor: pointer; } .dr__rh.is-click:hover { background: color-mix(in srgb, var(--ocre) 25%, var(--neige)); } .dr__rh.is-click .dr__pl { text-decoration: underline; text-underline-offset: 2px; }
+.rf__tb td.num { white-space: nowrap; }
