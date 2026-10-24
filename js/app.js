@@ -1494,7 +1494,7 @@
     const list = todo.map((r) => `<li class="gate__race"><span class="gate__when">${esc(dayOf(r.date))}</span><span class="gate__what"><strong>${fl(placeLabel(r))}</strong> <span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</span></li>`).join('');
     openModal(`<div class="gate"><p class="gate__kicker">Au portillon</p>
       <h2 class="gate__title">${todo.length > 1 ? `${todo.length} choix t’attendent` : 'Un choix t’attend'}</h2>
-      <p class="gate__lead">Deadline <strong>${esc(dlShort(dl))}</strong>, dans ${esc(leftText(left))}. Ensuite, les choix sont verrouillés.</p>
+      <p class="gate__lead">Deadline <strong>${esc(dlShort(dl))}</strong>, dans ${esc(leftText(left))}. Ensuite, tout est verrouillé, <strong>y compris les courses des jours suivants</strong> : il faut tout valider avant la première course de la session.</p>
       <ul class="gate__list">${list}</ul>
       <button type="button" class="btn btn--brique gate__go" data-gate-go="${sid}">Je choisis maintenant</button>
       ${opts.length ? `<div class="gate__snooze"><span>Me le rappeler dans</span>${opts.map(([l, ms]) => `<button type="button" class="gate__chip" data-gate-snooze="${sid}|${Math.round(ms)}">${l}</button>`).join('')}</div>` : ''}
