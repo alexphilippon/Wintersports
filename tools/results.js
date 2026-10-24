@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* Ajoute une course à data/results.json à partir du texte des PDF FIS.
    Usage : node tools/results.js course.json [--out data/results.json]
-   course.json : { race, seed (course à 2 manches : temps du vainqueur de la 1re manche, lu dans data/live.json), fisRaceId, source, start1, ranked, dnfBibs, dnqBibs, dns:[{bib,confirmed}], dsq:[bib] }
+   course.json : { race, fisRaceId, source, start1, ranked, dnfBibs, dnqBibs, dns:[{bib,confirmed}], dsq:[bib] }
    Refuse d'écrire tant qu'un DNS n'est pas confirmé (confirmed:true) : on le demande d'abord à l'organisateur. */
 const fs = require('fs'), path = require('path');
 const R = require('../js/results.js'), A = require('../js/athletes.js'), D = require('../js/data.js');

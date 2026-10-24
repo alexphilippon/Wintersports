@@ -629,12 +629,12 @@
   /** Titulaires qui ne prennent pas le départ : remplaçant du joueur, ou tirage au sort s'il n'en a pas (ou s'il est lui aussi absent). */
   /** Tirages au sort possibles dès la fin de la 1re manche : graine = temps du vainqueur de la 1re manche (publié avant la 2e), 30 premiers dossards. */
   function liveDraws(race, lv) {
-    const sl = startListOf(race); if (!sl || !lv.L.seed1) return {};
+    const sl = startListOf(race); if (!sl) return {};
     const fake = [];
     state.players.forEach((p) => { const pk = (state.picks[p.id] || {})[race.id]; if (pk && pk.a) [pk.a, pk.b].forEach((a) => { if (a && lv.dns(a) && !fake.some((x) => x.ath === a)) fake.push({ ath: a, status: 'DNS' }); }); });
     if (!fake.length) return {};
     const picks = {}; state.players.forEach((p) => { picks[p.id] = Object.assign({}, state.picks[p.id]); if (picks[p.id][race.id]) picks[p.id][race.id] = Object.assign({}, picks[p.id][race.id], { d: undefined }); });
-    const d = G.autoDraws(Object.assign({}, state.results, { [race.id]: fake }), { [race.id]: { seed: lv.L.seed1, start: sl.rows.filter((r) => r.ath).map((r) => ({ bib: r.bib, ath: r.ath })) } }, picks);
+    const d = G.autoDraws(Object.assign({}, state.results, { [race.id]: fake }), { [race.id]: { start: sl.rows.filter((r) => r.ath).map((r) => ({ bib: r.bib, ath: r.ath })) } }, picks);
     return d[race.id] || {};
   }
   function dnsNote(race, lv) {
@@ -642,12 +642,19 @@
     state.players.forEach((p) => {
       const pk = (state.picks[p.id] || {})[race.id]; if (!pk || !pk.a || !lv.dns(pk.a)) return;
       const rep = pk.b && !lv.dns(pk.b) ? pk.b : null;
-      rows.push(`<li><strong>${skn(pk.a)}</strong> : ${pln(p)} → ${rep ? `remplaçant <strong>${skn(rep)}</strong>` : dr[p.id] ? `pas de remplaçant valable : <strong>tirage au sort → ${skn(dr[p.id].ath)}</strong> <span class="sub">(1 sur ${dr[p.id].n}, graine ${esc(lv.L.seed1)})</span>` : '<strong>pas de remplaçant valable : tirage au sort</strong>'}</li>`);
+      rows.push(`<li><strong>${skn(pk.a)}</strong> : ${pln(p)} → ${rep ? `remplaçant <strong>${skn(rep)}</strong>` : dr[p.id] ? `pas de remplaçant valable : <strong>tirage au sort → ${skn(dr[p.id].ath)}</strong> <span class="sub">(1 sur ${dr[p.id].n} candidats, d’après la liste de départ)</span>` : '<strong>pas de remplaçant valable : tirage au sort</strong>'}</li>`);
     });
     return rows.length ? `<p class="livenote__b livenote__b--dns">🚫 <strong>Non-partant${rows.length > 1 ? 's' : ''}</strong> (absent${rows.length > 1 ? 's' : ''} de la liste de départ, pas de bulle) :</p><ul class="livenote__l">${rows.join('')}</ul>` : '';
   }
+  /** Avant la 1re manche (liste de départ publiée, pas encore de classement) : seulement les non-partants et leur tirage. */
+  function preLive(race) {
+    const sl = startListOf(race); if (!sl || resOf(race)) return null;
+    const starters = new Set(sl.rows.map((r) => r.ath).filter(Boolean));
+    return { L: {}, by: {}, dns: (a) => starters.size > 0 && !starters.has(a) };
+  }
   function liveNote(race) {
-    const lv = liveOf(race); if (!lv) return '';
+    let lv = liveOf(race);
+    if (!lv) { const pre = preLive(race); const n = pre ? dnsNote(race, pre) : ''; return n ? `<div class="livenote">${n}</div>` : ''; }
     const { picks } = racePeople(race), hit = picks.filter((x) => lv.by[x.ath] && lv.by[x.ath].out);
     const upd = new Date(lv.L.fetched);
     return `<div class="livenote"><p><strong>1re manche terminée</strong>${lv.L.run2 ? ` · 2e manche à <strong>${hm(lv.L.run2)}</strong>` : ''} <span class="livenote__t">(mis à jour à ${F_HM.format(upd)})</span></p>

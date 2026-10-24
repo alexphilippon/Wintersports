@@ -109,7 +109,7 @@
     const out = {};
     Object.keys(meta || {}).forEach((raceId) => {
       const m = meta[raceId], race = raceOf(raceId);
-      if (!race || race.cancelled || !results[raceId] || !m.start || !m.seed) return;
+      if (!race || race.cancelled || !results[raceId] || !m.start) return;
       Object.keys(picksByPlayer).forEach((pid) => {
         const pk = (picksByPlayer[pid] || {})[raceId];
         if (!pk || !pk.a || pk.d || !isDNS(results, raceId, pk.a)) return;
@@ -117,7 +117,9 @@
         const burnt = usedInDesk(deskIdOf(raceId), race.gender, picksByPlayer[pid], raceId, results);
         const cands = m.start.slice().sort((x, y) => x.bib - y.bib).slice(0, 30).map((x) => x.ath)
           .filter((id) => !burnt.has(id) && !isDNS(results, raceId, id));
-        const seed = `${raceId}|${pid}|${m.seed}`;
+        // graine : la liste de départ elle-même (30 premiers dossards, par ordre de dossard) : connue dès la start list, avant la 1re manche
+        const sig = m.start.slice().sort((x, y) => x.bib - y.bib).slice(0, 30).map((x) => x.ath || '?').join(',');
+        const seed = `${raceId}|${pid}|${sig}`;
         const d = drawSkier(seed, cands);
         if (d) (out[raceId] = out[raceId] || {})[pid] = Object.assign({ seed, candidates: cands }, d);
       });
