@@ -1014,3 +1014,11 @@ html[data-theme='nuit'] .seg__btn--past:not([aria-selected="true"]) { color: #c4
 .lnk:hover { text-decoration: underline; }
 .gauge__n .lnk { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; font-weight: inherit; }
 .cell__txt .who .lnk { font-weight: inherit; }
+
+.acct__ib .ico-sm { display: none; }
+@media (max-width: 640px) {
+  .acct__btns { display: flex; gap: .4rem; }
+  .acct__ib { width: 2.5rem; height: 2.5rem; padding: 0; display: inline-grid; place-items: center; border-radius: 50%; }
+  .acct__ib .lbl-lg, .acct__ib .lbl-sm { display: none; }
+  .acct__ib .ico-sm { display: block; }
+}
