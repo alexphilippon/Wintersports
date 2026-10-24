@@ -111,7 +111,7 @@
     const headH = 250, footH = 90;
     let bodyH = lay.reduce((s, l) => s + l.h, 0);
     const H = Math.min(Math.max(headH + bodyH + footH, 1080), 2400);
-    const TH = { sapin: { t: '#2b5f4b', b: '#163629', chev: K.chev, edge: '#e9f0f2', gold: '#f1d78a', head: '#fff', sub: '#d4e6ef', bg: '#fbf8ef', band: '#f3efe2', ink: '#1b2b44', soft: '#675e51', bad: '#a93a2c', foot: '#1f4a3a', footT: '#e9f0f2', ph: '#8faec0' },
+    const TH = { sapin: { t: '#2b5f4b', b: '#163629', chev: 'rgba(143,192,164,.18)', edge: '#e9f0f2', gold: '#f1d78a', head: '#fff', sub: '#d4e6ef', bg: '#fbf8ef', band: '#f3efe2', ink: '#1b2b44', soft: '#675e51', bad: '#a93a2c', foot: '#1f4a3a', footT: '#e9f0f2', ph: '#8faec0' },
       glace: { t: '#f1f9fd', b: '#a8cfe4', chev: 'rgba(255,255,255,.4)', edge: '#ffffff', gold: '#1d6a9c', head: '#123a55', sub: '#2c5b78', bg: '#fbfdff', band: '#eaf3f9', ink: '#17364d', soft: '#566b79', bad: '#b83a2a', foot: '#1e5a80', footT: '#ffffff', ph: '#a8cfe4' },
       nuit: { t: '#1c2f55', b: '#0b1322', chev: 'rgba(120,160,230,.18)', edge: '#2f56d6', gold: '#8fb4ff', head: '#ffffff', sub: '#c9d9f5', bg: '#18222f', band: '#1e2b3b', ink: '#e4eaf2', soft: '#9aaabd', bad: '#ff9a8a', foot: '#0b1322', footT: '#cfe0ff', ph: '#3d527f' } };
     const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin;
@@ -161,7 +161,7 @@
       if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: titleOf(race) }); say('Image partagée.'); return; } catch (e) { if (e && e.name === 'AbortError') { say(''); return; } } }
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000); say('Image téléchargée.');
-    } catch (e) { say('Impossible de créer l’image.'); }
+    } catch (e) { console.error('JPG', e); say('Impossible de créer l’image.'); }
   }
   const api = { init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SKI_SHARE = api;
