@@ -913,19 +913,19 @@
   /** Classement simple. photo=false : sans photo de profil (classements des desks). */
   function smallRanking(title, scoreFn, cls, photo, scope) {
     const rows = rankRows((pk) => ({ total: scoreFn(pk) }));
-    return `<div class="tablewrap"><table class="grid grid--rank ${cls || ''}"><caption>${esc(title)}</caption>
+    const xb = SHARE.xbar({ key: 'cl:' + title, title, sub: 'Ski Game · Coupe du monde 2026-27', unit: ' pts', head: ['Rang', 'Joueur', 'Points'], rows: rows.map((r) => ({ c: [String(r.rank), r.p.name, String(r.v.total)], me: r.p.id === state.me })) });
+    return `<div class="tablewrap"><table class="grid grid--rank ${cls || ''}"><caption>${esc(title)}${xb}</caption>
       <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num">Points</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${photo === false ? pln(r.p) : pname(r.p)}</th><td class="num">${ptsBtn(r.v.total, scope, r.p.id)}</td></tr>`).join('')}</tbody></table></div>
-      ${SHARE.xbar({ key: 'cl:' + title, title, sub: 'Ski Game · Coupe du monde 2026-27', unit: ' pts', head: ['Rang', 'Joueur', 'Points'], rows: rows.map((r) => ({ c: [String(r.rank), r.p.name, String(r.v.total)], me: r.p.id === state.me })) })}`;
+      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${photo === false ? pln(r.p) : pname(r.p)}</th><td class="num">${ptsBtn(r.v.total, scope, r.p.id)}</td></tr>`).join('')}</tbody></table></div>`;
   }
   /** Nombre de points cliquable : ouvre le détail course par course. */
   const ptsBtn = (v, scope, pid) => (scope && v ? `<button type="button" class="numbtn" data-bd="${esc('pts|' + pid + '|' + scope)}" title="Voir le détail">${v}</button>` : v);
   /** Détail des points d'un joueur sur un périmètre : total, desk, Mondiaux (bonus compris) ou discipline. */
   function pointsModal(pid, scope) {
     const p = state.players.find((x) => x.id === pid); if (!p) return;
-    const R = state.results, inScope = (r) => scope === 'tot' || (scope === 'w' ? r.kind === 'mondial' : scope.startsWith('d') ? (r.kind !== 'mondial' && String((sessionOf(r) || {}).desk) === scope.slice(1)) : scope.startsWith('disc:') ? r.disc === scope.slice(5) : false);
+    const R = state.results, inScope = (r) => scope === 'tot' || (scope === 'w' ? r.kind === 'mondial' : scope.startsWith('disc:') ? r.disc === scope.slice(5) : scope.startsWith('d') ? (r.kind !== 'mondial' && String((sessionOf(r) || {}).desk) === scope.slice(1)) : false);
     const rows = playerRows(pid).filter((x) => inScope(x.r));
-    const label = scope === 'tot' ? 'Gros globe' : scope === 'w' ? 'Mondiaux' : scope.startsWith('d') ? 'Desk ' + scope.slice(1) : 'Petit globe : ' + D.DISC[scope.slice(5)].fr;
+    const label = scope === 'tot' ? 'Gros globe' : scope === 'w' ? 'Mondiaux' : scope.startsWith('disc:') ? 'Petit globe : ' + D.DISC[scope.slice(5)].fr : 'Desk ' + scope.slice(1);
     const li = rows.map((x) => `<li class="dtl"><span class="dtl__r"><strong>${fl(placeLabel(x.r))}</strong> <span class="sub">${esc(raceName(x.r))} · ${esc(dayOf(x.r.date))}</span></span><span class="dtl__a">${x.has ? skn(x.eff) + (x.how ? ` <em class="sub">(${x.how})</em>` : '') : '<span class="none">Pas de choix</span>'}</span><span class="dtl__k ${x.pts > 0 ? '' : 'bad'}">${x.e ? esc(x.e.status || ordinal(x.e.rank)) : ''} <b>${x.pts > 0 ? '+' : ''}${x.pts}</b></span></li>`).join('');
     const bonus = (scope === 'w' || scope === 'tot') ? G.worldsBonus(state.picks[pid] || {}, R).lines : [];
     const bl = bonus.map((b) => `<li class="dtl"><span class="dtl__r"><strong>Bonus Mondiaux</strong> <span class="sub">${esc(b.label)}</span></span><span class="dtl__a"></span><span class="dtl__k"><b>+${b.pts}</b></span></li>`).join('');
@@ -934,10 +934,11 @@
   }
   /** Classement par compteur : rows = [{ p, v, sub }], déjà classées. */
   function countRanking(title, rows, unit, cls, note) {
-    return `<div class="tablewrap"><table class="grid grid--rank ${cls || ''}"><caption>${esc(title)}${note ? ' ' + info(note) : ''}</caption>
+    const xb = SHARE.xbar({ key: 'cr:' + title, title, sub: 'Ski Game · Coupe du monde 2026-27', head: ['Rang', 'Joueur', unit], rows: rows.map((r) => ({ c: [String(r.rank), r.p.name + (r.sub ? ' ' + r.sub : ''), String(r.v)], me: r.p.id === state.me })) });
+    return `<div class="tablewrap"><table class="grid grid--rank ${cls || ''}"><caption>${esc(title)}${note ? ' ' + info(note) : ''}${xb}</caption>
       <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num">${esc(unit)}</th></tr></thead>
       <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${pln(r.p)}${r.sub ? `<span class="sub"> ${esc(r.sub)}</span>` : ''}</th><td class="num total">${r.v && r.bd ? `<button type="button" class="numbtn" data-bd="${esc(r.bd)}" title="Voir le détail">${r.v}</button>` : r.v}</td></tr>`).join('')}</tbody></table></div>
-      ${SHARE.xbar({ key: 'cr:' + title, title, sub: 'Ski Game · Coupe du monde 2026-27', head: ['Rang', 'Joueur', unit], rows: rows.map((r) => ({ c: [String(r.rank), r.p.name + (r.sub ? ' ' + r.sub : ''), String(r.v)], me: r.p.id === state.me })) })}`;
+`;
   }
   /** Fenêtre de détail d'un compteur : bulles, victoires ou plus longue série d'un joueur. */
   function detailModal(spec) {
@@ -958,10 +959,11 @@
     let body = '';
     if (sub === 'globes') {
       const rows = rankRows((pk) => G.generalScore(pk, R));
-      const main = `<div class="tablewrap"><table class="grid grid--rank grid--general cap--gen"><caption>Le gros globe ${info('Classement général : somme des points des trois desks et des Mondiaux, bonus compris.')}</caption>
+      const xbGG = SHARE.xbar({ key: 'cl:gros-globe', title: 'Le gros globe', sub: 'Ski Game · Coupe du monde 2026-27', unit: ' pts', head: ['Rang', 'Joueur', 'Total', 'Desk 1', 'Desk 2', 'Desk 3', 'Mondiaux'], rows: rows.map((r) => ({ c: [String(r.rank), r.p.name, String(r.v.total)].concat(r.v.desks.map(String), [String(r.v.worlds)]), me: r.p.id === state.me })) });
+      const main = `<div class="tablewrap"><table class="grid grid--rank grid--general cap--gen"><caption>Le gros globe ${info('Classement général : somme des points des trois desks et des Mondiaux, bonus compris.')}${xbGG}</caption>
         <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num th--tot">Total</th><th scope="col" class="num th--d1">Desk 1</th><th scope="col" class="num th--d2">Desk 2</th><th scope="col" class="num th--d3">Desk 3</th><th scope="col" class="num th--w">Mondiaux</th></tr></thead>
         <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${pname(r.p)}</th><td class="num total">${ptsBtn(r.v.total, 'tot', r.p.id)}</td>${r.v.desks.map((d, i) => `<td class="num">${ptsBtn(d, 'd' + D.DESKS[i].id, r.p.id)}</td>`).join('')}<td class="num">${ptsBtn(r.v.worlds, 'w', r.p.id)}</td></tr>`).join('')}</tbody></table></div>
-        ${SHARE.xbar({ key: 'cl:gros-globe', title: 'Le gros globe', sub: 'Ski Game · Coupe du monde 2026-27', unit: ' pts', head: ['Rang', 'Joueur', 'Total', 'Desk 1', 'Desk 2', 'Desk 3', 'Mondiaux'], rows: rows.map((r) => ({ c: [String(r.rank), r.p.name, String(r.v.total)].concat(r.v.desks.map(String), [String(r.v.worlds)]), me: r.p.id === state.me })) })}`;
+`;
       const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => smallRanking(`Petit globe de ${c === 'SG' ? 'super-G' : D.DISC[c].fr.toLowerCase()}`, (pk) => G.disciplineScore(c, pk, R), 'cap--' + c, undefined, 'disc:' + c)).join('');
       const dk = (d) => smallRanking(`Classement du ${d.name}`, (pk) => G.deskScore(d.id, pk, R), 'cap--d' + d.id, false, 'd' + d.id);
       const wk = smallRanking('Classement des Mondiaux', (pk) => G.worldsScore(pk, R).total, 'cap--w', false, 'w');

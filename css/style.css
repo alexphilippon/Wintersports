@@ -1212,3 +1212,9 @@ html[data-theme='nuit'] .syncwarn { background: #44221f; color: #ffd6cf; }
 #xp-toast { position: fixed; left: 50%; bottom: 1.2rem; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 9999; background: #1b2b44; color: #fff; padding: .6rem 1rem; border-radius: 99px; font-weight: 600; font-size: .9rem; transition: .2s; } #xp-toast.on { opacity: 1; transform: translate(-50%, 0); }
 
 .dtl__tot { margin: .8rem 0 0; text-align: right; font-size: 1.05rem; }
+
+/* Pictos d'export dans le titre des tableaux */
+caption .xicons { float: right; display: inline-flex; gap: .35rem; margin-left: .6rem; } 
+.xic { display: inline-flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem; padding: 0; border: 1.5px solid rgba(255,255,255,.55); border-radius: 8px; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; }
+.xic:hover { background: rgba(255,255,255,.28); }
+h3 .xicons { display: inline-flex; gap: .35rem; margin-left: .6rem; vertical-align: middle; } h3 .xic { border-color: var(--filet); background: var(--neige); color: var(--nuit); width: 1.8rem; height: 1.8rem; }

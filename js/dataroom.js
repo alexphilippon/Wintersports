@@ -82,13 +82,13 @@
     const shown = ui.more ? rows : rows.slice(0, 30);
     const globe = !ui.disc.length ? 'Gros globe (cumul des quatre disciplines)' : ui.disc.length === 1 ? `Petit globe de ${DNAME[ui.disc[0]].toLowerCase()}` : `Cumul : ${ui.disc.map((d) => DNAME[d].toLowerCase()).join(' + ')}`;
     const badges = (id) => ['1', '2', '3', 'M'].map((k) => { const on = used[id] && used[id].has(k), dft = !on && dr[id] && dr[id].has(k); return `<span class="db${on ? ' is-on' : dft ? ' is-draft' : ''}" style="--c:${DESKC[k]}" title="${on ? 'Déjà pris' : dft ? 'Brouillon (non confirmé)' : 'Pas encore pris'} (${k === 'M' ? 'Mondiaux' : 'Desk ' + k})">${k === 'M' ? 'M' : 'D' + k}</span>`; }).join('');
+    const xb = root.SKI_SHARE.xbar({ key: 'dr:light:' + ui.g + ui.disc.join(''), title: globe.replace(/ \(.*\)/, ''), sub: (ui.g === 'M' ? 'Messieurs' : 'Dames') + ' · Coupe du monde 2026-27', unit: ' pts', head: ['Rang', 'Skieur', 'Points'], rows: rows.slice(0, 30).map((r) => ({ c: [String(r.rank), C.nameOf(r.ath), String(r.pts)] })) });
     const body = shown.map((r) => `<tr class="${used[r.ath] ? 'is-mine' : ''}"><td class="num">${rnkc(r.rank)}</td>
       <th scope="row"><button type="button" class="dr__sk dr__lnk" data-dr="sk:id~${r.ath}">${C.avatarOf(r.ath, 'sm')}${C.flag((C.ATH()[r.ath] || {}).nat)}<span class="dr__nm">${C.esc(C.nameOf(r.ath))}</span></button></th>
       <td class="num"><b>${r.pts}</b></td><td class="dr__bd">${badges(r.ath)}</td></tr>`).join('');
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(ui.disc)}${ui.disc.length ? '<button type="button" class="ff__x" data-dr="disc:clear">Cumul des quatre</button>' : ''}</div>
-      <div class="tablewrap"><table class="grid grid--rank dr__light"><caption>${C.esc(globe)}, ${ui.g === 'M' ? 'messieurs' : 'dames'}</caption>
+      <div class="tablewrap"><table class="grid grid--rank dr__light"><caption>${C.esc(globe)}, ${ui.g === 'M' ? 'messieurs' : 'dames'}${xb}</caption>
       <thead><tr><th class="num" scope="col">Rang</th><th scope="col">Skieur</th><th class="num" scope="col">Pts</th><th scope="col">Déjà pris par moi</th></tr></thead><tbody>${body || '<tr><td colspan="4"><span class="none">Aucun résultat.</span></td></tr>'}</tbody></table></div>
-      ${root.SKI_SHARE.xbar({ key: 'dr:light:' + ui.g + ui.disc.join(''), title: globe.replace(/ \(.*\)/, ''), sub: (ui.g === 'M' ? 'Messieurs' : 'Dames') + ' · Coupe du monde 2026-27', unit: ' pts', head: ['Rang', 'Skieur', 'Points'], rows: rows.slice(0, 30).map((r) => ({ c: [String(r.rank), C.nameOf(r.ath), String(r.pts)] })) })}
       ${rows.length > 30 ? `<p class="dr__more"><button type="button" class="btn btn--ghost btn--sm" data-dr="more">${ui.more ? 'Réduire' : `Voir les ${rows.length} skieurs`}</button></p>` : ''}
       <p class="hint">Points de la Coupe du monde (100, 80, 60…), d’après les résultats saisis. D1, D2, D3 et M : skieur déjà choisi dans le desk correspondant ou aux Mondiaux.</p>`;
   }
@@ -153,9 +153,8 @@
     const rowOpts = isPast ? [['top', 'Top 30'], ['all', 'Tous']] : [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']];
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(P.disc).replace(/data-dr="disc:/g, `data-dr="${pk}:`)}</div>
       <div class="ff dr__filters"><span class="sub">Courses</span>${sel('last', [[5, '5 dernières'], [10, '10'], [20, '20'], [0, 'Toutes']])}<span class="sub">Skieurs</span>${sel('rows', rowOpts)}</div>
-      <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid${isPast ? ' dr__grid--past' : ''}"><caption>${isPast ? 'Saison 2025-26 · ' : ''}${ui.g === 'M' ? 'Messieurs' : 'Dames'} · ${races.length} course${races.length > 1 ? 's' : ''}</caption>
+      <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid${isPast ? ' dr__grid--past' : ''}"><caption>${isPast ? 'Saison 2025-26 · ' : ''}${ui.g === 'M' ? 'Messieurs' : 'Dames'} · ${races.length} course${races.length > 1 ? 's' : ''}${xb}</caption>
       <thead><tr><th scope="col" class="dr__sticky">Skieur</th><th scope="col" class="dr__pts">Pts</th>${head}</tr></thead><tbody>${body || `<tr><td colspan="${races.length + 2}"><span class="none">Aucun résultat.</span></td></tr>`}</tbody></table></div>
-      ${xb}
       <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS, DNQ, DSQ sont notés. Case vide : hors des 30 premiers.${isPast ? ' Points : barème Coupe du monde sur les courses affichées.' : ' ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course.'} Fais glisser le tableau pour voir les courses.</p>`;
   }
 
@@ -196,8 +195,8 @@
     const bub = rankBy(once, (x) => x.ath, (x) => x.r.id, lab);
     const bubSub = (rid) => { const r = C.G.raceOf(rid); return `<span class="dr__lnk">${C.esc(C.placeLabel(r) + ' ' + C.D.DISC[r.disc].short)}</span>`; };
     return `<p class="hint">Une bulle : le skieur choisi fait 0 point (DNF, disqualifié, non qualifié ou hors des 30 premiers). Un DNS n’en est pas une. Tous desks confondus, remplaçants pris en compte.</p>
-      <h3 class="subtitle">Les skieurs qui ont fait le plus de victimes<span class="bb__tot">${ev.length} au total</span></h3><p class="hint">Un skieur à 0 point choisi par 5 joueurs compte pour 5 victimes.</p>${bubbleList(victims, (id) => skLink(id), (pid) => plLink(pid), 'sk')}${bubX('victimes', 'Skieurs : le plus de victimes', victims)}
-      <h3 class="subtitle">Les skieurs qui font le plus de bulles <span class="bb__tot">${once.length} au total</span></h3><p class="hint">Une bulle par course, quel que soit le nombre de joueurs touchés.</p>${bubbleList(bub, (id) => skLink(id), bubSub, 'pl')}${bubX('bulles', 'Skieurs : le plus de bulles', bub)}`;
+      <h3 class="subtitle">Les skieurs qui ont fait le plus de victimes ${bubX('victimes', 'Skieurs : le plus de victimes', victims)}<span class="bb__tot">${ev.length} au total</span></h3><p class="hint">Un skieur à 0 point choisi par 5 joueurs compte pour 5 victimes.</p>${bubbleList(victims, (id) => skLink(id), (pid) => plLink(pid), 'sk')}
+      <h3 class="subtitle">Les skieurs qui font le plus de bulles ${bubX('bulles', 'Skieurs : le plus de bulles', bub)}<span class="bb__tot">${once.length} au total</span></h3><p class="hint">Une bulle par course, quel que soit le nombre de joueurs touchés.</p>${bubbleList(bub, (id) => skLink(id), bubSub, 'pl')}`;
   }
 
   /* ---------- Fiche skieur : saison en cours (2026-27) et saison passée (2025-26) ---------- */
