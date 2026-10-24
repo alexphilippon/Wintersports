@@ -146,7 +146,7 @@
     store.onAuth((u) => { state.authReady = true; state.user = u; state.me = u ? u.uid : null; introRules(); if (isAdmin() && !state.contactsOn) { state.contactsOn = true; store.listenContacts((m) => { state.contacts = m; scheduleRender(); }); } if (!state.demo) { state.authError = ''; scheduleRender(); } });
     setTimeout(() => { if (!state.picksReady) { state.picksLate = true; scheduleRender(); } }, 12000);   // les choix n'arrivent pas : on prévient
     store.listen({
-      players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id, photo: x.photo || '', blocked: !!x.photoBlocked, lastSeen: Number(x.lastSeen) || 0 })).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+      players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id, photo: x.photo || '', blocked: !!x.photoBlocked, lastSeen: Number(x.lastSeen) || 0, theme: x.theme || "" })).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
         // un simple « vu à l'instant » n'oblige pas à redessiner la page : seulement l'onglet Admin
         const sig = JSON.stringify(state.players.map((p) => [p.id, p.name, p.photo, p.blocked]));
         const same = sig === state.playersSig; state.playersSig = sig;
