@@ -205,21 +205,61 @@
     if (!past || !code) return [];
     return past.races.map((r) => { const e = r.res.find((x) => x[0] === code); return e ? { place: r.place.replace(/\s*\([^)]*\)\s*$/, ''), date: r.date, disc: r.disc, rank: typeof e[1] === 'number' ? e[1] : null, status: typeof e[1] === 'number' ? '' : e[1], pts: typeof e[1] === 'number' ? (e[2] != null ? e[2] : C.G.pointsForRank(e[1])) : 0 } : null; }).filter(Boolean).sort((a, b) => a.date.localeCompare(b.date));
   }
+  /** Choix des joueurs pour ce skieur, par desk : qui l'a pris (points rapportés) et qui ne l'a pas encore pris. */
+  function picksTab(id) {
+    if (!id) return '<p class="hint">Fiche indisponible pour ce skieur.</p>';
+    const R = C.state.results, desks = [['1', 'Desk 1'], ['2', 'Desk 2'], ['3', 'Desk 3'], ['M', 'Mondiaux']];
+    const gender = (C.ATH()[id] || {}).gender;
+    const keyOf = (r) => { if (r.kind === 'mondial') return 'M'; const se = C.sessionOf(r); return se ? String(se.desk) : null; };
+    const now = Date.now();
+    const cur = (Object.values(C.D.RACES).filter((r) => !r.cancelled && r.kind !== 'mondial' && C.G.raceStart(r) > (C.state.sim ? +C.state.sim : now)).sort((a, b) => C.G.raceStart(a) - C.G.raceStart(b))[0]);
+    const curK = cur ? keyOf(cur) : null;
+    const order = desks.slice().sort((a, b) => (a[0] === curK ? -1 : b[0] === curK ? 1 : 0));
+    const out = order.map(([k, label]) => {
+      const took = [], not = [];
+      C.state.players.forEach((pl) => {
+        let pts = 0, n = 0;
+        Object.entries(C.state.picks[pl.id] || {}).forEach(([rid, pk]) => {
+          const r = C.G.raceOf(rid); if (!r || r.cancelled || !pk || !pk.a || keyOf(r) !== k) return;
+          if (C.isDraft && C.isDraft(pk, r) && pl.id !== C.state.me) return;
+          const eff = R[rid] ? C.G.effectiveAthlete(pk, R, rid) : pk.a;
+          if (eff === id) { n++; pts += C.G.scoreRace(r, pk, R) || 0; }
+        });
+        (n ? took : not).push({ pl, pts, n });
+      });
+      took.sort((a, b) => b.pts - a.pts);
+      const pl = (x) => `<button type="button" class="dr__lnk" data-player="${C.esc(x.pl.id)}">${C.esc(x.pl.name)}</button>`;
+      return `<section class="pk${k === curK ? ' pk--cur' : ''}"><h3 class="fh">${label}${k === curK ? ' <small class="sub">desk en cours</small>' : ''}</h3>
+        <p class="pk__l"><b>Déjà pris par :</b> ${took.length ? took.map((x) => `${pl(x)} <span class="pk__pt">${x.pts ? '+' + x.pts : '0'}</span>`).join(' · ') : '<span class="none">personne</span>'}</p>
+        <p class="pk__l"><b>Pas encore pris par :</b> ${not.length ? not.map(pl).join(' · ') : '<span class="none">personne</span>'}</p></section>`;
+    }).join('');
+    return `<div class="sk__picks">${out}<p class="hint">Les choix des autres joueurs ne sont visibles qu’une fois la deadline passée. Points rapportés : ceux de la course du skieur (remplaçant ou tirage au sort compris).</p></div>`;
+  }
+  /** « n° X en 2026-27 » ; « n° Y en 2025-26 » tant que moins de 10 courses de ce genre ont eu lieu cette saison. */
+  function rankTags(id, a) {
+    if (!a) return '';
+    const res = allResults(), done = Object.keys(res).filter((rid) => { const r = C.G.raceOf(rid); return r && !r.cancelled && r.gender === a.gender && res[rid] && res[rid].length; }).length;
+    const row = done ? table(a.gender, []).rows.find((r) => r.ath === id) : null;
+    const t = [];
+    if (row) t.push(`n° ${row.rank} du classement 2026-27`);
+    if (a.rank && done < 10) t.push(`n° ${a.rank} du classement 2025-26`);
+    return t.length ? ' · ' + t.join(' · ') : '';
+  }
   function skierSheet() {
     loadPast(); const ix = pastIndex();
     const id = sk.id || ix.byCode[sk.code] || null, code = sk.code || ix.byId[id] || null;
     const a = id ? C.ATH()[id] : null;
-    const pn = a ? a.name : (code && past && past.ath[code] ? titleCase(past.ath[code][0].split(' ').filter((w) => w !== w.toUpperCase()).join(' ')) + ' ' + titleCase(past.ath[code][0].split(' ').filter((w) => w === w.toUpperCase()).join(' ')) : '');
+    const pn = a ? C.nameOf(id) : (code && past && past.ath[code] ? titleCase(past.ath[code][0].split(' ').filter((w) => w !== w.toUpperCase()).join(' ')) + ' ' + titleCase(past.ath[code][0].split(' ').filter((w) => w === w.toUpperCase()).join(' ')) : '');
     const nat = a ? a.nat : (code && past && past.ath[code] ? past.ath[code][1] : '');
-    const rows = skierRows(id, code, sk.season), pts = rows.reduce((s, r) => s + r.pts, 0);
+    const rows = skierRows(id, code, sk.season === 'picks' ? 'now' : sk.season), pts = rows.reduce((s, r) => s + r.pts, 0);
     const wins = rows.filter((r) => r.rank === 1).length, podium = rows.filter((r) => r.rank && r.rank <= 3).length, top10 = rows.filter((r) => r.rank && r.rank <= 10).length, zero = rows.filter((r) => r.status !== 'DNS' && !r.pts).length;   // bulle : 0 point hors DNS
     const byD = {}; rows.forEach((r) => { byD[r.disc] = (byD[r.disc] || 0) + r.pts; });
     const used = id ? mine()[id] : null;
     const tile = (v, l, k) => `<div class="sk__t sk__t--${k}"><b>${v}</b><span>${l}</span></div>`;
     const list = rows.slice().reverse().map((r) => `<li class="sk__r"><span class="sk__d">${frDate(r)}</span><span class="sk__p">${C.esc(placeOf(r))}</span><span class="disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="sk__k ${cellCls(r.rank ? { rank: r.rank } : { status: r.status })}">${r.rank || r.status}</span><span class="sk__pt">${r.pts ? '+' + r.pts : '0'}</span></li>`).join('');
-    return `<div class="sk"><header class="sk__h">${id ? C.avatarOf(id, 'lg') : ''}<div><h2 class="sk__n">${C.esc(pn)}</h2><p class="sk__m">${C.esc(nat)}${a && a.rank ? ` · n° ${a.rank} du classement ${a.rank ? '2025-26' : ''}` : ''}</p>${used ? `<p class="sk__m">Déjà pris : ${['1', '2', '3', 'M'].filter((k) => used.has(k)).map((k) => (k === 'M' ? 'Mondiaux' : 'Desk ' + k)).join(', ')}</p>` : ''}</div></header>
-      <div class="seg sk__seg" role="tablist"><button type="button" role="tab" class="seg__btn" aria-selected="${sk.season === 'now'}" data-dr="skseason:now">2026-27</button><button type="button" role="tab" class="seg__btn seg__btn--past" aria-selected="${sk.season === 'past'}" data-dr="skseason:past">2025-26</button></div>
-      ${sk.season === 'past' && !past ? '<p class="hint">Chargement…</p>' : `<div class="sk__tiles">${tile(pts, 'points', 'pts')}${tile(rows.length, rows.length > 1 ? 'courses' : 'course', 'c')}${tile(wins, wins > 1 ? 'victoires' : 'victoire', 'win')}${tile(podium, podium > 1 ? 'podiums' : 'podium', 'pod')}${tile(top10, 'top 10', 'top')}${tile(zero, zero > 1 ? 'bulles' : 'bulle', 'bub')}</div>
+    return `<div class="sk"><header class="sk__h">${id ? C.avatarOf(id, 'lg') : ''}<div><h2 class="sk__n">${C.esc(pn)}</h2><p class="sk__m">${C.esc(nat)}${rankTags(id, a)}</p>${used ? `<p class="sk__m">Déjà pris : ${['1', '2', '3', 'M'].filter((k) => used.has(k)).map((k) => (k === 'M' ? 'Mondiaux' : 'Desk ' + k)).join(', ')}</p>` : ''}</div></header>
+      <div class="seg sk__seg" role="tablist"><button type="button" role="tab" class="seg__btn" aria-selected="${sk.season === 'now'}" data-dr="skseason:now">2026-27</button><button type="button" role="tab" class="seg__btn seg__btn--past" aria-selected="${sk.season === 'past'}" data-dr="skseason:past">2025-26</button>${id ? `<button type="button" role="tab" class="seg__btn" aria-selected="${sk.season === 'picks'}" data-dr="skseason:picks">Choix des joueurs</button>` : ''}</div>
+      ${sk.season === 'picks' ? picksTab(id) : sk.season === 'past' && !past ? '<p class="hint">Chargement…</p>' : `<div class="sk__tiles">${tile(pts, 'points', 'pts')}${tile(rows.length, rows.length > 1 ? 'courses' : 'course', 'c')}${tile(wins, wins > 1 ? 'victoires' : 'victoire', 'win')}${tile(podium, podium > 1 ? 'podiums' : 'podium', 'pod')}${tile(top10, 'top 10', 'top')}${tile(zero, zero > 1 ? 'bulles' : 'bulle', 'bub')}</div>
       <p class="sk__disc">${['DH', 'SG', 'GS', 'SL'].filter((d) => byD[d] != null).map((d) => `<span class="disc disc--${d}">${C.D.DISC[d].short}</span> <b>${byD[d]}</b>`).join(' · ') || ''}</p>
       <ul class="sk__list">${list || '<li class="none">Aucun résultat sur cette saison.</li>'}</ul>`}</div>`;
   }

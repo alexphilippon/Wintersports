@@ -682,7 +682,7 @@
     });
     return out;
   }
-  const liveChip = (lv, a, race) => { if (lv && lv.dns(a)) { const sb = race ? subsOf(race, lv, a) : []; return ` <span class="rank rank--dns" title="Absent de la liste de départ">Non partant (DNS)${sb.length ? ` · remp. par ${sb.map((x) => esc(nameOf(x))).join(', ')}` : ''}</span>`; } const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
+  const liveChip = (lv, a, race) => { if (lv && lv.dns(a)) { const sb = race ? subsOf(race, lv, a) : []; return ` <span class="rank rank--dns" title="Absent de la liste de départ">Non partant (DNS)${sb.length ? ` · remp. par ${sb.map((x) => skn(x)).join(', ')}` : ''}</span>`; } const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
   /** Résultat officiel d'un de mes choix : rang, points, remplaçant éventuel ; cliquable pour ouvrir le résultat complet. */
   function resChip(race) {
     const res = resOf(race); if (!res) return '';
@@ -775,7 +775,7 @@
       if (eff && resOf(r)) {
         const e = resOf(r).find((x) => x.ath === eff), sc = G.scoreRace(r, pk, state.results) || 0;
         const how = e ? (e.status || ordinal(e.rank)) : 'non classé', bad = !e || !!e.status || e.rank > 30;
-        tail = `${eff !== pk.a ? `<span class="sub">remp. de ${esc(nameOf(pk.a))}</span>` : ''}<span class="lb__rk${bad ? ' lb__rk--bad' : ''}" data-racecard="${r.id}">${FLAG_SVG}<span>Classement</span> <b>${esc(how)}</b></span><button type="button" class="lb__pts ${sc > 0 ? 'lb__pts--pos' : 'lb__pts--neg'}" data-racecard="${r.id}" title="Voir le résultat complet">${sc > 0 ? '+' : ''}${sc} pt${Math.abs(sc) > 1 ? 's' : ''}</button>`;
+        tail = `${eff !== pk.a ? `<span class="sub">remp. de ${skn(pk.a)}</span>` : ''}<span class="lb__rk${bad ? ' lb__rk--bad' : ''}" data-racecard="${r.id}">${FLAG_SVG}<span>Classement</span> <b>${esc(how)}</b></span><button type="button" class="lb__pts ${sc > 0 ? 'lb__pts--pos' : 'lb__pts--neg'}" data-racecard="${r.id}" title="Voir le résultat complet">${sc > 0 ? '+' : ''}${sc} pt${Math.abs(sc) > 1 ? 's' : ''}</button>`;
       } else if (eff) tail = liveChip(liveOf(r), eff);
       return `<li class="lb lb--${r.gender}"><span class="lb__tag">${discBadge(r)} <span class="gender gender--${r.gender}">${genderLabel(r)}</span></span>${eff ? `<strong>${skn(eff)}</strong>${tail}` : '<span class="none">aucun choix</span>'}</li>`;
     }).join('');
@@ -1363,18 +1363,28 @@
     const desks = D.DESKS.map((d, i) => [d.name, gs.desks[i]]).concat([['Mondiaux', gs.worlds]]);
     const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => [c === 'SG' ? 'Super-G' : D.DISC[c].fr, G.disciplineScore(c, picks, R)]);
     const tile = (v, l) => `<div class="ftile"><b>${v}</b><span>${l}</span></div>`;
-    const lastRows = rows.slice(-6).reverse().map((x) => {
-      const how = !x.has ? '<span class="none">Pas de choix</span>' : `${skn(x.eff)}${x.how ? ` <em class="sub">${x.how}</em>` : ''}`;
-      const res = !x.has ? '' : x.e ? (x.e.status || ordinal(x.e.rank)) : '';
-      return `<li class="flast"><span class="flast__r"><strong>${fl(placeLabel(x.r))}</strong> <span class="sub">${esc(raceName(x.r))}</span></span><span class="flast__a">${how}</span><span class="flast__p">${res ? `<em>${esc(res)}</em> ` : ''}<b>+${x.pts}</b></span></li>`;
-    }).join('');
+    const evs = SKI_STATS.events(state, G, R), tt = SKI_STATS.totals(state, evs).find((t) => t.p.id === pid) || { n: 0, bubbles: 0, tas: 0, tasPts: 0, wins: 0, podiums: 0 };
+    const mine = evs.filter((e) => e.p.id === pid && !e.nopick);
+    const stile = (v, l, k) => `<div class="sk__t sk__t--${k}"><b>${v}</b><span>${l}</span></div>`;
+    const wr = SKI_STATS.worth(evs, pid).filter((x) => x.ath);
+    const wl = (arr) => arr.length ? `<ul class="fbars fbars--w">${arr.map((x) => `<li><span class="fbars__l">${skn(x.ath)}</span><span class="sub">${x.n} fois</span><b class="${x.diff >= 0 ? 'pos' : 'neg'}">${x.diff >= 0 ? '+' : ''}${Math.round(x.diff * 10) / 10}</b></li>`).join('')}</ul>` : '<p class="hint">Pas encore assez de courses.</p>';
+    const bestW = wr.slice().sort((a, b) => b.diff - a.diff).filter((x) => x.diff > 0).slice(0, 5), worstW = wr.slice().sort((a, b) => a.diff - b.diff).filter((x) => x.diff < 0).slice(0, 5);
+    const byA = {}; mine.forEach((e) => { const o = (byA[e.eff] = byA[e.eff] || { ath: e.eff, n: 0, wins: 0, zeros: 0, pts: 0 }); o.n++; o.pts += e.pts; if (e.win) o.wins++; if (!e.pts) o.zeros++; });
+    const A = Object.values(byA), allWin = A.filter((x) => x.wins === x.n), allZero = A.filter((x) => x.zeros === x.n);
+    const chips = (arr) => arr.length ? `<p class="fchips">${arr.map((x) => `${skn(x.ath)}${x.n > 1 ? ` <b>×${x.n}</b>` : ''}`).join(' · ')}</p>` : '<p class="hint">Aucun pour l’instant.</p>';
+    const prov = SKI_STATS.providers(evs, pid).filter((x) => x.pts > 0), provShown = state.ficheMore === pid ? prov : prov.slice(0, 10);
+    const st = (SKI_STATS.streaks(evs)[pid]) || {};
+    const strk = `<ul class="fbars fbars--w">${SKI_STATS.STREAKS.map((sd) => `<li><span class="fbars__l">${sd.label}</span><span class="sub">${st[sd.id] && st[sd.id].now ? 'en cours : ' + st[sd.id].now : ''}</span><b>${st[sd.id] ? st[sd.id].best : 0}</b></li>`).join('')}</ul>`;
     const body = !rows.length ? '<p class="hint">Aucune course terminée pour l’instant : les statistiques apparaîtront après la première.</p>' : `
-      <div class="ftiles">${tile(avg, 'pts par course jouée')}${tile(played.length ? Math.round(scored.length / played.length * 100) + ' %' : '–', 'courses qui marquent')}${tile(nb(podium.length), 'podiums')}${tile(nb(wins.length), 'victoires')}${tile(nb(streak), 'meilleure série')}${tile(nb(rows.length - played.length), 'courses sans choix')}</div>
-      ${best && best.pts > 0 ? `<p class="fbest"><span>Meilleur coup</span><strong>+${best.pts}</strong> ${skn(best.eff)}, ${esc(placeLabel(best.r))} ${esc(raceName(best.r))}</p>` : ''}
+      <div class="ftiles">${stile(tt.wins, tt.wins > 1 ? 'victoires' : 'victoire', 'win')}${stile(tt.podiums, tt.podiums > 1 ? 'podiums' : 'podium', 'pod')}${stile(avg, 'pts par course', 'top')}
+        ${stile(`${tt.bubbles} <small>sur ${tt.n}</small>`, tt.bubbles > 1 ? 'bulles' : 'bulle', 'bub')}${stile(tt.tas, 'TAS subis', 'c')}${stile(tt.tas ? Math.round(tt.tasPts / tt.tas * 10) / 10 : '–', 'pts moyens sur TAS', 'c')}</div>
       <h3 class="fh">Évolution</h3><div class="fchart">${sparkline(rows) || '<span class="hint">Pas encore assez de courses.</span>'}</div>
       <div class="fcols"><div><h3 class="fh">Par desk</h3>${bars(desks)}</div><div><h3 class="fh">Par discipline</h3>${bars(discs)}</div></div>
-      ${top.length ? `<h3 class="fh">Skieurs les plus rentables</h3>${bars(top.map(([id, v]) => [nameOf(id), v]))}` : ''}
-      <h3 class="fh">Dernières courses</h3><ul class="flasts">${lastRows}</ul>`;
+      <div class="fcols"><div><h3 class="fh">Top 5 des coureurs mieux rentabilisés que les autres ${info('Écart entre les points que le skieur t’a rapportés et la moyenne de tous les joueurs sur les mêmes courses, cumulé sur tous les desks.')}</h3>${wl(bestW)}</div>
+        <div><h3 class="fh">Top 5 des moins bien rentabilisés</h3>${wl(worstW)}</div></div>
+      <div class="fcols"><div><h3 class="fh">Toujours gagnants quand ils sont joués</h3>${chips(allWin)}</div><div><h3 class="fh">Toujours à zéro quand ils sont joués</h3>${chips(allZero)}</div></div>
+      <h3 class="fh">Skieurs les plus pourvoyeurs de points</h3>${prov.length ? `<ul class="fbars fbars--w">${provShown.map((x) => `<li><span class="fbars__l">${skn(x.ath)}</span><span class="sub">${x.n} fois</span><b>${x.pts}</b></li>`).join('')}</ul>${prov.length > 10 ? `<p><button type="button" class="linkbtn" data-fmore="${esc(pid)}">${state.ficheMore === pid ? 'Réduire' : `Voir plus… (${prov.length})`}</button></p>` : ''}` : '<p class="hint">Pas encore de points.</p>'}
+      <h3 class="fh">Séries les plus longues</h3>${strk}`;
     openModal(`<div class="fiche"><header class="fiche__head">${pav(Object.assign({}, p), 'lg')}<div><h2 class="fiche__name">${esc(p.name)}${pid === state.me ? ' <em>(toi)</em>' : ''}</h2>
       <p class="fiche__sum">${rk && rk.gen ? `${esc(ordinal(rk.gen.rank))} au général · ${total} pts` : 'Pas encore de classement'}</p></div></header>
       ${globeBoard(rk)}${body}
@@ -1599,6 +1609,7 @@
       else { const [k, x] = v.split(':'); const a = state.ff[k]; state.ff[k] = a.includes(x) ? a.filter((y) => y !== x) : a.concat(x); }
       renderPanel(); return;
     }
+    const fmo = e.target.closest('[data-fmore]'); if (fmo) { state.ficheMore = state.ficheMore === fmo.dataset.fmore ? null : fmo.dataset.fmore; ficheModal(fmo.dataset.fmore); return; }
     const gsb = e.target.closest('[data-gsub]'); if (gsb) { state.gsub = gsb.dataset.gsub; renderPanel(); return; }
     const sub = e.target.closest('[data-sub]');
     if (sub) { state.sub[Number(sub.dataset.key)] = sub.dataset.sub; renderPanel(); return; }
