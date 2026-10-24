@@ -932,3 +932,7 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 .rc__pct { font: 800 1rem var(--display); margin-left: .4rem; }
 .rc__row.is-mine .rc__bar i { background: var(--ocre); } .rc__row.is-mine .rc__sk { color: var(--brique); }
 .rc__pod { margin: .2rem 0 .6rem; font-size: .95rem; }
+
+/* Présence des joueurs (admin) */
+.presence { display: inline-block; width: .8rem; height: .8rem; border-radius: 50%; flex: none; margin-right: .1rem; box-shadow: 0 0 0 2px var(--neige), 0 0 0 3px rgba(0,0,0,.2); }
+.presence--on { background: #2fb36b; } .presence--off { background: #d4443a; }

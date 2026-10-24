@@ -137,7 +137,11 @@
   function startStore() {
     store.onAuth((u) => { state.authReady = true; state.user = u; state.me = u ? u.uid : null; introRules(); if (isAdmin() && !state.contactsOn) { state.contactsOn = true; store.listenContacts((m) => { state.contacts = m; scheduleRender(); }); } if (!state.demo) { state.authError = ''; scheduleRender(); } });
     store.listen({
-      players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id, photo: x.photo || '', blocked: !!x.photoBlocked })).sort((a, b) => a.name.localeCompare(b.name, 'fr')); scheduleRender(); },
+      players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id, photo: x.photo || '', blocked: !!x.photoBlocked, lastSeen: Number(x.lastSeen) || 0 })).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+        // un simple « vu à l'instant » n'oblige pas à redessiner la page : seulement l'onglet Admin
+        const sig = JSON.stringify(state.players.map((p) => [p.id, p.name, p.photo, p.blocked]));
+        const same = sig === state.playersSig; state.playersSig = sig;
+        if (!same || state.tab === 'adm') scheduleRender(); },
       picks: (m) => { state.raw.picks = m; state.picksReady = true; recompute(); },
       results: (m) => { state.raw.results = m; recompute(); },
       overrides: (m) => { state.overrides = m; recompute(); },
@@ -1018,6 +1022,16 @@
     el.hidden = !state.user || (state.demo && !state.user);
     if (!el.hidden) el.innerHTML = accountBar();
   }
+  /* ---------- Présence : « vu à l'instant » écrit toutes les 2 minutes tant que la page est visible ---------- */
+  function beat() {
+    if (state.demo || !state.user || document.visibilityState !== 'visible' || !store.touchPresence) return;
+    const p = state.players.find((x) => x.id === state.me); if (p) p.lastSeen = Date.now();
+    Promise.resolve(store.touchPresence(state.me)).catch(() => { /* hors ligne : on réessaie au prochain battement */ });
+  }
+  setInterval(beat, 2 * 60 * 1000);
+  document.addEventListener('visibilitychange', beat);
+  setTimeout(beat, 3000);
+
   /* ---------- Ambiance (Sapin, Glace, Nuit), mémorisée dans le navigateur ---------- */
   const THEME_COLOR = { sapin: '#163629', glace: '#a8cfe4', nuit: '#0b1322' };
   function setTheme(t, save) {
