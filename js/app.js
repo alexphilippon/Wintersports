@@ -619,13 +619,13 @@
     (L.out || []).forEach((r) => { const a = codeAth[r.code]; if (a && r.status !== 'DNS') by[a] = { status: r.status, out: true }; });
     return { L, by };
   }
-  const liveChip = (lv, a) => { const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ ${e.status ? esc(e.status) + ' en 1re manche' : e.rank + 'e après la 1re manche, éliminé'} : 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
+  const liveChip = (lv, a) => { const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) + ' en 1re manche' : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
   function liveNote(race) {
     const lv = liveOf(race); if (!lv) return '';
     const { picks } = racePeople(race), hit = picks.filter((x) => lv.by[x.ath] && lv.by[x.ath].out);
     const upd = new Date(lv.L.fetched);
     return `<div class="livenote"><p><strong>1re manche terminée</strong>${lv.L.run2 ? ` · 2e manche à <strong>${hm(lv.L.run2)}</strong>` : ''} <span class="livenote__t">(mis à jour à ${F_HM.format(upd)})</span></p>
-      ${hit.length ? `<p class="livenote__b">⚠ <strong>Bulle${hit.length > 1 ? 's' : ''} potentielle${hit.length > 1 ? 's' : ''}</strong> (skieur non qualifié pour la 2e manche) : ${hit.map((x) => `${esc(x.p.name)} (${esc(nameOf(x.ath))})`).join(', ')}.</p>` : '<p class="livenote__b livenote__b--ok">Aucune bulle : tous les skieurs choisis passent en 2e manche.</p>'}</div>`;
+      ${hit.length ? `<p class="livenote__b">⚠ <strong>Bulle${hit.length > 1 ? 's' : ''} actée${hit.length > 1 ? 's' : ''}</strong> (non qualifié${hit.length > 1 ? 's' : ''} pour la 2e manche, 0 point) : ${hit.map((x) => `${esc(x.p.name)} (${esc(nameOf(x.ath))})`).join(', ')}.</p>` : '<p class="livenote__b livenote__b--ok">Aucune bulle : tous les skieurs choisis passent en 2e manche.</p>'}</div>`;
   }
   function shareTable(race) {
     const { picks, cnt } = racePeople(race), N = picks.length;
