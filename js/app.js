@@ -399,8 +399,8 @@
   }
   /* ---------- Tendances : jauges indicatives, une fois la deadline passée ---------- */
   function trendsAny(key) { return scopeSessions(key).some((s) => sortedRaces(s).some((r) => !r.cancelled && lockedRace(r))); }
-  function gauge(ath, pct, extra) {
-    return `<li class="gauge"><span class="gauge__who">${avatarOf(ath, 'sm')}<span class="gauge__n">${esc(nameOf(ath))}${extra || ''}</span></span><span class="gauge__bar" role="img" aria-label="${pct} %"><i style="width:${Math.max(pct, 3)}%"></i></span><b class="gauge__v">${pct} %</b></li>`;
+  function gauge(ath, pct, extra, cls) {
+    return `<li class="gauge${cls ? ' ' + cls : ''}"><span class="gauge__who">${avatarOf(ath, 'sm')}<span class="gauge__n">${esc(nameOf(ath))}${extra || ''}</span></span><span class="gauge__bar" role="img" aria-label="${pct} %"><i style="width:${Math.max(pct, 3)}%"></i></span><b class="gauge__v">${pct} %</b></li>`;
   }
   /** Part des joueurs ayant pris chaque skieur, sur un ensemble de courses verrouillées : { ath: part } triée, et le nombre de joueurs pris en compte. */
   function shareOf(races, perRace) {
@@ -586,55 +586,41 @@
     const max = Math.max(0, ...Object.values(cnt));
     return { picks, cnt, max, top: Object.keys(cnt).filter((a) => cnt[a] === max) };
   }
-  /** Joueur classé juste devant moi au général (null si je suis premier). */
-  function playerAheadOfMe() {
-    const rows = rankRows((pk) => G.generalScore(pk, state.results));
-    const i = rows.findIndex((r) => r.p.id === state.me);
-    if (i < 0) return null;
-    for (let k = i - 1; k >= 0; k--) if (rows[k].v.total > rows[i].v.total) return rows[k].p;
-    return null;
-  }
-  function whoBlock(race, ahead) {
-    const { picks, max, top } = racePeople(race);
-    if (!picks.length) return '<span class="none">Aucun choix</span>';
-    const res = resOf(race), N = picks.length;
-    const mine = picks.find((x) => x.p.id === state.me), pred = ahead && picks.find((x) => x.p.id === ahead.id);
-    const how = (a) => { const e = res && res.find((x) => x.ath === a); return e ? `<span class="rank">${esc(e.status || ordinal(e.rank))}</span>` : ''; };
-    const topHtml = top.slice(0, 2).map((a) => `<span class="wp__sk">${avatarOf(a, 'sm')}<b>${esc(nameOf(a))}</b>${how(a)}</span>`).join('') + (top.length > 2 ? `<span class="sub">+${top.length - 2} ex æquo</span>` : '');
-    const row = (label, inner) => `<div class="wp__row"><span class="wp__lab">${label}</span>${inner}</div>`;
-    const shared = max > 1;
-    let h = shared ? row('Le plus choisi', `<div class="wp__main">${topHtml}<span class="sub">${plural(max, 'joueur', 'joueurs')} sur ${N}${mine && top.includes(mine.ath) ? ', dont toi' : ''}</span></div>`) : row('Le plus choisi', '<div class="wp__main"><span class="sub">Aucun skieur en commun : chacun a pris le sien.</span></div>');
-    if (mine && !(shared && top.includes(mine.ath))) h += row('Toi', `<div class="wp__main">${pickSummary(state.me, race)}</div>${ptsChip(state.me, race)}`);
-    else if (!mine) h += row('Toi', '<div class="wp__main"><span class="none">Aucun choix</span></div>');
-    if (pred && !(shared && top.includes(pred.ath))) h += row(`Devant toi : ${esc(pred.p.name)}`, `<div class="wp__main">${pickSummary(pred.p.id, race)}</div>${ptsChip(pred.p.id, race)}`);
-    const all = picks.map((x) => `<li class="${x.p.id === state.me ? 'me' : ''}"><span class="wp__pl">${pname(x.p)}</span>${pickSummary(x.p.id, race)}${ptsChip(x.p.id, race)}</li>`).join('');
-    return `<div class="wp">${h}<details class="wp__all"><summary><span class="wp__plus" aria-hidden="true">+</span> Tous les choix</summary><ul>${all}</ul></details></div>`;
+  function shareTable(race) {
+    const { picks, cnt } = racePeople(race), N = picks.length;
+    if (!N) return '<span class="none">Aucun choix</span>';
+    const mine = picks.find((x) => x.p.id === state.me), res = resOf(race);
+    const rows = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || nameOf(a).localeCompare(nameOf(b)));
+    const how = (a) => { const e = res && res.find((x) => x.ath === a); return e ? ` <span class="rank">${esc(e.status || ordinal(e.rank))}</span>` : ''; };
+    const pts = mine ? ptsChip(state.me, race) : '';
+    return `<ul class="gauges sh">${rows.map((a) => gauge(a, Math.round(100 * cnt[a] / N), (mine && mine.ath === a ? ' <em class="sh__me">ton choix</em>' : '') + how(a), mine && mine.ath === a ? 'gauge--mine' : '')).join('')}</ul>
+      <p class="sub sh__foot">${plural(N, 'joueur', 'joueurs')} ${N > 1 ? 'ont' : 'a'} choisi${mine ? '' : ' (pas toi : aucun choix)'}${pts ? ` · tes points ${pts}` : ''}</p>`;
   }
   function raceStatus(race) {
     if (race.cancelled) return '<span class="flag flag--off">Annulée</span>';
     if (resOf(race)) return '<span class="state state--terminée">Terminée</span>';
     return G.raceStart(race) <= now() ? '<span class="soon">Résultats en attente</span>' : `<span class="soon">Départ ${esc(hourText(G.raceStart(race)))}</span>`;
   }
-  function liveRaceRow(race, ahead) {
+  function liveRaceRow(race) {
     const d = at(race.date);
     return `<li class="race${race.cancelled ? ' race--off' : ''}">
       <div class="race__date race__date--${race.gender}"><span class="race__wd">${F_WD.format(d).replace('.', '')}</span><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_MO.format(d)}</span></div>
       <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong><span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${raceStatus(race)}</span></div>
-      <div class="race__pick">${race.cancelled ? '<span class="none">Course annulée</span>' : lockedRace(race) ? whoBlock(race, ahead) : ''}
+      <div class="race__pick">${race.cancelled ? '<span class="none">Course annulée</span>' : lockedRace(race) ? shareTable(race) : ''}
         ${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="linkbtn rcbtn" data-racecard="${race.id}">Détail et export</button>`}</div></li>`;
   }
   function coursPanel(s) {
-    const races = sortedRaces(s), live = active(races), ahead = playerAheadOfMe();
-    const inDesk = D.SESSIONS.filter((x) => x.desk === s.desk);
-    const where = s.id === 'X' ? 'Hors desk, barème ×3' : `Desk ${s.desk}, session ${inDesk.indexOf(s) + 1} sur ${inDesk.length}`;
-    const nextRace = live.map((r) => G.raceStart(r)).filter((t) => t > now()).sort((a, b) => a - b)[0];
-    const stub = nextRace
-      ? `<p class="forfait__label">Prochain départ dans</p><p class="countdown">${countdownText(nextRace)}</p><p class="forfait__dl">${dlShort(nextRace)}</p>`
-      : '<p class="forfait__label">Choix verrouillés</p><p class="countdown countdown--shut">Résultats en cours</p>';
+    const races = sortedRaces(s);
+    const mine = active(races).map((r) => {
+      const pk = (state.picks[state.me] || {})[r.id];
+      const eff = pk && pk.a ? G.effectiveAthlete(pk, state.results, r.id) : null;
+      return `<li><span class="gender gender--${r.gender}">${genderLabel(r)}</span> ${discBadge(r)} ${eff ? `<strong>${esc(nameOf(eff))}</strong>` : '<span class="none">aucun choix</span>'}</li>`;
+    }).join('');
     return `<section>
-      <article class="forfait"><div class="forfait__main">${stateBadge(s)}<h2 class="forfait__name">${fl(s.name)}</h2><p class="forfait__where">${esc(where)}</p></div><div class="forfait__stub">${stub}</div></article>
+      <div class="lockbar"><div class="lockbar__t"><span class="state state--en-cours">Session clôturée</span><strong>${fl(s.name)}</strong><span class="sub">Choix verrouillés</span></div>
+        <ul class="lockbar__mine" aria-label="Mes choix">${mine}</ul></div>
       <h3 class="subtitle">Qui a pris qui</h3>
-      <div class="session"><ul class="races">${races.map((r) => liveRaceRow(r, ahead)).join('')}</ul></div>
+      <div class="session"><ul class="races">${races.map((r) => liveRaceRow(r)).join('')}</ul></div>
     </section>`;
   }
   /** Coup à contre-courant : un skieur choisi par une minorité de joueurs (pas le plus choisi) et qui a pourtant marqué gros. */

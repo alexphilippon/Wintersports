@@ -913,3 +913,14 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 .backlink { margin: 0 0 .8rem; }
 .count.big { font-size: 2rem; }
 @media (max-width: 640px) { .wp__row, .wp__all li { grid-template-columns: 1fr auto; } .wp__lab, .wp__pl { grid-column: 1 / -1; } }
+
+/* Session en cours : bandeau de clôture + tableau des parts de sélection */
+.lockbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.2rem; padding: .7rem 1rem; border: 2px solid var(--nuit); border-left: 8px solid var(--brique); border-radius: 10px; background: var(--neige); }
+.lockbar__t { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .7rem; }
+.lockbar__mine { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; font-size: .92rem; }
+.sh { margin-top: 0; }
+.gauge--mine { background: color-mix(in srgb, var(--ocre) 22%, transparent); border-radius: 8px; padding: .25rem .4rem; margin: 0 -.4rem; }
+.gauge--mine .gauge__bar i { background: var(--ocre); }
+.gauge--mine .gauge__n { font-weight: 800; }
+.sh__me { font-style: normal; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--brique); margin-left: .35rem; }
+.sh__foot { margin-top: .5rem; }
