@@ -70,7 +70,36 @@
     }).join('')}</ol>` : '<p class="hint">Aucun choix pour cette course.</p>';
     const pod = podium.length ? `<p class="rc__pod"><b>Podium</b> ${podium.map((e) => `${e.rank}. ${esc(C.nameOf(e.ath))}`).join(' · ')}</p>` : '';
     const note = res ? '' : '<p class="hint">Résultat pas encore saisi.</p>';
-    return `${head}${note}${pod}${body}<div class="rc__act"><button type="button" class="btn" data-rc-copy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-jpg="${race.id}">Image JPG</button></div><p class="auth__err" id="rc-msg" role="status"></p>`;
+    return `${head}${note}${res ? fullHtml(race) : ''}${res ? '<h4 class="rf__h">Qui avait pris qui</h4>' : ''}${pod && !res ? pod : ''}${body}<div class="rc__act"><button type="button" class="btn" data-rc-copy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-jpg="${race.id}">Image JPG</button></div><p class="auth__err" id="rc-msg" role="status"></p>`;
+  }
+
+  /* ---------- Résultat complet : classement des joueurs + classement des skieurs (temps) ---------- */
+  const cs = (t) => { const m = String(t || '').match(/^(?:(\d+):)?(\d+)\.(\d\d)$/); return m ? (+(m[1] || 0)) * 6000 + (+m[2]) * 100 + (+m[3]) : null; };
+  const diffOf = (t, t0) => { const a = cs(t), b = cs(t0); if (a == null || b == null) return ''; const d = a - b; if (d <= 0) return ''; return '+' + (d / 100).toFixed(2); };
+  function fullHtml(race) {
+    const { state, G, esc } = C, res = state.results[race.id];
+    if (!res) return '';
+    const pl = [];
+    state.players.forEach((p) => {
+      const pk = (state.picks[p.id] || {})[race.id]; if (!pk || !pk.a || !C.lockedRace(race)) return;
+      const eff = G.effectiveAthlete(pk, state.results, race.id), e = res.find((x) => x.ath === eff);
+      pl.push({ p, eff, e, pts: G.scoreRace(race, pk, state.results) || 0, sub: eff !== pk.a ? pk.a : null });
+    });
+    pl.sort((a, b) => b.pts - a.pts || C.nameOf(a.eff).localeCompare(C.nameOf(b.eff), 'fr'));
+    let last = null, rk = 0; pl.forEach((r, i) => { if (r.pts !== last) { rk = i + 1; last = r.pts; } r.rk = rk; });
+    const how = (e) => (e ? (e.status || (e.rank ? C.ordinal(e.rank) : '–')) : 'non classé');
+    const plHtml = pl.length ? `<ol class="rf__pl">${pl.map((r) => `<li class="${r.p.id === state.me ? 'is-mine' : ''}"><span class="rf__rk">${r.rk}</span><span class="rf__who">${C.pln(r.p)}</span><span class="rf__sk">${C.skn(r.eff)} <em>${esc(how(r.e))}</em>${r.sub ? ` <span class="sub">(remp. de ${esc(C.nameOf(r.sub))})</span>` : ''}</span><b class="rf__pts ${r.pts > 0 ? 'on' : 'off'}">${r.pts > 0 ? '+' : ''}${r.pts}</b></li>`).join('')}</ol>` : '<p class="hint">Aucun choix.</p>';
+    const picked = {}; pl.forEach((r) => { (picked[r.eff] = picked[r.eff] || []).push(r.p); });
+    const ranked = res.filter((e) => !e.status && e.rank).sort((a, b) => a.rank - b.rank), t0 = ranked[0] && ranked[0].time;
+    const chips = (a) => (picked[a] || []).map((p) => `<span class="rc__chip${p.id === state.me ? ' me' : ''}">${C.pln(p)}</span>`).join(' ');
+    const rows = ranked.map((e) => `<tr class="${(picked[e.ath] || []).some((p) => p.id === state.me) ? 'is-mine' : ''}"><td>${e.rank}</td><td>${C.skn(e.ath)}</td><td class="num">${esc(e.time || '')}${e.time && e.rank > 1 ? `<br><span class="sub">${esc(diffOf(e.time, t0))}</span>` : ''}</td><td>${chips(e.ath)}</td></tr>`);
+    const out = res.filter((e) => e.status && e.status !== 'DNQ' && e.status !== 'DNS' || (e.status && picked[e.ath]));
+    out.forEach((e) => rows.push(`<tr class="is-st"><td>${esc(e.status)}</td><td>${C.skn(e.ath)}</td><td></td><td>${chips(e.ath)}</td></tr>`));
+    const nq = res.filter((e) => e.status === 'DNQ' && !picked[e.ath]).length, ns = res.filter((e) => e.status === 'DNS' && !picked[e.ath]).length;
+    const foot = [nq ? `${nq} non qualifié${nq > 1 ? 's' : ''} (DNQ)` : '', ns ? `${ns} non-partant${ns > 1 ? 's' : ''} (DNS)` : ''].filter(Boolean).join(' · ');
+    const hasT = ranked.some((e) => e.time);
+    return `<h4 class="rf__h">Classement des joueurs</h4>${plHtml}
+      <h4 class="rf__h">Classement de la course</h4><div class="tablewrap"><table class="grid rf__t"><thead><tr><th>Rang</th><th>Skieur</th><th>${hasT ? 'Temps' : ''}</th><th>Joueurs</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${foot ? `<p class="sub">${foot}</p>` : ''}`;
   }
   function open(raceId) {
     const race = C.G.raceOf(raceId); if (!race) return;
@@ -185,7 +214,8 @@
   const raceShort = (r) => `${C.placeLabel(r)} ${r.gender === 'W' ? 'dames' : 'hommes'} ${C.discLabel(r)}`;
   function sessionText(session) {
     const { rows, pods, races } = sessionRows(session);
-    const L = [`🎿 *${session.name}* — bilan de la session`, ''];
+    const tot = C.G.sessionRaces(session).filter((r) => !r.cancelled).length, part = races.length < tot;
+    const L = [`🎿 *${session.name}* — ${part ? `points après ${races.length} course${races.length > 1 ? 's' : ''} sur ${tot}` : 'bilan de la session'}`, ''];
     if (!races.length) return L.concat('Aucun résultat pour l’instant.').join('\n');
     L.push('🏆 *Classement de la session*');
     rows.forEach((r) => {
@@ -229,7 +259,7 @@
     g.textBaseline = 'alphabetic';
     g.fillStyle = K.gold; g.font = `800 30px ${FD}`; g.fillText('SKI GAME · COUPE DU MONDE 2026-27', padX, 70);
     g.fillStyle = K.head; g.font = `800 62px ${FD}`; g.fillText(session.name, padX, 150);
-    g.fillStyle = K.sub; g.font = `600 34px ${F}`; g.fillText('Bilan de la session', padX, 205);
+    g.fillStyle = K.sub; g.font = `600 34px ${F}`; g.fillText(C.G.sessionRaces(session).filter((r) => !r.cancelled).length > races.length ? `Points après ${races.length} course${races.length > 1 ? 's' : ''}` : 'Bilan de la session', padX, 205);
     let y = headH + 50;
     g.fillStyle = K.ink; g.font = `800 32px ${FD}`; g.fillText('Classement', padX, y); y += 20;
     rows.forEach((r, i) => {
@@ -264,6 +294,6 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 4000); say('Image téléchargée.');
     } catch (e) { console.error('JPG', e); say('Impossible de créer l’image.'); }
   }
-  const api = { init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas, sessionRows, sessionText, sessionOpen, sessionCopy, sessionJpg, sessionCanvas };
+  const api = { init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas, fullHtml, sessionRows, sessionText, sessionOpen, sessionCopy, sessionJpg, sessionCanvas };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SKI_SHARE = api;
 })(typeof window !== 'undefined' ? window : globalThis);

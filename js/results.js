@@ -45,7 +45,7 @@
       if (s.code !== r.code) warnings.push(`Dossard ${r.bib} : code FIS ${r.code} au classement, ${s.code} au départ.`);
       if (r.rank < prev) throw new Error(`Rangs non croissants à ${r.name}.`);
       prev = r.rank;
-      entries.push({ ath: idOfBib[r.bib], rank: r.rank, bib: r.bib });
+      entries.push(r.time ? { ath: idOfBib[r.bib], rank: r.rank, bib: r.bib, time: r.time } : { ath: idOfBib[r.bib], rank: r.rank, bib: r.bib });
     });
     const add = (bibs, status) => (bibs || []).forEach((b) => {
       if (!bibName[b]) throw new Error(`Dossard ${b} (${status}) absent du départ.`);

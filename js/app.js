@@ -324,14 +324,18 @@
   function outcome(race, playerId) {
     const res = state.results[race.id];
     if (race.cancelled) return '<span class="soon">Annulée</span>';
-    if (!res) return lockedRace(race) ? '<span class="soon">En attente</span>' : '';
+    if (!res) {
+      if (!lockedRace(race)) return '';
+      const lv = liveOf(race);
+      return `<span class="soon">${lv ? 'Provisoire (1re manche)' : 'Résultat en attente'}</span><button type="button" class="linkbtn rcbtn" data-refresh-results>↻ Vérifier le résultat officiel</button>`;
+    }
     const pk = (state.picks[playerId] || {})[race.id];
     const sc = G.scoreRace(race, pk, state.results);
     const eff = pk && G.effectiveAthlete(pk, state.results, race.id);
     const e = eff && res.find((x) => x.ath === eff);
     const how = e ? (e.status || ordinal(e.rank)) : '';
     const win = winnerOf(race.id);
-    return `<div class="out"><span class="pill ${sc > 0 ? 'pill--on' : 'pill--off'}">${sc > 0 ? '+' : ''}${sc}</span>${how ? `<span class="rank">${how}</span>` : ''}</div>
+    return `<div class="out"><span class="pill ${sc > 0 ? 'pill--on' : 'pill--off'}">${sc > 0 ? '+' : ''}${sc}</span>${how ? `<span class="rank">${how}</span>` : ''}<span class="flag flag--ok">Officiel</span></div>
       ${win ? `<span class="winner">Vainqueur ${esc(surname(win))}</span>` : ''}`;
   }
   const sessionOf = (race) => [...D.SESSIONS, D.WORLDS].find((s) => s.races.includes(race.id));
@@ -376,6 +380,7 @@
     ? `<span class="count${n === live.length ? ' count--ok' : ''}">${n}/${live.length} choisis</span>${remindBtn(session)}`
     : `<span class="count count--pts">${mine} pts</span>`}</div>
       </header>
+      ${races.some((r) => !r.cancelled && resOf(r)) ? `<p class="session__exp"><button type="button" class="linkbtn" data-sx-open="${session.id}">Exporter les points (WhatsApp)</button></p>` : ''}
       ${races.some((r) => r.kind === 'finale') ? '<p class="session__note">🏁 Finales : points ×2, et <strong>seuls les 15 premiers marquent</strong> (à partir de la 16ᵉ place : 0 point).</p>' : ''}
       <ul class="races">${races.filter(passF).map((r) => raceRow(r, session)).join('') || '<li class="race"><span class="none">Aucune course avec ces filtres.</span></li>'}</ul>
     </article>`;
@@ -635,6 +640,14 @@
     return out;
   }
   const liveChip = (lv, a, race) => { if (lv && lv.dns(a)) { const sb = race ? subsOf(race, lv, a) : []; return ` <span class="rank rank--dns" title="Absent de la liste de départ">Non partant (DNS)${sb.length ? ` · remp. par ${sb.map((x) => esc(nameOf(x))).join(', ')}` : ''}</span>`; } const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
+  /** Résultat officiel d'un de mes choix : rang, points, remplaçant éventuel ; cliquable pour ouvrir le résultat complet. */
+  function resChip(race) {
+    const res = resOf(race); if (!res) return '';
+    const pk = (state.picks[state.me] || {})[race.id]; if (!pk || !pk.a) return '';
+    const eff = G.effectiveAthlete(pk, state.results, race.id), e = res.find((x) => x.ath === eff), sc = G.scoreRace(race, pk, state.results) || 0;
+    const how = e ? (e.status || ordinal(e.rank)) : 'non classé';
+    return ` <button type="button" class="rank rank--final" data-racecard="${race.id}" title="Voir le résultat complet">${eff !== pk.a ? `remp. de ${esc(nameOf(pk.a))} · ` : ''}<b>${esc(how)}</b> · ${sc > 0 ? '+' : ''}${sc} pt${Math.abs(sc) > 1 ? 's' : ''} · <u>résultat</u></button>`;
+  }
   /** Titulaires qui ne prennent pas le départ : remplaçant du joueur, ou tirage au sort s'il n'en a pas (ou s'il est lui aussi absent). */
   /** Tirages au sort possibles dès la fin de la 1re manche : graine = temps du vainqueur de la 1re manche (publié avant la 2e), 30 premiers dossards. */
   function liveDraws(race, lv) {
@@ -682,7 +695,7 @@
   }
   function raceStatus(race) {
     if (race.cancelled) return '<span class="flag flag--off">Annulée</span>';
-    if (resOf(race)) return '<span class="state state--terminée">Terminée</span>';
+    if (resOf(race)) return '<span class="state state--terminée">Terminée</span> <span class="soon">Course passée · résultat officiel</span>';
     return G.raceStart(race) <= now() ? '<span class="soon">Résultats en attente</span>' : `<span class="soon">Départ ${esc(hourText(G.raceStart(race)))}</span>`;
   }
   function liveRaceRow(race) {
@@ -691,20 +704,23 @@
       <div class="race__date race__date--${race.gender}"><span class="race__wd">${F_WD.format(d).replace('.', '')}</span><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_MO.format(d)}</span></div>
       <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong><span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${raceStatus(race)}</span></div>
       <div class="race__pick">${race.cancelled ? '' : lockedRace(race) ? liveNote(race) : ''}${race.cancelled ? '<span class="none">Course annulée</span>' : lockedRace(race) ? shareTable(race) : ''}
-        ${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="linkbtn rcbtn" data-racecard="${race.id}">Détail et export</button>`}</div></li>`;
+        ${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="linkbtn rcbtn" data-racecard="${race.id}">${resOf(race) ? 'Résultat complet et export' : 'Détail et export'}</button>`}</div></li>`;
   }
   function coursPanel(s) {
     const races = sortedRaces(s);
     const mine = active(races).map((r) => {
       const pk = (state.picks[state.me] || {})[r.id];
       const eff = pk && pk.a ? G.effectiveAthlete(pk, state.results, r.id) : null;
-      return `<li><span class="gender gender--${r.gender}">${genderLabel(r)}</span> ${discBadge(r)} ${eff ? `<strong>${skn(eff)}</strong>${liveChip(liveOf(r), eff)}` : '<span class="none">aucun choix</span>'}</li>`;
+      return `<li><span class="gender gender--${r.gender}">${genderLabel(r)}</span> ${discBadge(r)} ${eff ? `<strong>${skn(eff)}</strong>${resOf(r) ? resChip(r) : liveChip(liveOf(r), eff)}` : '<span class="none">aucun choix</span>'}</li>`;
     }).join('');
+    const anyRes = active(races).some((r) => resOf(r)), todo = races.filter((r) => !resOf(r)), done = races.filter((r) => resOf(r));
     return `<section>
       <div class="lockbar"><div class="lockbar__t"><span class="state state--en-cours">Session clôturée</span><strong>${fl(s.name)}</strong><span class="sub">Choix verrouillés</span></div>
         <ul class="lockbar__mine" aria-label="Mes choix">${mine}</ul></div>
-      <h3 class="subtitle">Qui a pris qui</h3>
-      <div class="session"><ul class="races">${races.map((r) => liveRaceRow(r)).join('')}</ul></div>
+      ${anyRes ? `<p><button type="button" class="btn" data-sx-open="${s.id}">Exporter les points (WhatsApp)</button></p>` : ''}
+      <h3 class="subtitle">${done.length ? 'Courses à venir ou en attente' : 'Qui a pris qui'}</h3>
+      ${todo.length ? `<div class="session"><ul class="races">${todo.map((r) => liveRaceRow(r)).join('')}</ul></div>` : '<p class="hint">Toutes les courses sont terminées.</p>'}
+      ${done.length ? `<h3 class="subtitle">Courses passées</h3><div class="session"><ul class="races">${done.map((r) => liveRaceRow(r)).join('')}</ul></div>` : ''}
     </section>`;
   }
   /** Coup à contre-courant : un skieur choisi par une minorité de joueurs (pas le plus choisi) et qui a pourtant marqué gros. */
@@ -1468,6 +1484,7 @@
     const sxo = e.target.closest('[data-sx-open]'); if (sxo) { SHARE.sessionOpen(sxo.dataset.sxOpen); return; }
     const sxc = e.target.closest('[data-sx-copy]'); if (sxc) { SHARE.sessionCopy(sxc.dataset.sxCopy); return; }
     const sxj = e.target.closest('[data-sx-jpg]'); if (sxj) { SHARE.sessionJpg(sxj.dataset.sxJpg); return; }
+    if (e.target.closest('[data-refresh-results]')) { loadResults(true); return; }
     const rcc = e.target.closest('[data-rc-copy]'); if (rcc) { SHARE.copy(rcc.dataset.rcCopy); return; }
     const rcj = e.target.closest('[data-rc-jpg]'); if (rcj) { SHARE.jpg(rcj.dataset.rcJpg); return; }
     const tab = e.target.closest('[data-tab]');
@@ -1661,6 +1678,16 @@
   /* ---------- Démarrage ---------- */
   window.SKI_DR.init({ state, G, D, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
   SHARE.init({ state, G, D, esc, nameOf, skn, pln, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
+  /** Résultats officiels (data/results.json) : relus chaque minute ; dès qu'une course est officialisée, tout bascule de « en attente » à « officiel ». */
+  function loadResults(manual) {
+    const btns = manual ? Array.from(document.querySelectorAll('[data-refresh-results]')) : [];
+    btns.forEach((b) => { b.disabled = true; b.textContent = 'Vérification…'; });
+    return fetch('data/results.json?t=' + Date.now(), { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+      const sg = JSON.stringify((j && j.races) || {}), changed = !!j && j.races && sg !== state.fileSig;
+      if (changed) { state.fileSig = sg; state.file = j; recompute(); }
+      if (manual) setTimeout(() => { btns.forEach((b) => { if (b.isConnected) { b.disabled = false; b.textContent = changed ? 'Résultat officiel chargé ✓' : 'Pas encore officiel : réessaie dans quelques minutes'; } }); }, 50);
+    }).catch(() => { btns.forEach((b) => { b.disabled = false; b.textContent = '↻ Vérifier le résultat officiel'; }); });
+  }
   const adminCtx = () => ({ state, G, D, store, LIST, ATH, esc, norm, at, F_DAY, hourText, dlShort, shortOf, placeLabel, discLabel, genderLabel, nameOf, avatarOf, sortedRaces, lockedRace, active, canon, newPlayers, markPlayersSeen, rerender: render, fail, isAdmin });
   const q = new URLSearchParams(location.search);
   const h = location.hash.replace('#', '');
@@ -1668,7 +1695,7 @@
   if (q.has('demo')) loadDemo();
   else {
     rebuildAthletes(); startStore();
-    fetch('data/results.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.file = j; recompute(); } }).catch(() => {});
+    loadResults(); setInterval(() => { if (document.visibilityState === 'visible') loadResults(); }, 60000);
     fetch('data/extra-athletes.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { state.addl = { M: j.M || [], W: j.W || [] }; recompute(); } }).catch(() => {});
   }
   /** Horaires corrigés (data/time-overrides.json, écrit par tools/check-times.js) : la clôture des choix suit l'heure officielle FIS. */
