@@ -1507,3 +1507,4 @@ html[data-theme='glace'] .masthead { border-bottom: 5px double #ffffff; }
 /* contraste : texte lisible sur les fonds d'accent, toutes ambiances */
 .draftbtn.is-on { color: var(--on-accent, #1b2b44); }
 html[data-theme='minimal'] { --on-accent: #ffffff; }
+html[data-theme='minimal'] button.info { color: #111; border-color: #111; }
