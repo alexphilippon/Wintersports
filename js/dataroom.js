@@ -122,7 +122,7 @@
     if (isPast) { loadPast(); if (!past) return '<p class="hint">Chargement des résultats 2025-26…</p>'; if (past.error) return '<p class="hint">Résultats 2025-26 indisponibles.</p>'; }
     const P = isPast ? ui.pp : ui.prem;
     const t = isPast ? pastTable(ui.g, P.disc) : table(ui.g, P.disc), used = isPast ? {} : mine(), mp = isPast ? {} : myPick();
-    const races = ui.last ? t.races.slice(-ui.last) : t.races;
+    const races = (ui.last ? t.races.slice(-ui.last) : t.races).slice().reverse();   // la course la plus récente à gauche
     let rows = t.rows;
     if (ui.rows === 'top') rows = rows.slice(0, 30); else if (ui.rows === 'mine') rows = isPast ? rows.slice(0, 30) : rows.filter((r) => used[r.ath]);
     const cd = codes(races), pk = isPast ? 'ppdisc' : 'pdisc';
