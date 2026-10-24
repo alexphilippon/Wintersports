@@ -470,8 +470,10 @@
   const XI_MSG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.7 7.1L4 20l1-4.1A8 8 0 1 1 20 12z"/></svg>';
   const XI_IMG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5.5-5.5 4 4 2.5-2.5L20 18"/></svg>';
   /** Deux petits pictos (message, image) à glisser dans le titre d'un tableau. */
-  function fsOpen() {
-    return '<div class="fswrap"><div class="fsbar"><button type="button" class="btn btn--sm fsbtn" data-dr="fs:on" aria-pressed="false"><svg class="fsic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="fsbtn__on">Mettre le tableau en plein écran</span><span class="fsbtn__off">Quitter le plein écran</span></button></div>';
+  let fsKeep = false;
+  function fsOn(v) { fsKeep = !!v; }
+  function fsOpen(keep) {
+    return '<div class="fswrap' + (keep && fsKeep ? ' is-fs' : '') + '"' + (keep ? ' data-keep="1"' : '') + '><div class="fsbar"><button type="button" class="btn btn--sm fsbtn" data-dr="fs:on" aria-pressed="false"><svg class="fsic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="fsbtn__on">Mettre le tableau en plein écran</span><span class="fsbtn__off">Quitter le plein écran</span></button></div>';
   }
   function xbar(spec) {
     XP[spec.key] = spec; const k = C.esc(spec.key);
@@ -527,6 +529,6 @@
     toast('Image en préparation…');
     try { await sendCanvas(xpCanvas(sp), 'ski-game-' + String(key).replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.jpg', sp.title); } catch (err) { console.error(err); toast('Image impossible.'); }
   });
-  const api = { fsOpen, xbar, xpText, xpCanvas, init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas, fullHtml, raceResultText, generalText, copyGeneral, jpgGeneral, sessionRows, sessionText, sessionOpen, sessionCopy, sessionJpg, sessionCanvas };
+  const api = { fsOn, fsOpen, xbar, xpText, xpCanvas, init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas, fullHtml, raceResultText, generalText, copyGeneral, jpgGeneral, sessionRows, sessionText, sessionOpen, sessionCopy, sessionJpg, sessionCanvas };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SKI_SHARE = api;
 })(typeof window !== 'undefined' ? window : globalThis);
