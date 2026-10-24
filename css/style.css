@@ -1579,3 +1579,6 @@ html[data-theme='nuit'] .ffc[aria-pressed='true'] { color: #0d1420; }
 html[data-theme='nuit'] .demo { color: #1a1405; }
 html[data-theme='nuit'] .c-st--dnf { color: #ff9a8f; } html[data-theme='nuit'] .c-st--dnq { color: #ff9fb5; } html[data-theme='nuit'] .c-st--dsq { color: #f2a6cc; }
 html[data-theme='nuit'] .sh__me { color: #ffb4a3; } html[data-skin='arcade'] .sh__me { color: #ff9bd2; } html[data-skin='halloween'] .sh__me { color: #ffc15a; }
+.cap--w caption { background: #17565f; border-bottom-color: #0f3f47; color: #fff; }
+html[data-theme='glace'] .plate[aria-selected='true'] :is(.plate__note, .plate__label) { color: #3a6784; }
+html[data-skin='arcade'] .plate[aria-selected='true'] :is(.plate__note, .plate__label, .plate__name) { color: #0b0a24; }
