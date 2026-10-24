@@ -265,6 +265,15 @@
     if (a.rank && done < 10) t.push(`n° ${a.rank} du classement 2025-26`);
     return t.length ? ' · ' + t.join(' · ') : '';
   }
+  /** Détail d'une tuile de la fiche : les courses concernées, avec retour à la fiche. */
+  function tileSheet(k) {
+    const rows = sk._rows || [], li = sk._li;
+    const F = { pts: ['Points marqués', (r) => r.pts > 0], c: ['Courses', () => true], win: ['Victoires', (r) => r.rank === 1], pod: ['Podiums', (r) => r.rank && r.rank <= 3], top: ['Top 10', (r) => r.rank && r.rank <= 10], bub: ['Bulles (0 point hors DNS)', (r) => r.status !== 'DNS' && !r.pts] }[k];
+    const sel = rows.filter(F[1]).slice().reverse();
+    const tot = sel.reduce((s, r) => s + r.pts, 0);
+    return `<div class="sk"><p><button type="button" class="linkbtn" data-dr="skback:x">← Retour à la fiche</button></p><h2 class="sk__n">${C.esc(sk._name || '')}</h2><p class="sk__m">${F[0]} · ${sel.length} course${sel.length > 1 ? 's' : ''}${k === 'pts' || k === 'c' ? ' · ' + tot + ' pts' : ''}</p>
+      <ul class="sk__list">${sel.map(li).join('') || '<li class="none">Aucune course.</li>'}</ul></div>`;
+  }
   function skierSheet() {
     loadPast(); const ix = pastIndex();
     const id = sk.id || ix.byCode[sk.code] || null, code = sk.code || ix.byId[id] || null;
@@ -284,8 +293,11 @@
     });
     const ord = (n) => (n === 1 ? '1er' : n + 'e');
     const used = id ? mine()[id] : null;
-    const tile = (v, l, k) => `<div class="sk__t sk__t--${k}"><b>${v}</b><span>${l}</span></div>`;
-    const list = rows.slice().reverse().map((r) => `<li class="sk__r"><span class="sk__d">${frDate(r)}</span><span class="sk__p">${C.esc(placeOf(r))}</span><span class="disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="sk__k ${cellCls(r.rank ? { rank: r.rank } : { status: r.status })}">${r.rank || r.status}</span><span class="sk__pt">${r.pts ? '+' + r.pts : '0'}</span></li>`).join('');
+    sk._rows = rows; sk._name = pn;
+    const tile = (v, l, k) => `<button type="button" class="sk__t sk__t--${k}" data-dr="sktile:${k}" title="Voir le détail"><b>${v}</b><span>${l}</span></button>`;
+    const li = (r) => `<li class="sk__r"><span class="sk__d">${frDate(r)}</span><span class="sk__p">${C.esc(placeOf(r))}</span><span class="disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="sk__k ${cellCls(r.rank ? { rank: r.rank } : { status: r.status })}">${r.rank || r.status}</span><span class="sk__pt">${r.pts ? '+' + r.pts : '0'}</span></li>`;
+    sk._li = li;
+    const list = rows.slice().reverse().map(li).join('');
     return `<div class="sk"><header class="sk__h">${id ? C.avatarOf(id, 'lg') : ''}<div><h2 class="sk__n">${C.esc(pn)}</h2><p class="sk__m">${C.esc(nat)}${rankTags(id, a)}</p>${used ? `<p class="sk__m">Déjà pris : ${['1', '2', 'M', '3'].filter((k) => used.has(k)).map((k) => (k === 'M' ? 'Mondiaux' : 'Desk ' + k)).join(', ')}</p>` : ''}</div></header>
       <div class="seg sk__seg" role="tablist"><button type="button" role="tab" class="seg__btn" aria-selected="${sk.season === 'now'}" data-dr="skseason:now">2026-27</button><button type="button" role="tab" class="seg__btn seg__btn--past" aria-selected="${sk.season === 'past'}" data-dr="skseason:past">2025-26</button>${id ? `<button type="button" role="tab" class="seg__btn" aria-selected="${sk.season === 'picks'}" data-dr="skseason:picks">Choix des joueurs</button>` : ''}</div>
       ${sk.season === 'picks' ? picksTab(id) : sk.season === 'past' && !past ? '<p class="hint">Chargement…</p>' : `<div class="sk__tiles">${tile(pts, 'points', 'pts')}${tile(rows.length, rows.length > 1 ? 'courses' : 'course', 'c')}${tile(wins, wins > 1 ? 'victoires' : 'victoire', 'win')}${tile(podium, podium > 1 ? 'podiums' : 'podium', 'pod')}${tile(top10, 'top 10', 'top')}${tile(zero, zero > 1 ? 'bulles' : 'bulle', 'bub')}</div>
@@ -324,6 +336,8 @@
     if (k === 'sk') { const [t, x] = v.split('~'); openSkier(t === 'id' ? x : null, t === 'code' ? x : null, ui.sub === 'past' ? 'past' : 'now'); return; }
     if (k === 'race') { if (root.SKI_SHARE) root.SKI_SHARE.open(v); return; }
     if (k === 'pastrace') { pastRaceModal(v); return; }
+    if (k === 'sktile') { C.openModal(tileSheet(v), 'modal__card--sk'); return; }
+    if (k === 'skback') { C.openModal(skierSheet(), 'modal__card--sk'); return; }
     if (k === 'skseason') { sk.season = v; C.openModal(skierSheet(), 'modal__card--sk'); return; }
     if (k === 'sub') ui.sub = v;
     else if (k === 'g') ui.g = v;

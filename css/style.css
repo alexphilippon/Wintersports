@@ -1247,3 +1247,4 @@ body.fs-lock { overflow: hidden; }
 .pk .fh { display: flex; align-items: baseline; flex-wrap: wrap; } .pk .fh .xicons { margin-left: auto; align-self: center; }
 .pk .fh small { margin-left: .5rem; }
 .sk__disc .sep { color: var(--filet); margin: 0 .25rem; }
+button.sk__t { font: inherit; cursor: pointer; text-align: center; } button.sk__t:hover, button.sk__t:focus-visible { filter: brightness(.95); outline: 2px solid var(--nuit); outline-offset: 1px; }
