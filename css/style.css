@@ -981,3 +981,5 @@ html[data-theme='nuit'] .c-1, html[data-theme='nuit'] .c-2, html[data-theme='nui
 .seg__btn--past { color: #6b3fa0; } .seg__btn--past[aria-selected="true"] { background: #6b3fa0; color: #fff; }
 html[data-theme='nuit'] .seg__btn--past:not([aria-selected="true"]) { color: #c4a3ee; }
 .dr__grid--past .dr__rh .dr__pl { color: #6b3fa0; } html[data-theme='nuit'] .dr__grid--past .dr__rh .dr__pl { color: #c4a3ee; }
+
+.session__note { margin: 0; padding: .5rem .9rem; font-size: .88rem; background: color-mix(in srgb, var(--ocre) 22%, var(--neige)); border-bottom: 1px solid var(--filet); }

@@ -372,6 +372,7 @@
     ? `<span class="count${n === live.length ? ' count--ok' : ''}">${n}/${live.length} choisis</span>${remindBtn(session)}`
     : `<span class="count count--pts">${mine} pts</span>`}</div>
       </header>
+      ${races.some((r) => r.kind === 'finale') ? '<p class="session__note">🏁 Finales : points ×2, et <strong>seuls les 15 premiers marquent</strong> (à partir de la 16ᵉ place : 0 point).</p>' : ''}
       <ul class="races">${races.filter(passF).map((r) => raceRow(r, session)).join('') || '<li class="race"><span class="none">Aucune course avec ces filtres.</span></li>'}</ul>
     </article>`;
   }
