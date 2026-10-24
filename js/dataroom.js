@@ -3,7 +3,7 @@
 (function (root) {
   'use strict';
   let C = null;
-  const ui = { sub: 'light', g: 'M', disc: [], more: false, last: 8, rows: 'top', prem: { disc: [] } };
+  const ui = { bub: {}, sub: 'light', g: 'M', disc: [], more: false, last: 8, rows: 'top', prem: { disc: [] } };
   const init = (ctx) => { C = ctx; };
   const DISC = ['DH', 'SG', 'GS', 'SL'], DNAME = { DH: 'Descente', SG: 'Super-G', GS: 'Géant', SL: 'Slalom' };
   const DESKC = { 1: '#2f7fb0', 2: '#2f8a63', 3: '#d27a2a', M: '#2c8f94' };
@@ -101,10 +101,44 @@
       <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS, DNQ, DSQ sont notés. Case vide : hors des 30 premiers. ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course. Fais glisser le tableau pour voir les courses.</p>`;
   }
 
+  /* ---------- 3. Bulles : un skieur choisi qui ne marque aucun point (hors DNS) ---------- */
+  function bubbles() {
+    const res = allResults(), ev = [];
+    C.state.players.forEach((pl) => Object.entries(C.state.picks[pl.id] || {}).forEach(([rid, pk]) => {
+      const r = C.G.raceOf(rid); if (!r || r.cancelled || !res[rid] || !pk || !pk.a) return;
+      const ath = C.G.effectiveAthlete(pk, res, rid), e = (res[rid] || []).find((x) => x.ath === ath);
+      if (e && e.status === 'DNS') return;
+      if (e && !e.status && e.rank && C.G.pointsForRank(e.rank) > 0) return;
+      ev.push({ pl, ath, r, why: e && e.status ? e.status : 'hors points' });
+    }));
+    return ev;
+  }
+  function rankBy(ev, keyF, subF, labelF) {
+    const m = {};
+    ev.forEach((x) => { const k = keyF(x); const o = (m[k] = m[k] || { k, n: 0, sub: {} }); o.n++; const s = subF(x); (o.sub[s] = o.sub[s] || { s, n: 0, why: [] }).n++; o.sub[s].why.push(labelF(x)); });
+    const rows = Object.values(m).sort((a, b) => b.n - a.n);
+    let last = null, rk = 0; rows.forEach((r, i) => { if (r.n !== last) { rk = i + 1; last = r.n; } r.rank = rk; });
+    return rows;
+  }
+  function bubbleList(rows, nameF, subNameF, id) {
+    const shown = ui.bub[id] ? rows : rows.slice(0, 10);
+    const li = shown.map((r) => `<li class="bb"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span><div class="bb__main"><div class="bb__h"><b>${C.esc(nameF(r.k))}</b><span class="bb__n" title="${r.n} bulle${r.n > 1 ? 's' : ''}">${r.n} <small>🫧</small></span></div>
+      <div class="bb__d">${Object.values(r.sub).sort((a, b) => b.n - a.n).map((s) => `<span class="bb__c" title="${C.esc(s.why.join(' · '))}">${C.esc(subNameF(s.s))}${s.n > 1 ? ` <b>×${s.n}</b>` : ''}</span>`).join('')}</div></div></li>`).join('');
+    return `<ol class="bblist">${li || '<li class="none">Aucune bulle pour l’instant.</li>'}</ol>${rows.length > 10 ? `<p class="dr__more"><button type="button" class="btn btn--ghost btn--sm" data-dr="bub:${id}">${ui.bub[id] ? 'Réduire' : `Voir les ${rows.length}`}</button></p>` : ''}`;
+  }
+  function bulles() {
+    const ev = bubbles(), pn = (id) => (C.state.players.find((p) => p.id === id) || {}).name || id;
+    const lab = (x) => `${C.placeLabel(x.r)} ${C.D.DISC[x.r.disc].short} : ${x.why}`;
+    const bySk = rankBy(ev, (x) => x.ath, (x) => x.pl.id, lab), byPl = rankBy(ev, (x) => x.pl.id, (x) => x.ath, lab);
+    return `<p class="hint">Une bulle : le skieur choisi fait 0 point (DNF, disqualifié, non qualifié ou hors des 30 premiers). Un DNS n’en est pas une. Tous desks confondus, remplaçants pris en compte.</p>
+      <h3 class="subtitle">Les skieurs qui font le plus de bulles <span class="bb__tot">${ev.length} au total</span></h3>${bubbleList(bySk, (id) => fam(id), pn, 'sk')}
+      <h3 class="subtitle">Les joueurs les plus touchés</h3>${bubbleList(byPl, pn, (id) => fam(id), 'pl')}`;
+  }
+
   function render() {
-    const body = ui.sub === 'light' ? light() : premium();
+    const body = ui.sub === 'light' ? light() : ui.sub === 'bub' ? bulles() : premium();
     return `<section class="dr"><header class="deskhead"><div><h2>Data room</h2><p class="deskhead__meta">Classement de la Coupe du monde et résultats bruts${C.state.demo ? ' · données fictives pour les courses pas encore courues' : ''}</p></div></header>
-      <div class="deskbar"><div class="seg" role="tablist" aria-label="Data room"><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'light'}" data-dr="sub:light">Classements</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'prem'}" data-dr="sub:prem">Course par course</button></div></div>
+      <div class="deskbar"><div class="seg" role="tablist" aria-label="Data room"><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'light'}" data-dr="sub:light">Classements</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'prem'}" data-dr="sub:prem">Course par course</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'bub'}" data-dr="sub:bub">Bulles</button></div></div>
       ${body}</section>`;
   }
   document.addEventListener('click', (e) => {
@@ -112,6 +146,7 @@
     const [k, v] = b.dataset.dr.split(':');
     if (k === 'sub') ui.sub = v;
     else if (k === 'g') ui.g = v;
+    else if (k === 'bub') ui.bub[v] = !ui.bub[v];
     else if (k === 'more') ui.more = !ui.more;
     else if (k === 'disc' || k === 'pdisc') { const a = k === 'disc' ? ui : ui.prem; if (v === 'clear') a.disc = []; else a.disc = a.disc.includes(v) ? a.disc.filter((x) => x !== v) : a.disc.concat(v); }
     else if (k === 'last') ui.last = Number(v);

@@ -968,3 +968,10 @@ html[data-theme='nuit'] .c-1, html[data-theme='nuit'] .c-2, html[data-theme='nui
 .dr__c.c-pick { box-shadow: inset 0 0 0 2.5px var(--brique); position: relative; }
 .dr__c.c-pick::after { content: ''; position: absolute; inset: 0; border-radius: 2px; box-shadow: inset 0 0 0 1px #fff8; }
 .dr__sticky .dr__nm { max-width: 6.4rem; }
+
+.bblist { list-style: none; margin: 0 0 .6rem; padding: 0; display: grid; gap: .5rem; }
+.bb { display: flex; gap: .7rem; align-items: flex-start; padding: .6rem .7rem; background: var(--neige); border: 1px solid var(--filet); border-radius: 12px; }
+.bb__main { flex: 1; min-width: 0; } .bb__h { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; }
+.bb__n { font-weight: 800; white-space: nowrap; } .bb__tot { font-size: .8rem; font-weight: 600; color: var(--encre-douce); margin-left: .4rem; }
+.bb__d { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
+.bb__c { font-size: .8rem; padding: .1rem .5rem; border-radius: 999px; background: color-mix(in srgb, var(--brique) 12%, transparent); border: 1px solid color-mix(in srgb, var(--brique) 30%, transparent); }
