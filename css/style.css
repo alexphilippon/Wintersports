@@ -997,3 +997,15 @@ html[data-theme='nuit'] .seg__btn--past:not([aria-selected="true"]) { color: #c4
 @media (max-width: 560px) { .gauge { row-gap: .25rem; } .gauge__bar { height: .5rem; } }
 
 .lockbar__mine .rank { display: block; width: fit-content; margin: .15rem 0 .35rem 0; }
+
+.dr__lnk { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.dr__lnk:hover .dr__nm, .dr__nm.dr__lnk:hover { text-decoration: underline; }
+.sk__h { display: flex; gap: .8rem; align-items: center; margin-bottom: .7rem; } .sk__n { margin: 0; font-size: 1.35rem; } .sk__m { margin: .1rem 0 0; color: var(--encre-douce); font-size: .88rem; }
+.sk__seg { margin: 0 0 .7rem; width: 100%; } .sk__seg .seg__btn { flex: 1; }
+.sk__tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: .4rem; margin-bottom: .6rem; }
+.sk__t { text-align: center; padding: .4rem .2rem; border-radius: 10px; background: var(--neige); border: 1px solid var(--filet); } .sk__t b { display: block; font: 800 1.2rem var(--display); } .sk__t span { font-size: .68rem; color: var(--encre-douce); line-height: 1.1; display: block; }
+.sk__disc { margin: 0 0 .6rem; font-size: .9rem; }
+.sk__list { list-style: none; margin: 0; padding: 0; max-height: 45vh; overflow: auto; }
+.sk__r { display: grid; grid-template-columns: 2.6rem 1fr auto 2.4rem 2.8rem; gap: .4rem; align-items: center; padding: .3rem 0; border-bottom: 1px solid var(--filet); font-size: .88rem; }
+.sk__d { color: var(--encre-douce); font-size: .8rem; } .sk__p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.sk__k { text-align: center; border-radius: 6px; font-weight: 800; padding: .1rem 0; } .sk__pt { text-align: right; font-weight: 800; }

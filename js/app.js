@@ -1567,7 +1567,7 @@
   }, 30000);
 
   /* ---------- Démarrage ---------- */
-  window.SKI_DR.init({ state, G, D, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, rerender: renderPanel });
+  window.SKI_DR.init({ state, G, D, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
   SHARE.init({ state, G, D, esc, nameOf, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
   const adminCtx = () => ({ state, G, D, store, LIST, ATH, esc, norm, at, F_DAY, hourText, dlShort, shortOf, placeLabel, discLabel, genderLabel, nameOf, avatarOf, sortedRaces, lockedRace, active, canon, newPlayers, markPlayersSeen, rerender: render, fail, isAdmin });
   const q = new URLSearchParams(location.search);

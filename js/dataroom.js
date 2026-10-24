@@ -74,7 +74,7 @@
     const globe = !ui.disc.length ? 'Gros globe (cumul des quatre disciplines)' : ui.disc.length === 1 ? `Petit globe de ${DNAME[ui.disc[0]].toLowerCase()}` : `Cumul : ${ui.disc.map((d) => DNAME[d].toLowerCase()).join(' + ')}`;
     const badges = (id) => ['1', '2', '3', 'M'].map((k) => `<span class="db${used[id] && used[id].has(k) ? ' is-on' : ''}" style="--c:${DESKC[k]}" title="${used[id] && used[id].has(k) ? 'Déjà pris' : 'Pas encore pris'} (${k === 'M' ? 'Mondiaux' : 'Desk ' + k})">${k === 'M' ? 'M' : 'D' + k}</span>`).join('');
     const body = shown.map((r) => `<tr class="${used[r.ath] ? 'is-mine' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td>
-      <th scope="row"><span class="dr__sk">${C.avatarOf(r.ath, 'sm')}<span class="dr__nm">${C.esc(fam(r.ath))}</span></span></th>
+      <th scope="row"><button type="button" class="dr__sk dr__lnk" data-dr="sk:id~${r.ath}">${C.avatarOf(r.ath, 'sm')}<span class="dr__nm">${C.esc(fam(r.ath))}</span></button></th>
       <td class="num"><b>${r.pts}</b></td><td class="dr__bd">${badges(r.ath)}</td></tr>`).join('');
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(ui.disc)}${ui.disc.length ? '<button type="button" class="ff__x" data-dr="disc:clear">Cumul des quatre</button>' : ''}</div>
       <div class="tablewrap"><table class="grid grid--rank dr__light"><caption>${C.esc(globe)}, ${ui.g === 'M' ? 'messieurs' : 'dames'}</caption>
@@ -127,7 +127,7 @@
     if (ui.rows === 'top') rows = rows.slice(0, 30); else if (ui.rows === 'mine') rows = isPast ? rows.slice(0, 30) : rows.filter((r) => used[r.ath]);
     const cd = codes(races), pk = isPast ? 'ppdisc' : 'pdisc';
     const head = races.map((r) => `<th scope="col" class="dr__rh" title="${C.esc(`${placeOf(r)} · ${C.D.DISC[r.disc].short} · ${frDate(r)}`)}"><span class="dr__pl">${C.esc(cd[placeOf(r)])}</span><span class="dr__ds disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="dr__dt">${frDate(r)}</span></th>`).join('');
-    const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><span class="dr__nm">${used[s.ath] ? '★ ' : ''}${C.esc(isPast ? s.name : fam(s.ath))}</span></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
+    const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><button type="button" class="dr__nm dr__lnk" data-dr="sk:${isPast ? 'code' : 'id'}~${s.ath}">${used[s.ath] ? '★ ' : ''}${C.esc(isPast ? s.name : fam(s.ath))}</button></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
     const sel = (k, opts) => `<span class="ff__g">${opts.map(([v, l]) => chip(k, v, l, String(ui[k]) === String(v))).join('')}</span>`;
     const rowOpts = isPast ? [['top', 'Top 30'], ['all', 'Tous']] : [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']];
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(P.disc).replace(/data-dr="disc:/g, `data-dr="${pk}:`)}</div>
@@ -171,6 +171,45 @@
       <h3 class="subtitle">Les joueurs les plus touchés</h3>${bubbleList(byPl, pn, (id) => C.nameOf(id), 'pl')}`;
   }
 
+  /* ---------- Fiche skieur : saison en cours (2026-27) et saison passée (2025-26) ---------- */
+  const nkey = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').sort().join(' ');
+  let codeMap = null;
+  function pastIndex() {
+    if (codeMap) return codeMap; if (!past) return { byId: {}, byCode: {} };
+    codeMap = { byId: {}, byCode: {} };
+    const idx = {}; Object.entries(C.ATH()).forEach(([id, a]) => { idx[nkey(a.fis || a.name)] = id; idx[nkey(a.name)] = idx[nkey(a.name)] || id; });
+    Object.entries(past.ath).forEach(([code, [name]]) => { const id = idx[nkey(name)]; if (id) { codeMap.byId[id] = code; codeMap.byCode[code] = id; } });
+    return codeMap;
+  }
+  const sk = { id: null, code: null, season: 'now' };
+  function skierRows(id, code, season) {
+    if (season === 'now') {
+      const res = allResults(), g = (C.ATH()[id] || {}).gender || null;
+      return Object.keys(res).map((rid) => { const r = C.G.raceOf(rid), e = (res[rid] || []).find((x) => x.ath === id); return r && e && !r.cancelled ? { r, place: placeOf(r), date: r.date, disc: r.disc, rank: e.status ? null : e.rank, status: e.status || '', pts: e.status ? 0 : C.G.racePoints(r, e.rank) } : null; }).filter(Boolean).sort((a, b) => a.date.localeCompare(b.date));
+    }
+    if (!past || !code) return [];
+    return past.races.map((r) => { const e = r.res.find((x) => x[0] === code); return e ? { place: r.place.replace(/\s*\([^)]*\)\s*$/, ''), date: r.date, disc: r.disc, rank: typeof e[1] === 'number' ? e[1] : null, status: typeof e[1] === 'number' ? '' : e[1], pts: typeof e[1] === 'number' ? (e[2] != null ? e[2] : C.G.pointsForRank(e[1])) : 0 } : null; }).filter(Boolean).sort((a, b) => a.date.localeCompare(b.date));
+  }
+  function skierSheet() {
+    loadPast(); const ix = pastIndex();
+    const id = sk.id || ix.byCode[sk.code] || null, code = sk.code || ix.byId[id] || null;
+    const a = id ? C.ATH()[id] : null;
+    const pn = a ? a.name : (code && past && past.ath[code] ? titleCase(past.ath[code][0].split(' ').filter((w) => w !== w.toUpperCase()).join(' ')) + ' ' + titleCase(past.ath[code][0].split(' ').filter((w) => w === w.toUpperCase()).join(' ')) : '');
+    const nat = a ? a.nat : (code && past && past.ath[code] ? past.ath[code][1] : '');
+    const rows = skierRows(id, code, sk.season), pts = rows.reduce((s, r) => s + r.pts, 0);
+    const podium = rows.filter((r) => r.rank && r.rank <= 3).length, top10 = rows.filter((r) => r.rank && r.rank <= 10).length, zero = rows.filter((r) => r.status && r.status !== 'DNS').length;
+    const byD = {}; rows.forEach((r) => { byD[r.disc] = (byD[r.disc] || 0) + r.pts; });
+    const used = id ? mine()[id] : null;
+    const tile = (v, l) => `<div class="sk__t"><b>${v}</b><span>${l}</span></div>`;
+    const list = rows.map((r) => `<li class="sk__r"><span class="sk__d">${frDate(r)}</span><span class="sk__p">${C.esc(placeOf(r))}</span><span class="disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="sk__k ${cellCls(r.rank ? { rank: r.rank } : { status: r.status })}">${r.rank || r.status}</span><span class="sk__pt">${r.pts ? '+' + r.pts : '0'}</span></li>`).join('');
+    return `<div class="sk"><header class="sk__h">${id ? C.avatarOf(id, 'lg') : ''}<div><h2 class="sk__n">${C.esc(pn)}</h2><p class="sk__m">${C.esc(nat)}${a && a.rank ? ` · n° ${a.rank} du classement ${a.rank ? '2025-26' : ''}` : ''}</p>${used ? `<p class="sk__m">Déjà pris : ${['1', '2', '3', 'M'].filter((k) => used.has(k)).map((k) => (k === 'M' ? 'Mondiaux' : 'Desk ' + k)).join(', ')}</p>` : ''}</div></header>
+      <div class="seg sk__seg" role="tablist"><button type="button" role="tab" class="seg__btn" aria-selected="${sk.season === 'now'}" data-dr="skseason:now">2026-27</button><button type="button" role="tab" class="seg__btn seg__btn--past" aria-selected="${sk.season === 'past'}" data-dr="skseason:past">2025-26</button></div>
+      ${sk.season === 'past' && !past ? '<p class="hint">Chargement…</p>' : `<div class="sk__tiles">${tile(pts, 'points')}${tile(rows.length, rows.length > 1 ? 'courses' : 'course')}${tile(podium, 'podiums')}${tile(top10, 'top 10')}${tile(zero, 'sans point (DNF…)')}</div>
+      <p class="sk__disc">${['DH', 'SG', 'GS', 'SL'].filter((d) => byD[d] != null).map((d) => `<span class="disc disc--${d}">${C.D.DISC[d].short}</span> <b>${byD[d]}</b>`).join(' · ') || ''}</p>
+      <ul class="sk__list">${list || '<li class="none">Aucun résultat sur cette saison.</li>'}</ul>`}</div>`;
+  }
+  const openSkier = (id, code, season) => { sk.id = id || null; sk.code = code || null; sk.season = season || sk.season; loadPast(); C.openModal(skierSheet(), 'modal__card--sk'); };
+
   function render() {
     const body = ui.sub === 'light' ? light() : ui.sub === 'bub' ? bulles() : premium(ui.sub === 'past');
     return `<section class="dr"><header class="deskhead"><div><h2>Data room</h2><p class="deskhead__meta">Classement de la Coupe du monde et résultats bruts${C.state.demo && ui.sub !== 'past' ? ' · données fictives pour les courses pas encore courues' : ''}</p></div></header>
@@ -180,6 +219,8 @@
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-dr]'); if (!b || !C) return;
     const [k, v] = b.dataset.dr.split(':');
+    if (k === 'sk') { const [t, x] = v.split('~'); openSkier(t === 'id' ? x : null, t === 'code' ? x : null, ui.sub === 'past' ? 'past' : 'now'); return; }
+    if (k === 'skseason') { sk.season = v; C.openModal(skierSheet(), 'modal__card--sk'); return; }
     if (k === 'sub') ui.sub = v;
     else if (k === 'g') ui.g = v;
     else if (k === 'bub') ui.bub[v] = !ui.bub[v];
