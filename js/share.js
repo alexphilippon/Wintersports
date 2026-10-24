@@ -50,7 +50,7 @@
     shares.forEach((r) => {
       const who = r.pickers.map((x) => x.p.name + (x.kind === 'remplaçant' ? ' (remplaçant)' : x.kind === 'tiré au sort' ? ' (tirage au sort)' : x.out ? ' (non-partant)' : '')).join(', ');
       const sc = res ? ` · ${how(r)}${r.rank && !r.status ? ` · ${C.G.racePoints(race, r.rank) * race.mult} pts` : ''}` : '';
-      L.push(`• ${C.nameOf(r.ath)} : ${r.pct} % (${r.n}/${N})${sc} → ${who}`);
+      L.push(`• ${C.nameOf(r.ath)} : ${r.n}/${N}${sc} → ${who}`);
     });
     if (podium.length) L.push('', '🥇 Podium : ' + podium.map((e) => `${e.rank}. ${C.nameOf(e.ath)}`).join(' · '));
     return L.join('\n');
@@ -190,8 +190,8 @@
       g.restore(); g.strokeStyle = K.ink; g.lineWidth = 2.5; g.beginPath(); g.arc(ix + rad, cy, rad, 0, Math.PI * 2); g.stroke();
       g.fillStyle = K.ink; g.font = `700 29px ${F}`;
       const nm = wrap(g, C.nameOf(r.ath), nameW - 10).slice(0, 1); nm.forEach((s) => g.fillText(s, nameX, cy - 6));
-      const bw = nameW - 78; g.fillStyle = K.track; g.fillRect(nameX, cy + 12, bw, 14); g.fillStyle = K.bar; g.fillRect(nameX, cy + 12, Math.max(6, bw * r.pct / 100), 14);
-      g.fillStyle = K.ink; g.font = `800 24px ${F}`; g.fillText(`${r.pct} %`, nameX + bw + 12, cy + 27);
+      const bw = nameW - 78; g.fillStyle = K.track; g.fillRect(nameX, cy + 12, bw, 14); g.fillStyle = K.bar; g.fillRect(nameX, cy + 12, Math.max(6, bw * (r.N ? r.n / r.N : 0)), 14);
+      g.fillStyle = K.ink; g.font = `800 24px ${F}`; g.fillText(`${r.n}/${r.N}`, nameX + bw + 12, cy + 27);
       g.font = `600 28px ${F}`; g.fillStyle = K.soft;
       l.lines.forEach((s, k) => g.fillText(s, whoX, cy + 10 - ((l.lines.length - 1) * 18) + k * 36));
       y += h;

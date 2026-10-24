@@ -1130,9 +1130,9 @@ html[data-theme='nuit'] .rkpts--on { color: #7fd6a6; }
 
 /* Classements : colonne Total qui ressort, nom plus étroit, rang cerclé de 4 à 10 */
 .grid--general { table-layout: fixed; width: 100%; }
-.grid--general th:nth-child(1) { width: 4.2rem; } .grid--general th:nth-child(2) { width: 13rem; } .grid--general th:nth-child(3) { width: 6.5rem; }
+.grid--general th:nth-child(1) { width: 4.2rem; } .grid--general th:nth-child(2) { width: 22rem; } .grid--general th:nth-child(3) { width: 6.5rem; }
 .grid--general tbody th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 640px) { .grid--general th:nth-child(1) { width: 3rem; } .grid--general th:nth-child(2) { width: 8.5rem; } .grid--general th:nth-child(3) { width: 4.4rem; } }
+@media (max-width: 640px) { .grid--general th:nth-child(1) { width: 3rem; } .grid--general th:nth-child(2) { width: 11rem; } .grid--general th:nth-child(3) { width: 4.4rem; } }
 .grid--general td.total { background: color-mix(in srgb, var(--ocre) 22%, transparent) !important; font-size: 1.3rem; border-left: 2px solid var(--ocre); border-right: 2px solid var(--ocre); }
 .grid--general thead th.th--tot { background: var(--ocre); color: #1b2b44; font-weight: 800; }
 .rnk--c { border: 2px solid var(--encre-douce); background: transparent; color: var(--encre); }
@@ -1179,3 +1179,11 @@ html[data-theme='nuit'] .pk__pt { color: #7fd6a6; }
 .rf__tb tr.me td, .rf__tb tr.me th { background: color-mix(in srgb, var(--ocre) 22%, transparent); }
 .rf__tb td.total { font-weight: 800; font-size: 1.1rem; } .rnk--st { width: auto; min-width: 2rem; padding: 0 .4rem; border-radius: 99px; font-size: .7rem; border: 1.5px solid #b3281f; color: #b3281f; background: transparent; }
 .rf__tb .rc__chip { display: inline-block; margin: .1rem .1rem; }
+/* « Par course » et 2025-26 : même gabarit (colonnes larges, texte plus grand) */
+.dr__grid { font-size: 1rem; }
+.dr__grid th, .dr__grid td { padding: .75rem .4rem; }
+.dr__grid .dr__rh, .dr__grid .dr__c { min-width: 5.6rem; }
+.dr__grid thead th { padding: .5rem .4rem; }
+.dr__sticky { min-width: 16rem; }
+.dr__sticky .dr__nm { font-size: 1.02rem; }
+@media (max-width: 640px) { .dr__grid .dr__rh, .dr__grid .dr__c { min-width: 3.6rem; } .dr__sticky { min-width: 0; } .dr__grid { font-size: .9rem; } .dr__grid th, .dr__grid td { padding: .55rem .3rem; } }

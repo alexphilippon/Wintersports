@@ -131,7 +131,15 @@
     if (isPast) { loadPast(); if (!past) return '<p class="hint">Chargement des résultats 2025-26…</p>'; if (past.error) return '<p class="hint">Résultats 2025-26 indisponibles.</p>'; }
     const P = isPast ? ui.pp : ui.prem;
     initG(); const t = isPast ? pastTable(ui.g, P.disc) : table(ui.g, P.disc), used = isPast ? {} : mine(), mp = isPast ? {} : myPick(), mpd = isPast ? {} : myPick(true);
-    const races = (ui.last ? t.races.slice(-ui.last) : t.races).slice().reverse();   // la course la plus récente à gauche
+    let races;
+    if (isPast) races = (ui.last ? t.races.slice(-ui.last) : t.races).slice().reverse();   // la course la plus récente à gauche
+    else {
+      // saison en cours : ordre chronologique, les courses à venir apparaissent en colonnes vides à droite
+      const fin = ui.last ? t.races.slice(-ui.last) : t.races, ids = new Set(t.races.map((r) => r.id));
+      const later = Object.values(C.D.RACES).filter((r) => r.gender === ui.g && r.kind === 'cdm' && !r.cancelled && !ids.has(r.id) && (!P.disc.length || P.disc.includes(r.disc)))
+        .sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time));
+      races = fin.concat(ui.last ? later.slice(0, ui.last) : later);
+    }
     let rows = t.rows;
     if (ui.rows === 'top') rows = rows.slice(0, 30); else if (ui.rows === 'mine') rows = isPast ? rows.slice(0, 30) : rows.filter((r) => used[r.ath]);
     const cd = codes(races), pk = isPast ? 'ppdisc' : 'pdisc';
