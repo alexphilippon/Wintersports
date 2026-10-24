@@ -66,6 +66,12 @@
   function pointsForRank(rank) {
     return rank >= 1 && rank <= D.POINTS.length ? D.POINTS[rank - 1] : 0;
   }
+  /** Points d'un rang dans une course : aux finales, seuls les 15 premiers marquent (règle officielle). */
+  const FINALS_TOP = 15;
+  function racePoints(race, rank) {
+    if (race && race.kind === 'finale' && rank > FINALS_TOP) return 0;
+    return pointsForRank(rank);
+  }
   function findEntry(results, raceId, athId) {
     return ((results && results[raceId]) || []).find((e) => e.ath === athId) || null;
   }
@@ -125,7 +131,7 @@
     if (!ath) return 0;
     const e = findEntry(results, race.id, ath);
     if (!e || e.status) return 0; // DNF, DSQ, DNS, ou hors points
-    return pointsForRank(e.rank) * race.mult;
+    return racePoints(race, e.rank) * race.mult;
   }
 
   /* ---------- Bonus des Mondiaux ---------- */
@@ -196,7 +202,7 @@
 
   const api = {
     parisInstant, setOverrides, raceOf, raceStart, activeRaces, sessionOfRace, raceLockTime, raceLocked, sessionRaces, sessionDeadline, sessionEnd, sessionState,
-    pointsForRank, effectiveAthlete, substitute, drawSkier, autoDraws, scoreRace, worldsWinner, worldsBonus,
+    pointsForRank, racePoints, FINALS_TOP, effectiveAthlete, substitute, drawSkier, autoDraws, scoreRace, worldsWinner, worldsBonus,
     sessionScore, deskScore, worldsScore, disciplineScore, generalScore, usedInDesk,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

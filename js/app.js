@@ -158,7 +158,7 @@
   const raceTag = (r) => `${placeLabel(r)} ${D.DISC[r.disc].short}${r.sub || ''}`;
   function discBadge(r) {
     const mult = r.mult > 1
-      ? `<span class="mult" title="${r.kind === 'mondial' ? 'Barème ×3 aux Mondiaux' : 'Barème ×2 pour les finales'}">×${r.mult}</span>` : '';
+      ? `<span class="mult" title="${r.kind === 'mondial' ? 'Barème ×3 aux Mondiaux' : 'Barème ×2 pour les finales (seuls les 15 premiers marquent)'}">×${r.mult}</span>` : '';
     return `<span class="disc disc--${r.disc}">${esc(discLabel(r))}</span>${mult}`;
   }
   function stateBadge(session) {
@@ -384,7 +384,7 @@
     Object.keys(state.results).forEach((rid) => {
       const race = G.raceOf(rid), res = state.results[rid];
       if (!race || race.cancelled || !res) return;
-      res.forEach((e) => { if (!e.status && e.rank) pts[e.ath] = (pts[e.ath] || 0) + G.pointsForRank(e.rank); });
+      res.forEach((e) => { if (!e.status && e.rank) pts[e.ath] = (pts[e.ath] || 0) + G.racePoints(race, e.rank); });
     });
     return pts;
   }
@@ -812,13 +812,13 @@
   function rulesHtml() {
     return `<div class="rules">
       <h3>Le principe</h3>
-      <p>À chaque course de la Coupe du Monde, tu choisis <strong>un skieur</strong> (et, si tu veux, un remplaçant). Il te rapporte les points de la Coupe du Monde : <strong>100 pour le 1er, 80, 60, 50, 45…</strong> jusqu’à 1 point pour le 30e.</p>
+      <p>À chaque course de la Coupe du Monde, tu choisis <strong>un skieur</strong> (et, si tu veux, un remplaçant). Il te rapporte les points de la Coupe du Monde : <strong>100 pour le 1er, 80, 60, 50, 45…</strong> jusqu’à 1 point pour le 30e. <strong>Aux finales</strong>, seuls les <strong>15 premiers</strong> marquent des points.</p>
       <h3>L’organisation</h3>
       <ul>
         <li><strong>3 desks</strong> (octobre-décembre, janvier, février-mars) et les <strong>Mondiaux</strong> de Crans-Montana, soit une vingtaine de sessions. Chaque session regroupe quelques courses.</li>
         <li>Messieurs et dames sont chacun à part : un choix par course.</li>
         <li>Slalom et géant : classement cumulé des deux manches. Chaque descente compte comme une course. Les épreuves par équipes sont exclues.</li>
-        <li><strong>Finales ×2</strong> et <strong>Mondiaux ×3</strong> (avec un bonus si tes choix gagnent).</li>
+        <li><strong>Finales ×2</strong> (seuls les 15 premiers marquent) et <strong>Mondiaux ×3</strong> (avec un bonus si tes choix gagnent).</li>
       </ul>
       <h3>La règle d’or</h3>
       <p>Dans un desk, <strong>un skieur ne peut être choisi qu’une seule fois</strong> par genre. Aux Mondiaux aussi, une seule fois sur les huit épreuves. Il faut donc gérer ses atouts sur la durée.</p>

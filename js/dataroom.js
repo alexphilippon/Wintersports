@@ -38,7 +38,7 @@
     races.forEach((r) => (res[r.id] || []).forEach((e) => {
       const s = (by[e.ath] = by[e.ath] || { ath: e.ath, pts: 0, cells: {}, n: 0 });
       s.cells[r.id] = e; s.n++;
-      if (!e.status && e.rank) s.pts += C.G.pointsForRank(e.rank);
+      if (!e.status && e.rank) s.pts += C.G.racePoints(r, e.rank);
     }));
     const rows = Object.values(by).sort((a, b) => b.pts - a.pts || a.n - b.n || C.nameOf(a.ath).localeCompare(C.nameOf(b.ath), 'fr'));
     let last = null, rk = 0; rows.forEach((r, i) => { if (r.pts !== last) { rk = i + 1; last = r.pts; } r.rank = rk; });
@@ -144,7 +144,7 @@
       const r = C.G.raceOf(rid); if (!r || r.cancelled || !res[rid] || !pk || !pk.a) return;
       const ath = C.G.effectiveAthlete(pk, res, rid), e = (res[rid] || []).find((x) => x.ath === ath);
       if (e && e.status === 'DNS') return;
-      if (e && !e.status && e.rank && C.G.pointsForRank(e.rank) > 0) return;
+      if (e && !e.status && e.rank && C.G.racePoints(r, e.rank) > 0) return;
       ev.push({ pl, ath, r, why: e && e.status ? e.status : 'hors points' });
     }));
     return ev;

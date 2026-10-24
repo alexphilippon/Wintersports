@@ -136,4 +136,10 @@ assert.ok(G.usedInDesk(1, 'M', { M04: { a: 'a', b: 'b' } }, null).has('a'), 'ava
 assert.ok(G.usedInDesk(1, 'M', { M04: { a: 'a' } }, null, { M04: [{ ath: 'a', rank: 3 }] }).has('a'), 'a pris le départ : grillé');
 assert.ok(G.usedInDesk(1, 'M', { M04: { a: 'a' } }, null, { M04: [{ ath: 'a', status: 'DNF' }] }).has('a'), 'DNF : grillé');
 
+// ---- Finales : seuls les 15 premiers marquent (×2)
+assert.strictEqual(D.RACES.M40.kind, 'finale');
+const fin = (rank) => G.scoreRace(D.RACES.M40, { a: 'a' }, { M40: [{ ath: 'a', rank }] });
+assert.strictEqual(fin(1), 200); assert.strictEqual(fin(15), 32); assert.strictEqual(fin(16), 0); assert.strictEqual(fin(25), 0);
+assert.strictEqual(G.scoreRace(D.RACES.M04, { a: 'a' }, { M04: [{ ath: 'a', rank: 16 }] }), 15, 'hors finale : barème normal jusqu’au 30e');
+
 console.log('Tous les tests passent.');

@@ -48,7 +48,7 @@
     L.push(res ? '🏁 Qui avait pris qui (et résultat) :' : '👀 Qui a pris qui :', '');
     shares.forEach((r) => {
       const who = r.pickers.map((x) => x.p.name + (x.kind === 'remplaçant' ? ' (remplaçant)' : x.kind === 'tiré au sort' ? ' (tirage au sort)' : x.out ? ' (non-partant)' : '')).join(', ');
-      const sc = res ? ` · ${how(r)}${r.rank && !r.status ? ` · ${C.G.pointsForRank(r.rank) * race.mult} pts` : ''}` : '';
+      const sc = res ? ` · ${how(r)}${r.rank && !r.status ? ` · ${C.G.racePoints(race, r.rank) * race.mult} pts` : ''}` : '';
       L.push(`• ${C.nameOf(r.ath)} : ${r.pct} % (${r.n}/${N})${sc} → ${who}`);
     });
     if (podium.length) L.push('', '🥇 Podium : ' + podium.map((e) => `${e.rank}. ${C.nameOf(e.ath)}`).join(' · '));

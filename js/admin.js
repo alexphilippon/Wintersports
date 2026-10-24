@@ -97,7 +97,7 @@
           const opts = (x.cands.length ? x.cands : C.LIST[r.gender]).map((a) => `<option value="${a.id}"${x.ath === a.id ? ' selected' : ''}>${esc(a.name)} (${esc(a.nat || '?')})</option>`).join('');
           who = `<span class="warn">${x.cands.length ? 'Plusieurs possibles' : 'Inconnu'} : « ${esc(x.name)} »</span> <select data-adm-change="resolve" data-i="${i}"><option value="">Choisir…</option>${opts}<option value="__new__">Ajouter comme nouveau skieur</option></select>`;
         }
-        return `<tr><td class="num">${what}</td><td>${who}</td><td class="num">${x.rank ? C.G.pointsForRank(x.rank) * r.mult : 0}</td></tr>`;
+        return `<tr><td class="num">${what}</td><td>${who}</td><td class="num">${x.rank ? C.G.racePoints(r, x.rank) * r.mult : 0}</td></tr>`;
       }).join('');
       const ready = A.parsed.filter((x) => !x.skip).every((x) => x.ath);
       html += `<div class="tablewrap"><table class="grid"><thead><tr><th class="num">Place</th><th>Skieur</th><th class="num">Points${r.mult > 1 ? ' ×' + r.mult : ''}</th></tr></thead><tbody>${rows}</tbody></table></div>
