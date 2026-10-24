@@ -1193,3 +1193,6 @@ html[data-theme='nuit'] .pk__pt { color: #7fd6a6; }
 .dr__sticky .dr__nm { font-weight: 600; font-size: 1rem; }
 .dr__sticky .dr__sk { gap: .45rem; } .dr__flag { flex: none; }
 @media (max-width: 760px) { .dr__sticky .dr__av, .dr__sticky .dr__fl { display: none; } }
+
+.rf__tb tr.rf__sec th { background: color-mix(in srgb, var(--ocre) 30%, var(--neige)); text-align: left; font-weight: 800; padding: .55rem .6rem; border-top: 2px solid var(--ocre); }
+.rf__tb tr.is-nq .rnk--st { border-color: var(--encre-douce); color: var(--encre-douce); }

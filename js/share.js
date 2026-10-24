@@ -101,9 +101,15 @@
     const chips = (a) => (picked[a] || []).map((p) => `<span class="rc__chip${p.id === state.me ? ' me' : ''}">${C.pln(p)}</span>`).join(' ');
     const mineRow = (a) => (picked[a] || []).some((p) => p.id === state.me) ? 'me' : '';
     const rows = ranked.map((e) => `<tr class="${mineRow(e.ath)}"><td class="num">${rkc(e.rank)}</td><th scope="row"><span class="rf__ath">${C.avatarOf(e.ath, 'sm')}<span>${C.skn(e.ath)}</span></span></th>${hasT ? `<td class="num">${esc(e.time || '')}${e.time && e.rank > 1 ? `<br><span class="sub">${esc(diffOf(e.time, t0))}</span>` : ''}</td>` : ''}<td>${chips(e.ath)}</td></tr>`);
-    const out = res.filter((e) => e.status && e.status !== 'DNQ' && e.status !== 'DNS' || (e.status && picked[e.ath]));
+    const out = res.filter((e) => e.status && e.status !== 'DNQ' && e.status !== 'DNS' || (e.status === 'DNS' && picked[e.ath]));
     out.forEach((e) => rows.push(`<tr class="is-st ${mineRow(e.ath)}"><td class="num"><span class="rnk rnk--n rnk--st">${esc(e.status)}</span></td><th scope="row"><span class="rf__ath">${C.avatarOf(e.ath, 'sm')}<span>${C.skn(e.ath)}</span></span></th>${hasT ? '<td></td>' : ''}<td>${chips(e.ath)}</td></tr>`));
-    const nq = res.filter((e) => e.status === 'DNQ' && !picked[e.ath]).length, ns = res.filter((e) => e.status === 'DNS' && !picked[e.ath]).length;
+    // « Did not qualify » : non-qualifiés pour la 2e manche, classés au temps de la 1re manche
+    const dnq = res.filter((e) => e.status === 'DNQ').sort((a, b) => (cs(a.time) == null) - (cs(b.time) == null) || (cs(a.time) || 0) - (cs(b.time) || 0));
+    if (dnq.length) {
+      rows.push(`<tr class="rf__sec"><th colspan="${hasT ? 4 : 3}" scope="colgroup">Did not qualify <span class="sub">· classés au temps de la 1re manche</span></th></tr>`);
+      dnq.forEach((e) => rows.push(`<tr class="is-nq ${mineRow(e.ath)}"><td class="num"><span class="rnk rnk--n rnk--st">NQ</span></td><th scope="row"><span class="rf__ath">${C.avatarOf(e.ath, 'sm')}<span>${C.skn(e.ath)}</span></span></th>${hasT ? `<td class="num">${esc(e.time || '')}${e.time ? '<br><span class="sub">1re manche</span>' : ''}</td>` : ''}<td>${chips(e.ath)}</td></tr>`));
+    }
+    const nq = 0, ns = res.filter((e) => e.status === 'DNS' && !picked[e.ath]).length;
     const foot = [nq ? `${nq} non qualifié${nq > 1 ? 's' : ''} (DNQ)` : '', ns ? `${ns} non-partant${ns > 1 ? 's' : ''} (DNS)` : ''].filter(Boolean).join(' · ');
     const skTable = `<div class="tablewrap"><table class="grid grid--rank rf__tb cap--gen"><caption>Classement de la course</caption><thead><tr><th scope="col" class="num">Rang</th><th scope="col">Skieur</th>${hasT ? '<th scope="col" class="num">Temps</th>' : ''}<th scope="col">Joueurs</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${foot ? `<p class="sub">${foot}</p>` : ''}`;
     const tab = rfTab === 'sk' ? 'sk' : 'pl';
