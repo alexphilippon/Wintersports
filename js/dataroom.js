@@ -96,7 +96,7 @@
 
   /* ---------- 2. Résultats bruts (version complète) ---------- */
   const mo = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'numeric', timeZone: 'UTC' });
-  const cellCls = (e) => (!e ? 'c-none' : e.status ? 'c-st' : e.rank === 1 ? 'c-1' : e.rank === 2 ? 'c-2' : e.rank === 3 ? 'c-3' : e.rank <= 10 ? 'c-top' : 'c-in');
+  const cellCls = (e) => (!e ? 'c-none' : e.status ? 'c-st c-st--' + String(e.status).toLowerCase() : e.rank === 1 ? 'c-1' : e.rank === 2 ? 'c-2' : e.rank === 3 ? 'c-3' : e.rank <= 10 ? 'c-top' : 'c-in');
   /** Code de 3 lettres par lieu, distinct d'une colonne à l'autre (Val d'Isère / Val Gardena…). */
   function codes(races) {
     const out = {}, by = {};
@@ -145,6 +145,7 @@
     }
     let rows = t.rows;
     if (ui.rows === 'top') rows = rows.slice(0, 30); else if (ui.rows === 'mine') rows = isPast ? rows.slice(0, 30) : rows.filter((r) => used[r.ath]);
+    const nd = ui.last ? Math.min(ui.last, t.races.length) : t.races.length;
     const cd = codes(races), pk = isPast ? 'ppdisc' : 'pdisc';
     const head = races.map((r) => `<th scope="col" class="dr__rh${isPast || C.state.results[r.id] ? ' is-click' : ''}"${isPast ? ` data-dr="${'pastrace'}:${r.id}"` : C.state.results[r.id] ? ` data-dr="race:${r.id}"` : ''} title="${C.esc(`${placeOf(r)} · ${C.D.DISC[r.disc].short} · ${frDate(r)}${isPast || C.state.results[r.id] ? ' : voir le classement' : ''}`)}"><span class="dr__pl">${C.esc(cd[placeOf(r)])}</span><span class="dr__ds disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="dr__dt">${frDate(r)}</span></th>`).join('');
     const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><button type="button" class="dr__sk dr__lnk" data-dr="sk:${isPast ? 'code' : 'id'}~${s.ath}">${(isPast ? s.id : s.ath) ? `<span class="dr__av">${C.avatarOf(isPast ? s.id : s.ath, 'sm')}</span>` : ''}<span class="dr__fl">${C.flag(isPast ? s.nat : (C.ATH()[s.ath] || {}).nat)}</span><span class="dr__nm">${used[s.ath] ? '★ ' : ''}${C.esc(isPast ? s.name : C.nameOf(s.ath))}</span></button></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : mpd[r.id] === s.ath ? ' c-pick c-pick--draft' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : mpd[r.id] === s.ath ? ' title="Ton brouillon pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
@@ -155,7 +156,7 @@
     const rowOpts = isPast ? [['top', 'Top 30'], ['all', 'Tous']] : [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']];
     return `${root.SKI_SHARE.fsOpen(1)}<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(P.disc).replace(/data-dr="disc:/g, `data-dr="${pk}:`)}</div>
       <div class="ff dr__filters"><span class="sub">Courses</span>${sel('last', [[5, '5 dernières'], [10, '10'], [20, '20'], [0, 'Toutes']])}<span class="sub">Skieurs</span>${sel('rows', rowOpts)}</div>
-      <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid${isPast ? ' dr__grid--past' : ''}"><caption>${isPast ? 'Saison 2025-26 · ' : ''}${ui.g === 'M' ? 'Messieurs' : 'Dames'} · ${isPast ? races.length + ' course' + (races.length > 1 ? 's' : '') : (t.races.length ? (ui.last ? Math.min(ui.last, t.races.length) : t.races.length) : 0) + ' disputée' + ((ui.last ? Math.min(ui.last, t.races.length) : t.races.length) > 1 ? 's' : '') + ''}${xb}</caption>
+      <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid${isPast ? ' dr__grid--past' : ''}"><caption>${isPast ? 'Saison 2025-26 · ' : ''}${ui.g === 'M' ? 'Messieurs' : 'Dames'} · ${isPast ? races.length + ' course' + (races.length > 1 ? 's' : '') : nd + ' disputée' + (nd > 1 ? 's' : '')}${xb}</caption>
       <thead><tr><th scope="col" class="dr__sticky">Skieur</th><th scope="col" class="dr__pts">Pts</th>${head}</tr></thead><tbody>${body || `<tr><td colspan="${races.length + 2}"><span class="none">Aucun résultat.</span></td></tr>`}</tbody></table></div></div>
       <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS et DSQ sont notés. Case vide : hors des 30 premiers ou non qualifié pour la 2e manche.${isPast ? ' Points : barème Coupe du monde sur les courses affichées.' : ' ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course.'} Fais glisser le tableau pour voir les courses.</p>`;
   }
