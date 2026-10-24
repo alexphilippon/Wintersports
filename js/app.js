@@ -544,9 +544,158 @@
       ${any ? '<button type="button" class="ff__x" data-ff="clear">Tout afficher</button>' : ''}</div>`;
   }
 
-  /* ---------- Session à venir / en cours (forfait) ---------- */
+  /* ---------- Onglet 1 : à venir / en cours / dernière session ---------- */
+  const LS = {
+    get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignoré */ } },
+    del: (k) => { try { localStorage.removeItem(k); } catch (e) { /* ignoré */ } },
+  };
+  const H24 = 24 * 3600 * 1000;
+  /** La « dernière session » reste affichée 24 h après qu'on l'a vue, 48 h après sa fin si on ne l'a pas vue ; « skip » la masque (une fois, pour cette session). */
+  function finishedWindow(s) {
+    if (LS.get('skigame.skip.' + s.id)) return false;
+    return finishedWindowIgnoringSkip(s);
+  }
+  function finishedWindowIgnoringSkip(s) {
+    const seen = Number(LS.get('skigame.seen.' + s.id)) || 0;
+    const end = G.sessionEnd(s).getTime();
+    return now().getTime() < (seen ? seen + H24 : end + 2 * H24);
+  }
+  function homeMode() {
+    const all = allSessions(), st = (s) => G.sessionState(s, now());
+    const cur = all.find((s) => st(s) === 'en cours');
+    if (cur) return { kind: 'cours', session: cur };
+    const next = all.find((s) => st(s) === 'ouverte');
+    const done = all.filter((s) => st(s) === 'terminée');
+    const last = done[done.length - 1];
+    if (last && (!next || finishedWindow(last))) return { kind: 'fin', session: last, next };
+    return { kind: 'avenir', session: next || upcomingSession(), back: last && next && finishedWindowIgnoringSkip(last) ? last : null };
+  }
+  const resOf = (race) => state.results[race.id];
+  function ptsChip(pid, race) {
+    if (race.cancelled || !resOf(race)) return '';
+    const sc = G.scoreRace(race, (state.picks[pid] || {})[race.id], state.results) || 0;
+    return `<span class="pill ${sc > 0 ? 'pill--on' : 'pill--off'}">${sc > 0 ? '+' : ''}${sc}</span>`;
+  }
+  /** Skieurs effectivement alignés par les joueurs sur une course, et le (ou les) plus choisi(s). */
+  function racePeople(race) {
+    const picks = state.players.map((p) => { const pk = (state.picks[p.id] || {})[race.id]; return pk && pk.a ? { p, ath: G.effectiveAthlete(pk, state.results, race.id) } : null; }).filter(Boolean);
+    const cnt = {};
+    picks.forEach((x) => { cnt[x.ath] = (cnt[x.ath] || 0) + 1; });
+    const max = Math.max(0, ...Object.values(cnt));
+    return { picks, cnt, max, top: Object.keys(cnt).filter((a) => cnt[a] === max) };
+  }
+  /** Joueur classé juste devant moi au général (null si je suis premier). */
+  function playerAheadOfMe() {
+    const rows = rankRows((pk) => G.generalScore(pk, state.results));
+    const i = rows.findIndex((r) => r.p.id === state.me);
+    if (i < 0) return null;
+    for (let k = i - 1; k >= 0; k--) if (rows[k].v.total > rows[i].v.total) return rows[k].p;
+    return null;
+  }
+  function whoBlock(race, ahead) {
+    const { picks, max, top } = racePeople(race);
+    if (!picks.length) return '<span class="none">Aucun choix</span>';
+    const res = resOf(race), N = picks.length;
+    const mine = picks.find((x) => x.p.id === state.me), pred = ahead && picks.find((x) => x.p.id === ahead.id);
+    const how = (a) => { const e = res && res.find((x) => x.ath === a); return e ? `<span class="rank">${esc(e.status || ordinal(e.rank))}</span>` : ''; };
+    const topHtml = top.slice(0, 2).map((a) => `<span class="wp__sk">${avatarOf(a, 'sm')}<b>${esc(nameOf(a))}</b>${how(a)}</span>`).join('') + (top.length > 2 ? `<span class="sub">+${top.length - 2} ex æquo</span>` : '');
+    const row = (label, inner) => `<div class="wp__row"><span class="wp__lab">${label}</span>${inner}</div>`;
+    const shared = max > 1;
+    let h = shared ? row('Le plus choisi', `<div class="wp__main">${topHtml}<span class="sub">${plural(max, 'joueur', 'joueurs')} sur ${N}${mine && top.includes(mine.ath) ? ', dont toi' : ''}</span></div>`) : row('Le plus choisi', '<div class="wp__main"><span class="sub">Aucun skieur en commun : chacun a pris le sien.</span></div>');
+    if (mine && !(shared && top.includes(mine.ath))) h += row('Toi', `<div class="wp__main">${pickSummary(state.me, race)}</div>${ptsChip(state.me, race)}`);
+    else if (!mine) h += row('Toi', '<div class="wp__main"><span class="none">Aucun choix</span></div>');
+    if (pred && !(shared && top.includes(pred.ath))) h += row(`Devant toi : ${esc(pred.p.name)}`, `<div class="wp__main">${pickSummary(pred.p.id, race)}</div>${ptsChip(pred.p.id, race)}`);
+    const all = picks.map((x) => `<li class="${x.p.id === state.me ? 'me' : ''}"><span class="wp__pl">${pname(x.p)}</span>${pickSummary(x.p.id, race)}${ptsChip(x.p.id, race)}</li>`).join('');
+    return `<div class="wp">${h}<details class="wp__all"><summary><span class="wp__plus" aria-hidden="true">+</span> Tous les choix</summary><ul>${all}</ul></details></div>`;
+  }
+  function raceStatus(race) {
+    if (race.cancelled) return '<span class="flag flag--off">Annulée</span>';
+    if (resOf(race)) return '<span class="state state--terminée">Terminée</span>';
+    return G.raceStart(race) <= now() ? '<span class="soon">Résultats en attente</span>' : `<span class="soon">Départ ${esc(hourText(G.raceStart(race)))}</span>`;
+  }
+  function liveRaceRow(race, ahead) {
+    const d = at(race.date);
+    return `<li class="race${race.cancelled ? ' race--off' : ''}">
+      <div class="race__date race__date--${race.gender}"><span class="race__wd">${F_WD.format(d).replace('.', '')}</span><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_MO.format(d)}</span></div>
+      <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong><span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${raceStatus(race)}</span></div>
+      <div class="race__pick">${race.cancelled ? '<span class="none">Course annulée</span>' : lockedRace(race) ? whoBlock(race, ahead) : ''}
+        ${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="linkbtn rcbtn" data-racecard="${race.id}">Détail et export</button>`}</div></li>`;
+  }
+  function coursPanel(s) {
+    const races = sortedRaces(s), live = active(races), ahead = playerAheadOfMe();
+    const inDesk = D.SESSIONS.filter((x) => x.desk === s.desk);
+    const where = s.id === 'X' ? 'Hors desk, barème ×3' : `Desk ${s.desk}, session ${inDesk.indexOf(s) + 1} sur ${inDesk.length}`;
+    const nextRace = live.map((r) => G.raceStart(r)).filter((t) => t > now()).sort((a, b) => a - b)[0];
+    const stub = nextRace
+      ? `<p class="forfait__label">Prochain départ dans</p><p class="countdown">${countdownText(nextRace)}</p><p class="forfait__dl">${dlShort(nextRace)}</p>`
+      : '<p class="forfait__label">Choix verrouillés</p><p class="countdown countdown--shut">Résultats en cours</p>';
+    return `<section>
+      <article class="forfait"><div class="forfait__main">${stateBadge(s)}<h2 class="forfait__name">${fl(s.name)}</h2><p class="forfait__where">${esc(where)}</p></div><div class="forfait__stub">${stub}</div></article>
+      <h3 class="subtitle">Qui a pris qui</h3>
+      <div class="session"><ul class="races">${races.map((r) => liveRaceRow(r, ahead)).join('')}</ul></div>
+    </section>`;
+  }
+  /** Coup à contre-courant : un skieur choisi par une minorité de joueurs (pas le plus choisi) et qui a pourtant marqué gros. */
+  function bestContrarian(s) {
+    let best = null;
+    active(sortedRaces(s)).forEach((r) => {
+      if (!resOf(r)) return;
+      const { picks, cnt, max } = racePeople(r), N = picks.length;
+      Object.keys(cnt).forEach((a) => {
+        if (cnt[a] >= max || cnt[a] / N > 0.5) return;
+        const who = picks.filter((x) => x.ath === a).map((x) => x.p);
+        const pts = G.scoreRace(r, (state.picks[who[0].id] || {})[r.id], state.results) || 0;
+        if (pts <= 0) return;
+        const score = pts * (1 - cnt[a] / N);
+        if (!best || score > best.score || (score === best.score && cnt[a] < best.n)) best = { score, race: r, ath: a, who, n: cnt[a], N, pts, top: max };
+      });
+    });
+    return best;
+  }
+  function termineePanel(hm) {
+    const s = hm.session, R = state.results;
+    if (!state.demo && !LS.get('skigame.seen.' + s.id)) LS.set('skigame.seen.' + s.id, String(now().getTime()));
+    const races = sortedRaces(s), live = active(races);
+    const rows = rankRows((pk) => ({ total: G.sessionScore(s, pk, R) }));
+    const me = rows.find((r) => r.p.id === state.me);
+    const R0 = Object.assign({}, R); s.races.forEach((id) => { delete R0[id]; });
+    let move = '';
+    if (Object.keys(R0).length) {
+      const before = rankRows((pk) => G.generalScore(pk, R0)).find((r) => r.p.id === state.me);
+      const after = rankRows((pk) => G.generalScore(pk, R)).find((r) => r.p.id === state.me);
+      if (before && after) { const d = before.rank - after.rank; move = d > 0 ? `<span class="mv mv--up">▲ ${d}</span>` : d < 0 ? `<span class="mv mv--dn">▼ ${-d}</span>` : '<span class="mv">=</span>'; }
+    }
+    const gen = rankRows((pk) => G.generalScore(pk, R)).find((r) => r.p.id === state.me);
+    const podium = rows.filter((r) => r.rank <= 3).slice(0, 5).map((r) => `<li><span class="rnk rnk--${r.rank}">${r.rank}</span>${pname(r.p)}<b>${r.v.total} pts</b></li>`).join('');
+    const bc = bestContrarian(s);
+    const bcHtml = bc ? `<div class="bilan__card"><h4>Le coup à contre-courant</h4><p><span class="wp__sk">${avatarOf(bc.ath, 'sm')}<b>${esc(nameOf(bc.ath))}</b></span> à ${fl(placeLabel(bc.race))} <span class="gender gender--${bc.race.gender}">${genderLabel(bc.race)}</span>${discBadge(bc.race)}</p>
+      <p class="sub">Choisi par ${esc(bc.who.map((p) => p.name).join(', '))} seulement (${bc.n} sur ${bc.N}), alors que ${bc.top} joueurs en avaient pris un autre. Résultat : +${bc.pts} points.</p></div>` : '';
+    const nx = hm.next;
+    const nxHtml = nx
+      ? `<div class="bilan__next"><div><span class="forfait__label">Prochaine session</span><h3 class="forfait__name">${fl(nx.name)}</h3><p class="sub">Deadline ${esc(dlShort(G.sessionDeadline(nx)))} · <span class="countdown countdown--inline">${countdownText(G.sessionDeadline(nx))}</span></p></div>
+        <button type="button" class="btn btn--brique" data-skip="${s.id}">Voir la session à venir</button></div>`
+      : '<p class="hint">C’est la dernière session de la saison.</p>';
+    return `<section>
+      <article class="forfait"><div class="forfait__main"><span class="state state--terminée">Terminée</span><h2 class="forfait__name">${fl(s.name)}</h2><p class="forfait__where">${plural(live.length, 'course', 'courses')}</p></div>
+        <div class="forfait__stub"><p class="forfait__label">Mes points</p><p class="count count--pts big">${me ? me.v.total : 0} pts</p><p class="forfait__dl">${me && me.v.total ? ordinal(me.rank) + ' de la session' : ''}</p></div></article>
+      <div class="bilan">
+        <div class="bilan__card"><h4>Gros globe</h4><p class="bilan__big">${gen ? ordinal(gen.rank) : '–'} ${move}</p><p class="sub">${gen ? gen.v.total + ' pts' : ''}${move ? ' · évolution depuis cette session' : ''}</p></div>
+        <div class="bilan__card"><h4>Podium de la session</h4><ol class="podium">${podium}</ol></div>
+        ${bcHtml}
+      </div>
+      <h3 class="subtitle">Course par course</h3>
+      <div class="session"><ul class="races">${races.map((r) => raceRow(r, s)).join('')}</ul></div>
+      ${nxHtml}
+    </section>`;
+  }
+
+  /* ---------- Session à venir (forfait) ---------- */
   function nextPanel() {
-    const up = upcomingSession();
+    const hm = homeMode();
+    if (hm.kind === 'cours') return coursPanel(hm.session);
+    if (hm.kind === 'fin') return termineePanel(hm);
+    const up = hm.session;
     if (!up) return '<p class="empty">La saison est terminée.</p>';
     const isW = up.id === 'X';
     const races = sortedRaces(up);
@@ -569,6 +718,7 @@
       : `<p class="forfait__label">Choix verrouillés</p><p class="countdown countdown--shut">Course en cours</p><p class="forfait__dl">depuis ${dlShort(dl)}</p>`;
     const cta = open ? (n === live.length ? 'Modifier mes choix' : 'Faire mes choix') : 'Voir le desk';
     return `<section>
+      ${hm.back ? `<p class="backlink"><button type="button" class="linkbtn" data-unskip="${hm.back.id}">← Revoir la dernière session (${esc(hm.back.name)})</button></p>` : ''}
       <article class="forfait">
         <div class="forfait__main">
           ${stateBadge(up)}
@@ -620,8 +770,8 @@
 
   /* ---------- Navigation & rendu ---------- */
   function tabs() {
-    const up = upcomingSession();
-    const label = up && G.sessionState(up, now()) === 'en cours' ? 'Session en cours' : 'Session à venir';
+    const hk = homeMode().kind;
+    const label = hk === 'cours' ? 'Session en cours' : hk === 'fin' ? 'Dernière session' : 'Session à venir';
     return [
       { id: 'next', label, note: '' },
       { id: '1', label: 'Desk 1', note: `${shortOf(D.DESKS[0].from)} au ${shortOf(D.DESKS[0].to)}` },
@@ -1240,6 +1390,10 @@
     if (go) { setTab(go.dataset.goto === '0' ? 'w' : go.dataset.goto); return; }
     const tf = e.target.closest('[data-tf]');
     if (tf) { state.tf = tf.dataset.tf; applyTakenFilter(); return; }
+    const skp = e.target.closest('[data-skip]');
+    if (skp) { LS.set('skigame.skip.' + skp.dataset.skip, '1'); render(); window.scrollTo(0, 0); return; }
+    const usk = e.target.closest('[data-unskip]');
+    if (usk) { LS.del('skigame.skip.' + usk.dataset.unskip); render(); window.scrollTo(0, 0); return; }
     const ffb = e.target.closest('[data-ff]');
     if (ffb) {
       const v = ffb.dataset.ff;
