@@ -327,7 +327,8 @@
     if (!res) {
       if (!lockedRace(race)) return '';
       const lv = liveOf(race);
-      return `<span class="soon">${lv ? 'Provisoire (1re manche)' : 'Résultat en attente'}</span><button type="button" class="linkbtn rcbtn" data-refresh-results>↻ Vérifier le résultat officiel</button>`;
+      const late = now() - G.raceStart(race) > 2.5 * 3600 * 1000; // avant, le résultat ne peut pas être publié : inutile de proposer de vérifier
+      return `<span class="soon">${lv ? 'Provisoire (1re manche)' : 'Résultat en attente'}</span>${late ? '<button type="button" class="linkbtn rcbtn" data-refresh-results>↻ Vérifier le résultat officiel</button>' : ''}`;
     }
     const pk = (state.picks[playerId] || {})[race.id];
     const sc = G.scoreRace(race, pk, state.results);
@@ -717,7 +718,6 @@
     return `<section>
       <div class="lockbar"><div class="lockbar__t"><span class="state state--en-cours">Session clôturée</span><strong>${fl(s.name)}</strong><span class="sub">Choix verrouillés</span></div>
         <ul class="lockbar__mine" aria-label="Mes choix">${mine}</ul></div>
-      ${anyRes ? `<p><button type="button" class="btn" data-sx-open="${s.id}">Exporter les points (WhatsApp)</button></p>` : ''}
       <h3 class="subtitle">${done.length ? 'Courses à venir ou en attente' : 'Qui a pris qui'}</h3>
       ${todo.length ? `<div class="session"><ul class="races">${todo.map((r) => liveRaceRow(r)).join('')}</ul></div>` : '<p class="hint">Toutes les courses sont terminées.</p>'}
       ${done.length ? `<h3 class="subtitle">Courses passées</h3><div class="session"><ul class="races">${done.map((r) => liveRaceRow(r)).join('')}</ul></div>` : ''}
@@ -771,7 +771,6 @@
         <div class="bilan__card"><h4>Podium de la session</h4><ol class="podium">${podium}</ol></div>
         ${bcHtml}
       </div>
-      <p><button type="button" class="btn" data-sx-open="${s.id}">Exporter le récap (WhatsApp)</button></p>
       <h3 class="subtitle">Course par course</h3>
       <div class="session"><ul class="races">${races.map((r) => raceRow(r, s)).join('')}</ul></div>
       ${nxHtml}
@@ -1677,7 +1676,7 @@
 
   /* ---------- Démarrage ---------- */
   window.SKI_DR.init({ state, G, D, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
-  SHARE.init({ state, G, D, esc, nameOf, skn, pln, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
+  SHARE.init({ state, G, D, esc, nameOf, surname, skn, pln, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
   /** Résultats officiels (data/results.json) : relus chaque minute ; dès qu'une course est officialisée, tout bascule de « en attente » à « officiel ». */
   function loadResults(manual) {
     const btns = manual ? Array.from(document.querySelectorAll('[data-refresh-results]')) : [];

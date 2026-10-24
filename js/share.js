@@ -196,40 +196,53 @@
     } catch (e) { console.error('JPG', e); say('Impossible de créer l’image.'); }
   }
 
-  /* ---------- Récap de session (WhatsApp) ---------- */
+  /* ---------- Récap de session (WhatsApp) : résultats des skieurs + points des joueurs ---------- */
+  const sur = (id) => { const n = C.nameOf(id).split(' '); return n.length > 1 ? n.slice(1).join(' ') : n[0]; };
   function sessionRows(session) {
     const { state, G } = C;
-    const races = G.sessionRaces(session).filter((r) => !r.cancelled && state.results[r.id]).sort((a, b) => (a.date + a.id).localeCompare(b.date + b.id));
+    const all = G.sessionRaces(session).filter((r) => !r.cancelled);
+    const races = all.filter((r) => state.results[r.id]).sort((a, b) => (a.date + a.id).localeCompare(b.date + b.id));
+    const how = (e) => (e ? (e.status || (e.rank ? C.ordinal(e.rank) : '–')) : 'non classé');
     const rows = state.players.map((p) => {
       const pk = state.picks[p.id] || {};
-      const per = races.map((r) => ({ race: r, pts: G.scoreRace(r, pk[r.id], state.results) || 0, ath: pk[r.id] && pk[r.id].a ? G.effectiveAthlete(pk[r.id], state.results, r.id) : null }));
+      const per = races.map((r) => ({ race: r, pts: G.scoreRace(r, pk[r.id], state.results) || 0 }));
       return { p, per, total: per.reduce((s, x) => s + x.pts, 0), gen: G.generalScore(pk, state.results) };
     }).sort((a, b) => b.total - a.total || b.gen - a.gen || a.p.name.localeCompare(b.p.name, 'fr'));
     let last = null, rank = 0;
     rows.forEach((r, i) => { if (r.total !== last) { rank = i + 1; last = r.total; } r.rank = rank; });
-    const pods = races.map((r) => ({ race: r, pod: (state.results[r.id] || []).filter((e) => !e.status && e.rank && e.rank <= 3).sort((a, b) => a.rank - b.rank) }));
-    return { races, rows, pods };
+    const per = races.map((race) => {
+      const res = state.results[race.id] || [];
+      const pod = res.filter((e) => !e.status && e.rank && e.rank <= 3).sort((a, b) => a.rank - b.rank);
+      const pl = [];
+      state.players.forEach((p) => {
+        const pk = (state.picks[p.id] || {})[race.id]; if (!pk || !pk.a) return;
+        const eff = G.effectiveAthlete(pk, state.results, race.id), e = res.find((x) => x.ath === eff);
+        pl.push({ p, eff, how: how(e), sub: eff !== pk.a, pts: G.scoreRace(race, pk, state.results) || 0 });
+      });
+      pl.sort((a, b) => b.pts - a.pts || a.p.name.localeCompare(b.p.name, 'fr'));
+      return { race, pod, pl };
+    });
+    return { races, all, rows, per, partial: races.length < all.length };
   }
   const MED = ['🥇', '🥈', '🥉'];
-  const raceShort = (r) => `${C.placeLabel(r)} ${r.gender === 'W' ? 'dames' : 'hommes'} ${C.discLabel(r)}`;
+  const raceShort = (r) => `${C.placeLabel(r)} · ${C.genderLabel(r)} · ${C.discLabel(r)}`;
+  const sgn = (n) => (n > 0 ? '+' : '') + n;
   function sessionText(session) {
-    const { rows, pods, races } = sessionRows(session);
-    const tot = C.G.sessionRaces(session).filter((r) => !r.cancelled).length, part = races.length < tot;
-    const L = [`🎿 *${session.name}* — ${part ? `points après ${races.length} course${races.length > 1 ? 's' : ''} sur ${tot}` : 'bilan de la session'}`, ''];
-    if (!races.length) return L.concat('Aucun résultat pour l’instant.').join('\n');
-    L.push('🏆 *Classement de la session*');
-    rows.forEach((r) => {
-      const d = r.per.map((x) => `${x.pts}`).join(' + ');
-      L.push(`${MED[r.rank - 1] && r.rank <= 3 ? MED[r.rank - 1] : r.rank + '.'} ${r.p.name} : *${r.total} pts*${races.length > 1 ? ` (${d})` : ''}`);
+    const { rows, per, races, all, partial } = sessionRows(session);
+    const L = [`🎿 *${session.name}* — ${partial ? `après ${races.length} course${races.length > 1 ? 's' : ''} sur ${all.length}` : 'bilan de la session'}`];
+    if (!races.length) return L.concat('', 'Aucun résultat pour l’instant.').join('\n');
+    L.push('', '🏆 *Classement des joueurs*');
+    rows.forEach((r) => L.push(`${r.rank <= 3 ? MED[r.rank - 1] : r.rank + '.'} ${r.p.name} : *${r.total} pts*${races.length > 1 ? ` (${r.per.map((x) => x.pts).join(' + ')})` : ''}`));
+    per.forEach(({ race, pod, pl }) => {
+      L.push('', `🏁 *${raceShort(race)}*`, pod.map((e) => `${MED[e.rank - 1]} ${sur(e.ath)}`).join('  '));
+      pl.forEach((x) => L.push(`• ${x.p.name} *${sgn(x.pts)}* — ${sur(x.eff)} ${x.how}${x.sub ? ' (rempl.)' : ''}`));
     });
-    L.push('', '🏁 *Podiums*');
-    pods.forEach(({ race, pod }) => L.push(`• ${raceShort(race)} : ` + (pod.length ? pod.map((e) => `${MED[e.rank - 1]} ${C.nameOf(e.ath)}`).join(' ') : '—')));
     L.push('', 'skigame-2627.vercel.app');
     return L.join('\n');
   }
   function sessionOpen(sid) {
     const s = C.D.SESSIONS.concat([C.D.WORLDS]).find((x) => String(x.id) === String(sid)); if (!s) return;
-    C.openModal(`<div class="rc"><h3 class="rc__title">${C.esc(s.name)} · récap</h3><p class="hint">Message WhatsApp et image du bilan de la session.</p>
+    C.openModal(`<div class="rc"><h3 class="rc__title">${C.esc(s.name)} · récap</h3><p class="hint">Message WhatsApp et image : résultats des skieurs et points des joueurs.</p>
       <pre class="rc__pre">${C.esc(sessionText(s))}</pre>
       <div class="rc__act"><button type="button" class="btn" data-sx-copy="${s.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-sx-jpg="${s.id}">Image JPG</button></div><p id="rc-msg" class="hint" role="status"></p></div>`);
     const card = document.querySelector('#modal .modal__card'); if (card) card.classList.add('modal__card--wide');
@@ -244,11 +257,11 @@
     }
   }
   async function sessionCanvas(session) {
-    const { rows, pods, races } = sessionRows(session);
+    const { rows, per, races, all, partial } = sessionRows(session);
     const F = '"Instrument Sans","Helvetica Neue",Arial,sans-serif', FD = '"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif';
     const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin;
-    const padX = 56, headH = 250, rowH = 74, footH = 90, podH = 92;
-    const H = headH + 70 + rows.length * rowH + 70 + pods.length * podH + 30 + footH;
+    const padX = 56, headH = 250, rowH = 70, rH = 58, bandH = 112, footH = 90;
+    const H = headH + 60 + 20 + rows.length * rowH + per.reduce((s, b) => s + 40 + bandH + b.pl.length * rH, 0) + 30 + footH;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
     const gr = g.createLinearGradient(0, 0, 0, headH); gr.addColorStop(0, K.t); gr.addColorStop(1, K.b);
@@ -259,24 +272,34 @@
     g.textBaseline = 'alphabetic';
     g.fillStyle = K.gold; g.font = `800 30px ${FD}`; g.fillText('SKI GAME · COUPE DU MONDE 2026-27', padX, 70);
     g.fillStyle = K.head; g.font = `800 62px ${FD}`; g.fillText(session.name, padX, 150);
-    g.fillStyle = K.sub; g.font = `600 34px ${F}`; g.fillText(C.G.sessionRaces(session).filter((r) => !r.cancelled).length > races.length ? `Points après ${races.length} course${races.length > 1 ? 's' : ''}` : 'Bilan de la session', padX, 205);
-    let y = headH + 50;
-    g.fillStyle = K.ink; g.font = `800 32px ${FD}`; g.fillText('Classement', padX, y); y += 20;
+    g.fillStyle = K.sub; g.font = `600 34px ${F}`; g.fillText(partial ? `Points après ${races.length} course${races.length > 1 ? 's' : ''} sur ${all.length}` : 'Bilan de la session', padX, 205);
+    const medal = (x, y, n) => { const c = ['#e0b13a', '#b8c2cc', '#c98a55'][n - 1]; g.fillStyle = c; g.beginPath(); g.arc(x, y - 9, 20, 0, Math.PI * 2); g.fill(); g.fillStyle = '#1b2b44'; g.font = `800 24px ${FD}`; g.textAlign = 'center'; g.fillText(String(n), x, y); g.textAlign = 'left'; };
+    let y = headH + 56;
+    g.fillStyle = K.ink; g.font = `800 32px ${FD}`; g.fillText('Classement des joueurs', padX, y); y += 20;
     rows.forEach((r, i) => {
       if (i % 2) { g.fillStyle = K.band; g.fillRect(0, y, W, rowH); }
       const cy = y + rowH / 2;
-      g.fillStyle = K.ink; g.font = `800 34px ${FD}`; g.textAlign = 'center'; g.fillText(r.rank <= 3 ? MED[r.rank - 1] : String(r.rank), padX + 28, cy + 12); g.textAlign = 'left';
-      g.font = `700 32px ${F}`; g.fillText(r.p.name, padX + 90, cy + 11);
+      if (r.rank <= 3) medal(padX + 28, cy + 11, r.rank); else { g.fillStyle = K.ink; g.font = `800 32px ${FD}`; g.textAlign = 'center'; g.fillText(String(r.rank), padX + 28, cy + 11); g.textAlign = 'left'; }
+      g.fillStyle = K.ink; g.font = `700 31px ${F}`; g.fillText(r.p.name, padX + 84, cy + 11);
       g.textAlign = 'right'; g.font = `800 34px ${FD}`; g.fillText(`${r.total} pts`, W - padX, cy + 12);
-      if (races.length > 1) { g.font = `600 24px ${F}`; g.fillStyle = K.soft; g.fillText(r.per.map((x) => x.pts).join(' + '), W - padX - 170, cy + 10); }
+      if (races.length > 1) { g.font = `600 24px ${F}`; g.fillStyle = K.soft; g.fillText(r.per.map((x) => x.pts).join(' + '), W - padX - 175, cy + 10); }
       g.textAlign = 'left'; y += rowH;
     });
-    y += 50; g.fillStyle = K.ink; g.font = `800 32px ${FD}`; g.fillText('Podiums', padX, y); y += 20;
-    pods.forEach(({ race, pod }) => {
-      g.fillStyle = K.ink; g.font = `700 25px ${F}`; g.fillText(raceShort(race), padX, y + 34);
-      g.fillStyle = K.soft; g.font = `600 24px ${F}`;
-      g.fillText(pod.map((e) => `${e.rank}. ${C.nameOf(e.ath)}`).join('  ·  '), padX, y + 74);
-      y += podH;
+    per.forEach(({ race, pod, pl }) => {
+      y += 40;
+      g.fillStyle = K.t; g.fillRect(0, y, W, bandH);
+      g.fillStyle = K.head; g.font = `800 34px ${FD}`; g.fillText(raceShort(race), padX, y + 44);
+      g.font = `600 26px ${F}`; g.fillStyle = K.sub;
+      g.fillText(pod.map((e) => `${e.rank}. ${sur(e.ath)}`).join('    '), padX, y + 88);
+      y += bandH;
+      pl.forEach((x, i) => {
+        if (i % 2) { g.fillStyle = K.band; g.fillRect(0, y, W, rH); }
+        const cy = y + rH / 2;
+        g.fillStyle = K.ink; g.font = `700 28px ${F}`; g.fillText(x.p.name, padX, cy + 10);
+        g.fillStyle = K.soft; g.font = `600 26px ${F}`; g.fillText(`${sur(x.eff)} · ${x.how}${x.sub ? ' (rempl.)' : ''}`, padX + 330, cy + 9);
+        g.textAlign = 'right'; g.fillStyle = x.pts > 0 ? '#1f7a3d' : K.soft; g.font = `800 30px ${FD}`; g.fillText(sgn(x.pts), W - padX, cy + 11); g.textAlign = 'left';
+        y += rH;
+      });
     });
     g.fillStyle = K.foot; g.fillRect(0, H - footH, W, footH);
     g.fillStyle = K.footT; g.font = `600 26px ${F}`; g.textAlign = 'center'; g.fillText('skigame-2627.vercel.app', W / 2, H - footH / 2 + 9); g.textAlign = 'left';
