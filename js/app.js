@@ -1582,6 +1582,13 @@
     fetch('data/results.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.file = j; recompute(); } }).catch(() => {});
     fetch('data/extra-athletes.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { state.addl = { M: j.M || [], W: j.W || [] }; recompute(); } }).catch(() => {});
   }
+  /** Horaires corrigés (data/time-overrides.json, écrit par tools/check-times.js) : la clôture des choix suit l'heure officielle FIS. */
+  const loadTimes = () => fetch('data/time-overrides.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+    const sg = JSON.stringify((j && j.races) || {}); if (sg === state.timesSig) return; state.timesSig = sg;
+    Object.entries((j && j.races) || {}).forEach(([id, o]) => { if (D.RACES[id] && o && o.time) { D.RACES[id].time = o.time; D.RACES[id].timeKnown = true; } });
+    scheduleRender();
+  }).catch(() => {});
+  loadTimes(); setInterval(() => { if (document.visibilityState === 'visible') loadTimes(); }, 60000);
   const loadLive = () => fetch('data/live.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { const sg = JSON.stringify(j); if (sg !== state.liveSig) { state.liveSig = sg; state.live = j; scheduleRender(); } } }).catch(() => {});
   loadLive(); setInterval(() => { if (document.visibilityState === 'visible') loadLive(); }, 60000);
   fetch('data/startlists.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.startlists = j; scheduleRender(); } }).catch(() => {});
