@@ -293,6 +293,24 @@
     } else if (e.key === 'Enter') { e.preventDefault(); const h = list.querySelector('.is-hl'); if (h) comboChoose(box, h); }
     else if (e.key === 'Escape') { comboClose(); i.blur(); }
   });
+  /* ---------- Brouillons : choix posés à l'avance, pas encore confirmés ----------
+     Un brouillon (pick.draft) réserve le skieur dans le desk mais n'est pas compté comme « choix fait ».
+     À la deadline il est pris tel quel (le drapeau est alors ignoré). */
+  const isDraft = (pk, race) => !!(pk && pk.a && pk.draft && !lockedRace(race));
+  const isConfirmed = (pk, race) => !!(pk && pk.a && !isDraft(pk, race));
+  const confirmedN = (races) => races.filter((r) => isConfirmed(myPicks()[r.id], r)).length;
+  const draftN = (races) => races.filter((r) => isDraft(myPicks()[r.id], r)).length;
+  const sessionDraftMode = (session) => { const l = active(G.sessionRaces(session)).filter((r) => !lockedRace(r) && (myPicks()[r.id] || {}).a); return l.length > 0 && l.every((r) => myPicks()[r.id].draft); };
+  function setDraft(raceIds, on) {
+    const picks = myPicks();
+    raceIds.forEach((rid) => {
+      const race = G.raceOf(rid), pk = picks[rid]; if (!race || lockedRace(race) || !pk || !pk.a) return;
+      const n = Object.assign({}, pk); delete n.ts; if (on) n.draft = true; else delete n.draft;
+      picks[rid] = n;
+      if (!state.demo) store.setPick(state.me, rid, n).catch(fail);
+    });
+    const y = window.scrollY; renderPanel(); window.scrollTo({ top: y });
+  }
   function pickEditor(race, session) {
     const label = `${placeLabel(race)}, ${genderLabel(race)}, ${discLabel(race)}`;
     const cur = myPicks()[race.id] || {};
@@ -305,6 +323,7 @@
         <label class="sr" for="pb-${race.id}">Remplaçant, ${esc(label)}</label>
         <span class="pickhelp">${combo(race, session, 'b')}${info('Le remplaçant est facultatif. Il joue à la place du titulaire que si ce dernier ne prend pas le départ.')}</span>
         ${freeLink(race, 'auto')}
+        ${cur.a ? `<button type="button" class="draftbtn${cur.draft ? ' is-on' : ''}" data-draft="${race.id}" aria-pressed="${!!cur.draft}" title="${cur.draft ? 'Brouillon : touche pour confirmer ce choix' : 'Touche pour marquer ce choix comme brouillon'}">${cur.draft ? '📝 Brouillon · confirmer' : 'Confirmé · passer en brouillon'}</button>` : ''}
       </div>
     </div>`;
   }
@@ -314,11 +333,12 @@
     const eff = G.effectiveAthlete(p, state.results, race.id);
     const swapped = p.b && eff === p.b;
     const drawn = p.d && eff === p.d;
+    const fin = !!state.results[race.id];   // résultat saisi : on n'affiche plus le remplaçant si le titulaire a pris le départ
     const text = drawn
       ? `<span class="who"><s class="who--out">${skn(p.a)}</s>${p.b ? ` <s class="who--out">${skn(p.b)}</s>` : ''} ${skn(p.d)}</span><span class="sub">Tiré au sort</span>`
       : swapped
       ? `<span class="who"><s class="who--out">${skn(p.a)}</s> ${skn(p.b)}</span><span class="sub">Remplaçant en piste</span>`
-      : `<span class="who">${skn(p.a)}</span>${p.b ? `<span class="sub">Remplaçant : ${skn(p.b)}</span>` : ''}`;
+      : `<span class="who">${skn(p.a)}</span>${p.b && !fin ? `<span class="sub">Remplaçant : ${skn(p.b)}</span>` : ''}`;
     return `<div class="pickline">${avatarOf(eff)}<div class="pickline__txt">${text}</div></div>`;
   }
   function outcome(race, playerId) {
@@ -360,7 +380,7 @@
     const races = sortedRaces(session);
     const live = active(races);
     const dl = G.sessionDeadline(session);
-    const n = live.filter((r) => (myPicks()[r.id] || {}).a).length;
+    const n = confirmedN(live), nd = draftN(live);
     const open = live.some((r) => !lockedRace(r));
     const mine = G.sessionScore(session, myPicks(), state.results);
     // Session terminée : au-dessus de la moyenne des joueurs = chaude (flammes), en dessous = froide (stalactites)
@@ -378,9 +398,10 @@
           <p class="session__meta">${indexLabel ? indexLabel + ', ' : ''}deadline ${dlShort(dl)}${avgTxt}</p>
         </div>
         <div class="session__side">${stateBadge(session)}${open
-    ? `<span class="count${n === live.length ? ' count--ok' : ''}">${n}/${live.length} choisis</span>${remindBtn(session)}`
+    ? `<span class="count${n === live.length ? ' count--ok' : ''}">${n}/${live.length} choisis</span>${nd ? `<span class="count count--draft">${nd} brouillon${nd > 1 ? 's' : ''}</span>` : ''}${remindBtn(session)}`
     : `<span class="count count--pts">${mine} pts</span>`}</div>
       </header>
+      ${open && live.some((r) => (myPicks()[r.id] || {}).a) ? `<p class="session__draft">${nd === live.filter((r) => (myPicks()[r.id] || {}).a).length ? '📝 Cette session est en brouillon : ses choix ne comptent pas comme faits (ils seront pris tels quels à la deadline).' : ''} <button type="button" class="linkbtn" data-draft-session="${session.id}|${sessionDraftMode(session) ? 0 : 1}">${sessionDraftMode(session) ? 'Tout confirmer' : 'Tout passer en brouillon'}</button></p>` : ''}
       ${races.some((r) => !r.cancelled && resOf(r)) ? `<p class="session__exp"><button type="button" class="linkbtn" data-sx-open="${session.id}">Exporter les points (WhatsApp)</button></p>` : ''}
       ${races.some((r) => r.kind === 'finale') ? '<p class="session__note">🏁 Finales : points ×2, et <strong>seuls les 15 premiers marquent</strong> (à partir de la 16ᵉ place : 0 point).</p>' : ''}
       <ul class="races">${races.filter(passF).map((r) => raceRow(r, session)).join('') || '<li class="race"><span class="none">Aucune course avec ces filtres.</span></li>'}</ul>
@@ -484,8 +505,8 @@
           if (!visible(p.id, r)) return;
           const pk = (state.picks[p.id] || {})[r.id];
           if (!pk || !pk.a) return;
-          const sc = G.scoreRace(r, pk, state.results);
-          ((takes[pk.a] = takes[pk.a] || {})[p.id] = (takes[pk.a][p.id] || [])).push({ tag: raceTag(r), sc });
+          const sc = G.scoreRace(r, pk, state.results), dft = p.id === state.me && isDraft(pk, r);
+          ((takes[pk.a] = takes[pk.a] || {})[p.id] = (takes[pk.a][p.id] || [])).push({ tag: raceTag(r), sc, dft });
           totals[r.gender][p.id] = (totals[r.gender][p.id] || 0) + (sc || 0);
         });
       });
@@ -493,7 +514,7 @@
     const filters = `<div class="filters">
       <label class="sr" for="ath-q">Chercher un skieur</label>
       <input type="search" id="ath-q" class="search" placeholder="Chercher un skieur ou une nation" value="${esc(state.tq)}" autocomplete="off">
-      <div class="seg seg--sm" role="group" aria-label="Filtrer les skieurs">${[['all', 'Tous'], ['taken', 'Déjà pris'], ['free', 'Encore libres']].map(([id, l]) =>
+      <div class="seg seg--sm" role="group" aria-label="Filtrer les skieurs">${[['all', 'Tous'], ['taken', 'Déjà pris'], ['draft', 'Brouillons'], ['free', 'Encore libres']].map(([id, l]) =>
         `<button type="button" class="seg__btn" data-tf="${id}" aria-pressed="${state.tf === id}">${l}</button>`).join('')}</div>
       <label class="check"><input type="checkbox" id="ath-major"${state.major ? ' checked' : ''}> Skieurs majeurs ${info('Coché : seuls les favoris (liste des cotes « victoire seulement », classés du plus favori au moins favori) et les skieurs déjà choisis sont affichés. Décoche pour voir tout le monde, puis fais défiler le tableau vers la droite.')}</label>
     </div>`;
@@ -502,21 +523,22 @@
       const order = Object.keys(MAJORS[g]), odd = (a) => { const k = order.indexOf(a.id); return k < 0 ? Infinity : k; };
       const wc = wcPoints();
       const list = LIST[g].map((a, i) => [a, i]).sort((x, y) => ((wc[y[0].id] || 0) - (wc[x[0].id] || 0)) || (odd(x[0]) === odd(y[0]) ? 0 : odd(x[0]) - odd(y[0])) || x[1] - y[1]).map((x) => x[0]);
-      const taken = list.filter((a) => takes[a.id]).length;
-      const attrs = (a) => `data-a="${a.id}" data-name="${esc(norm(a.name + ' ' + (a.fis || '') + ' ' + (a.nat || '')))}" data-taken="${takes[a.id] ? 1 : 0}" data-major="${MAJORS[g][a.id] !== undefined || takes[a.id] ? 1 : 0}"`;
-      const head = list.map((a) => `<th scope="col" class="sk ${takes[a.id] ? 'is-taken' : 'is-free'}" ${attrs(a)}>${avatar(ATH[a.id], !!takes[a.id])}<span class="sk__n">${esc(listName(a))}</span><em class="sub">${esc(a.nat || (a.pending ? 'à régulariser' : ''))}</em></th>`).join('');
+      const isDr = (a) => !!takes[a.id] && Object.values(takes[a.id]).every((l) => l.every((x) => x.dft));   // pris seulement en brouillon
+      const taken = list.filter((a) => takes[a.id] && !isDr(a)).length, drafted = list.filter((a) => isDr(a)).length;
+      const attrs = (a) => `data-a="${a.id}" data-name="${esc(norm(a.name + ' ' + (a.fis || '') + ' ' + (a.nat || '')))}" data-taken="${takes[a.id] ? (isDr(a) ? 'd' : 1) : 0}" data-major="${MAJORS[g][a.id] !== undefined || takes[a.id] ? 1 : 0}"`;
+      const head = list.map((a) => `<th scope="col" class="sk ${takes[a.id] ? (isDr(a) ? 'is-draft' : 'is-taken') : 'is-free'}" ${attrs(a)}>${avatar(ATH[a.id], !!takes[a.id] && !isDr(a))}<span class="sk__n">${esc(listName(a))}</span><em class="sub">${esc(a.nat || (a.pending ? 'à régulariser' : ''))}</em></th>`).join('');
       const rows = playersRanked().map((p) => {
         const cells = list.map((a) => {
           const l = takes[a.id] && takes[a.id][p.id];
-          const inner = l ? l.map((x) => `<span class="mark" title="${esc(x.tag)}"><span class="mark__l">${esc(x.tag)}</span>${x.sc === null ? '' : `<b class="mark__p ${x.sc > 0 ? 'on' : 'off'}">${x.sc > 0 ? '+' : ''}${x.sc}</b>`}</span>`).join('') : '';
+          const inner = l ? l.map((x) => `<span class="mark${x.dft ? ' mark--draft' : ''}" title="${esc(x.tag)}${x.dft ? ' (brouillon)' : ''}"><span class="mark__l">${esc(x.tag)}</span>${x.sc === null ? '' : `<b class="mark__p ${x.sc > 0 ? 'on' : 'off'}">${x.sc > 0 ? '+' : ''}${x.sc}</b>`}</span>`).join('') : '';
           return `<td ${attrs(a)}>${inner}</td>`;
         }).join('');
         return `<tr class="${p.id === state.me ? 'me' : ''}"><th scope="row"><strong>${pln(p)}</strong><span class="sub">${totals[g][p.id] || 0} pts rapportés</span></th>${cells}</tr>`;
       }).join('');
       return `<div class="tablewrap tablewrap--scroll"><table class="grid grid--tk">
-        <caption>${g === 'M' ? 'Messieurs' : 'Dames'}, ${taken} sur ${list.length} déjà pris</caption>
+        <caption>${g === 'M' ? 'Messieurs' : 'Dames'}, ${taken} sur ${list.length} déjà pris${drafted ? `, ${drafted} en brouillon` : ''}</caption>
         <thead><tr><th scope="col" class="tk__corner">Joueur</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
-    }).join('') + '<p class="hint">En couleur : déjà choisi. En noir et blanc : encore libre. Les choix des autres apparaissent à la deadline de chaque session.</p>';
+    }).join('') + '<p class="hint">En couleur : choix confirmé. En pointillés : brouillon (réservé mais pas encore confirmé). En noir et blanc : encore libre. Les choix des autres apparaissent à la deadline de chaque session.</p>';
   }
 
   /* ---------- Panneau d'un desk / des Mondiaux ---------- */
@@ -540,7 +562,7 @@
     const dk = isW ? null : D.DESKS[key - 1];
     const score = isW ? G.worldsScore(myPicks(), state.results).total : G.deskScore(key, myPicks(), state.results);
     const total = sessions.reduce((n, s) => n + active(G.sessionRaces(s)).length, 0);
-    const chosen = sessions.reduce((n, s) => n + active(G.sessionRaces(s)).filter((r) => (myPicks()[r.id] || {}).a).length, 0);
+    const chosen = sessions.reduce((n, s) => n + confirmedN(active(G.sessionRaces(s))), 0), drafts = sessions.reduce((n, s) => n + draftN(active(G.sessionRaces(s))), 0);
     const title = isW ? 'Championnats du monde' : dk.name;
     const meta = isW ? `Crans-Montana, 4 au 14 février, ${total} courses` : `${shortOf(dk.from)} au ${shortOf(dk.to)}, ${total} courses`;
     const tabs = [['mine', 'Mon desk'], ['recap', 'Récap des joueurs'], ['taken', 'Athlètes pris']].concat(trendsAny(key) ? [['trend', 'Tendances']] : []).map(([id, label]) =>
@@ -557,7 +579,7 @@
       <header class="deskhead">
         <div><h2>${esc(title)}</h2><p class="deskhead__meta">${esc(meta)}</p>
           <p class="rule">${isW ? 'Barème ×3. Un skieur ne peut être choisi qu’une fois.' : 'Un skieur ne peut être choisi qu’une fois dans ce desk.'} ${info(isW ? 'Aux Mondiaux, les points sont multipliés par 3 et un skieur ne peut servir qu’une fois sur l’ensemble des 8 épreuves. Messieurs et dames comptent à part.' : 'Dans un même desk, un skieur ne peut être choisi qu’une seule fois chez les messieurs et une seule fois chez les dames. Un skieur déjà pris apparaît grisé.')}</p></div>
-        <dl class="deskhead__stats"><div><dt>Choix faits ${info('Nombre de courses de ce desk pour lesquelles tu as déjà choisi un skieur.')}</dt><dd>${chosen}/${total}</dd></div><div><dt>Points ${info('Total de tes points sur ce desk, d’après les résultats déjà saisis.')}</dt><dd>${score}</dd></div></dl>
+        <dl class="deskhead__stats"><div><dt>Choix faits ${info('Nombre de courses de ce desk pour lesquelles tu as confirmé un skieur. Les brouillons sont comptés à part.')}</dt><dd>${chosen}/${total}${drafts ? `<span class="sub"> + ${drafts} brouillon${drafts > 1 ? 's' : ''}</span>` : ''}</dd></div><div><dt>Points ${info('Total de tes points sur ce desk, d’après les résultats déjà saisis.')}</dt><dd>${score}</dd></div></dl>
       </header>
       <div class="deskbar"><div class="seg" role="tablist" aria-label="Vue du desk">${tabs}</div>${filterBar()}</div>
       <div class="deskbody">${body}</div>
@@ -789,7 +811,7 @@
     const dl = G.sessionDeadline(up);
     const live = active(races);
     const open = live.some((r) => !lockedRace(r));
-    const n = live.filter((r) => (myPicks()[r.id] || {}).a).length;
+    const n = confirmedN(live), nd = draftN(live);
     const inDesk = D.SESSIONS.filter((s) => s.desk === up.desk);
     const where = isW ? 'Hors desk, barème ×3' : `Desk ${up.desk}, session ${inDesk.indexOf(up) + 1} sur ${inDesk.length}`;
     const goto = isW ? 0 : up.desk;
@@ -798,7 +820,7 @@
       return `<li class="mini">
         <span class="mini__when"><b>${F_NUM.format(d)}</b> ${F_MO.format(d)}</span>
         <span class="mini__what"><strong class="mini__place">${fl(placeLabel(r))}</strong><span class="mini__tags"><span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</span></span>
-        <span class="mini__pick">${r.cancelled ? '<span class="none">Annulée</span>' : (myPicks()[r.id] || {}).a ? pickSummary(state.me, r) : '<span class="todo">À choisir</span>'}${r.cancelled ? '' : slLink(r)}</span></li>`;
+        <span class="mini__pick">${r.cancelled ? '<span class="none">Annulée</span>' : (myPicks()[r.id] || {}).a ? `${pickSummary(state.me, r)}${isDraft(myPicks()[r.id], r) ? '<span class="draftflag">📝 brouillon</span>' : ''}` : '<span class="todo">À choisir</span>'}${r.cancelled ? '' : slLink(r)}</span></li>`;
     }).join('');
     const stub = open
       ? `<p class="forfait__label">Deadline dans ${info('Tes choix se modifient librement jusqu’au départ de la première course de la session. Ensuite ils sont verrouillés, et les choix de tous les joueurs deviennent visibles.')}</p><p class="countdown" id="countdown" data-dl="${dl.toISOString()}">${countdownText(dl)}</p><p class="forfait__dl">${dlShort(dl)}</p>${remindBtn(up)}`
@@ -925,7 +947,7 @@
     m.hidden = false; document.body.classList.add('noscroll');
     const f = m.querySelector('textarea, button:not(.modal__x)'); if (f) f.focus({ preventScroll: true });
   }
-  const slLink = (race) => (startListOf(race) ? `<button type="button" class="linkbtn slbtn" data-startlist="${race.id}">Consulter la start list</button>` : '');
+  const slLink = (race) => (startListOf(race) && !resOf(race) ? `<button type="button" class="linkbtn slbtn" data-startlist="${race.id}">Consulter la start list</button>` : '');
   /** Fenêtre « start list » : dossards, noms et nations lus sur la page FIS. On peut y choisir son skieur (et son remplaçant) tant que la session est ouverte ;
       le choix déjà fait est mis en évidence et peut être retiré puis changé. */
   function startListModal(raceId, keep) {
@@ -1353,7 +1375,7 @@
   function applyTakenFilter() {
     const q = norm(state.tq.trim());
     document.querySelectorAll('.grid--tk thead th[data-a]').forEach((th) => {
-      const ok = (!q || th.dataset.name.includes(q)) && (state.tf === 'all' || (state.tf === 'taken') === (th.dataset.taken === '1')) && (!state.major || th.dataset.major === '1');
+      const ok = (!q || th.dataset.name.includes(q)) && (state.tf === 'all' || (state.tf === 'taken' ? th.dataset.taken === '1' : state.tf === 'draft' ? th.dataset.taken === 'd' : th.dataset.taken === '0')) && (!state.major || th.dataset.major === '1');
       const table = th.closest('table');
       table.querySelectorAll(`[data-a="${th.dataset.a}"]`).forEach((c) => { c.hidden = !ok; });
     });
@@ -1453,6 +1475,7 @@
     if (value) cur[slot] = value; else delete cur[slot];
     if (slot === 'a') { if (!cur.a || cur.b === cur.a) delete cur.b; }
     delete cur.ts;
+    if (cur.a && !('draft' in cur) && !(myPicks()[race.id] || {}).a && sessionDraftMode(sessionOf(race))) cur.draft = true;   // nouveau choix dans une session en brouillon : brouillon aussi
     const out = cur.a ? cur : null;
     const picks = myPicks(); // relu ici : les données ont pu être rechargées pendant l'attente
     // affichage immédiat, puis enregistrement
@@ -1483,6 +1506,8 @@
     const sxo = e.target.closest('[data-sx-open]'); if (sxo) { SHARE.sessionOpen(sxo.dataset.sxOpen); return; }
     const sxc = e.target.closest('[data-sx-copy]'); if (sxc) { SHARE.sessionCopy(sxc.dataset.sxCopy); return; }
     const sxj = e.target.closest('[data-sx-jpg]'); if (sxj) { SHARE.sessionJpg(sxj.dataset.sxJpg); return; }
+    const dr1 = e.target.closest('[data-draft]'); if (dr1) { const pk = myPicks()[dr1.dataset.draft]; setDraft([dr1.dataset.draft], !(pk && pk.draft)); return; }
+    const dr2 = e.target.closest('[data-draft-session]'); if (dr2) { const [sid, on] = dr2.dataset.draftSession.split('|'); const ss = allSessions().find((x) => String(x.id) === sid); if (ss) setDraft(active(G.sessionRaces(ss)).map((r) => r.id), on === '1'); return; }
     if (e.target.closest('[data-refresh-results]')) { loadResults(true); return; }
     const rcc = e.target.closest('[data-rc-copy]'); if (rcc) { SHARE.copy(rcc.dataset.rcCopy); return; }
     const rcj = e.target.closest('[data-rc-jpg]'); if (rcj) { SHARE.jpg(rcj.dataset.rcJpg); return; }
@@ -1571,7 +1596,7 @@
       const dl = G.sessionDeadline(s);
       if (t < gateStart(dl).getTime()) continue;
       if ((g.skip || {})[s.id] || ((g.until || {})[s.id] || 0) > t) continue;
-      const todo = active(sortedRaces(s)).filter((r) => !lockedRace(r) && !(myPicks()[r.id] || {}).a);
+      const todo = active(sortedRaces(s)).filter((r) => !lockedRace(r) && !isConfirmed(myPicks()[r.id], r));
       if (todo.length) return { session: s, dl, todo };
     }
     return null;
@@ -1592,9 +1617,11 @@
     const opts = [['1 h', 60 * 60e3], ['2 h', 2 * 60 * 60e3], ['demain au réveil', wakeUp() - now()]].filter(([, ms]) => ms > 60e3 && ms < left - 20 * 60e3);
     // fermer la fenêtre sans choisir = rappel dans 30 min
     const cur = gateGet(); cur.until = Object.assign({}, cur.until, { [sid]: now().getTime() + 30 * 60e3 }); gateSet(cur);
+    const nDraft = todo.filter((r) => isDraft(myPicks()[r.id], r)).length;
     const list = todo.map((r) => `<li class="gate__race"><span class="gate__when">${esc(dayOf(r.date))}</span><span class="gate__what"><strong>${fl(placeLabel(r))}</strong> <span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</span></li>`).join('');
     openModal(`<div class="gate"><p class="gate__kicker">Au portillon</p>
       <h2 class="gate__title">${todo.length > 1 ? `${todo.length} choix t’attendent` : 'Un choix t’attend'}</h2>
+      ${nDraft ? `<p class="gate__lead">Dont <strong>${nDraft} brouillon${nDraft > 1 ? 's' : ''}</strong> à confirmer. Sans action de ta part, les brouillons seront pris tels quels à la deadline.</p>` : ''}
       <p class="gate__lead">Deadline <strong>${esc(dlShort(dl))}</strong>, dans ${esc(leftText(left))}. Ensuite, tout est verrouillé, <strong>y compris les courses des jours suivants</strong> : il faut tout valider avant la première course de la session.</p>
       <ul class="gate__list">${list}</ul>
       <button type="button" class="btn btn--brique gate__go" data-gate-go="${sid}">Je choisis maintenant</button>
@@ -1658,7 +1685,7 @@
       const dlOld = Math.min(...active(sortedRaces(sess)).map((x) => G.raceStart(Object.assign({}, x, { time: x.time0 || x.time })).getTime()));
       if (!(G.sessionDeadline(sess).getTime() > dlOld)) { try { localStorage.setItem(MV_KEY, JSON.stringify(seen)); } catch (e) { /* ignoré */ } continue; }   // la deadline (1re course de la session) n'a pas bougé : rien à signaler
       try { localStorage.setItem(MV_KEY, JSON.stringify(seen)); } catch (e) { /* ignoré */ }
-      const dl = G.sessionDeadline(sess), todo = active(sortedRaces(sess)).filter((x) => !lockedRace(x) && !(myPicks()[x.id] || {}).a);
+      const dl = G.sessionDeadline(sess), todo = active(sortedRaces(sess)).filter((x) => !lockedRace(x) && !isConfirmed(myPicks()[x.id], x));
       openModal(`<div class="gate"><p class="gate__kicker">Départ reporté</p>
         <h2 class="gate__title">Tu as plus de temps pour choisir</h2>
         ${group.map((x) => `<p class="gate__lead"><strong>${fl(placeLabel(x))}</strong> <span class="gender gender--${x.gender}">${genderLabel(x)}</span> ${discBadge(x)} : départ reporté de ${esc(hm(x.time0))} à <strong>${esc(hm(x.time))}</strong>.</p>`).join('')}

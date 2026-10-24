@@ -1057,3 +1057,12 @@ html[data-theme='nuit'] .rank--final u { color: #ffb4a3; }
 html[data-theme='nuit'] .rf__pts.on { color: #6fd39a; }
 html[data-theme='nuit'] .rf__t tr.is-st td:first-child { color: #ff9a86; }
 html[data-theme='nuit'] .rc__chip.me { background: #3a5fa8; color: #fff; }
+/* Brouillons */
+.draftbtn { margin-top: .3rem; padding: .15rem .6rem; border-radius: 99px; border: 1.5px solid var(--filet); background: transparent; color: var(--encre-douce); font: inherit; font-size: .78rem; cursor: pointer; }
+.draftbtn.is-on { border: 1.5px dashed var(--ocre); background: color-mix(in srgb, var(--ocre) 18%, transparent); color: var(--encre); font-weight: 700; }
+.draftflag { display: inline-block; margin-left: .4rem; padding: .05rem .5rem; border: 1.5px dashed var(--ocre); border-radius: 99px; font-size: .72rem; font-weight: 700; color: var(--encre); }
+.count--draft { border: 1.5px dashed var(--ocre); background: transparent; color: var(--encre); margin-left: .3rem; }
+.session__draft { margin: .4rem 0; font-size: .85rem; }
+.mark--draft { border-style: dashed; opacity: .8; } .mark--draft .mark__l { background: transparent; color: var(--encre); }
+.grid--tk thead th.is-draft { opacity: .85; outline: 1.5px dashed var(--ocre); outline-offset: -3px; }
+.session__head .count--draft { color: #fff; border-color: var(--sun, #f1d78a); }
