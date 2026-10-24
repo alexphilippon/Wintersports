@@ -1450,6 +1450,27 @@
   }
   /** Le Desk 2 est terminé : toutes ses courses ont leur résultat (ou sont annulées). */
   const desk2Done = () => D.SESSIONS.filter((x) => x.desk === 2).every((x) => G.sessionRaces(x).every((r) => r.cancelled || !!resOf(r)));
+
+  /** Liste exhaustive des choix d'un joueur avec leur note en flocons, le plus récent en premier. */
+  function evalModal(pid) {
+    const p = state.players.find((x) => x.id === pid) || (pid === state.me ? { id: pid, name: (state.user && state.user.name) || '', photo: '' } : null);
+    if (!p) return;
+    const ids = state.players.map((x) => x.id), picks = state.picks[pid] || {};
+    const rows = Object.keys(D.RACES).map((id) => G.raceOf(id)).filter((r) => !r.cancelled && resOf(r) && picks[r.id] && picks[r.id].a)
+      .sort((a, b) => G.raceStart(b) - G.raceStart(a))
+      .map((r) => ({ r, an: G.pickAnalysis(r, pid, state.picks, state.results, ids) })).filter((x) => x.an);
+    const rated = rows.filter((x) => x.an.flakes != null), mean = rated.length ? rated.reduce((a, x) => a + x.an.flakes, 0) / rated.length : null;
+    const li = rows.map(({ r, an }) => {
+      const e = resOf(r).find((x) => x.ath === an.ath), how = e ? (e.status || ordinal(e.rank)) : 'non classé';
+      return `<li class="evl__row"><span class="evl__d">${esc(dayOf(r.date))}</span><span class="evl__r">${fl(placeLabel(r))} ${discBadge(r)} <span class="gender gender--${r.gender}">${genderLabel(r)}</span></span>
+        <span class="evl__a">${skn(an.ath)} <em class="sub">${esc(how)} · ${an.mine} pt${an.mine > 1 ? 's' : ''}</em></span>
+        <span class="evl__n">${an.flakes == null ? '<em class="sub">en attente de données</em>' : `${flakeRow(an.flakes)}<b>${f1(an.flakes)}</b>${an.provisional ? '<em class="sub">provisoire</em>' : ''}`}</span></li>`;
+    }).join('');
+    openModal(`<div class="fiche"><header class="fiche__head">${pav(Object.assign({}, p), 'lg')}<div><h2 class="fiche__name">Évaluation des choix${pid === state.me ? ' <em>(toi)</em>' : ''}</h2><p class="fiche__sum">${esc(p.name)}${mean != null ? ` · note moyenne ${f1(mean)} / 5` : ''}</p></div></header>
+      <p class="hint">Note de 0 à 5 flocons par choix, du plus récent au plus ancien. Elle compare les points du skieur à ceux des autres joueurs (sur la course et sur ce skieur dans le desk) ; elle peut évoluer quand d’autres joueurs le prennent.</p>
+      ${li ? `<ul class="evl">${li}</ul>` : '<p class="hint">Aucune course terminée pour ce joueur.</p>'}
+      <p class="fiche__foot"><button type="button" class="btn btn--ghost btn--sm" data-player="${esc(pid)}">← Retour à la fiche</button></p></div>`, 'modal__card--wide');
+  }
   function ficheModal(pid) {
     const p = state.players.find((x) => x.id === pid) || (pid === state.me && state.user ? { id: pid, name: state.user.name || '', photo: '' } : null);
     if (!p) return;
@@ -1491,7 +1512,7 @@
       <h3 class="fh">Séries les plus longues</h3>${strk}`;
     openModal(`<div class="fiche"><header class="fiche__head">${pav(Object.assign({}, p), 'lg')}<div><h2 class="fiche__name">${esc(p.name)}${pid === state.me ? ' <em>(toi)</em>' : ''}</h2>
       <p class="fiche__sum">${rk && rk.gen ? `${esc(ordinal(rk.gen.rank))} au général · ${total} pts` : 'Pas encore de classement'}</p></div></header>
-      ${globeBoard(rk)}${body}
+      ${globeBoard(rk)}${rows.length ? `<p class="fiche__eval"><button type="button" class="btn btn--ghost btn--sm" data-evalpicks="${esc(pid)}">Évaluation des choix du joueur ❄ →</button></p>` : ''}${body}
       ${pid === state.me ? '<p class="fiche__foot"><button type="button" class="btn btn--ghost btn--sm" data-settings>Mes réglages</button></p>' : ''}</div>`, 'modal__card--wide');
   }
 
@@ -1675,6 +1696,7 @@
   document.addEventListener('click', (e) => {
     const rc = e.target.closest('[data-racecard]');
     if (rc) { SHARE.open(rc.dataset.racecard); return; }
+    const ev = e.target.closest('[data-evalpicks]'); if (ev) { evalModal(ev.dataset.evalpicks); return; }
     const pl = e.target.closest('[data-player]');
     if (pl && FICHE_ON) { ficheModal(pl.dataset.player); return; }
     if (e.target.closest('[data-settings]')) { settingsModal(); return; }

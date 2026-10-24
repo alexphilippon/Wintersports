@@ -1560,3 +1560,11 @@ html[data-skin='arcade'] .session__meta { color: #bff6ff; font-size: .92rem; }
 html[data-theme='nuit'] .flk { --flk: #8fd3ff; } html[data-skin='halloween'] .flk { --flk: #ff9a2e; } html[data-skin='arcade'] .flk { --flk: #29e6ff; }
 html[data-theme='minimal'] .flk { --flk: #111; } html[data-theme='noel'] .flk { --flk: #c8323a; }
 html[data-theme='nuit'] .flk__i { color: rgba(255,255,255,.2); }
+
+/* ---------- Évaluation des choix d'un joueur ---------- */
+.fiche__eval { margin: .2rem 0 .6rem; }
+.evl { list-style: none; margin: .6rem 0; padding: 0; display: flex; flex-direction: column; }
+.evl__row { display: grid; grid-template-columns: 4.2rem minmax(0, 1fr); gap: .2rem .8rem; padding: .6rem 0; border-top: 1px solid var(--filet); align-items: center; }
+.evl__d { font-size: .8rem; font-weight: 700; color: var(--encre-douce); text-transform: uppercase; grid-row: span 2; }
+.evl__n { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; } .evl__n .flk { font-size: 1.15rem; }
+@media (min-width: 760px) { .evl__row { grid-template-columns: 4.2rem minmax(0, 1.1fr) minmax(0, 1.2fr) 11rem; } .evl__d { grid-row: auto; } }
