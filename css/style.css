@@ -1067,3 +1067,6 @@ html[data-theme='nuit'] .rc__chip.me { background: #3a5fa8; color: #fff; }
 .grid--tk thead th.is-draft { opacity: .85; outline: 1.5px dashed var(--ocre); outline-offset: -3px; }
 .session__head .count--draft { color: #fff; border-color: var(--sun, #f1d78a); }
 .rf__sub { margin: 1rem 0 .3rem; font-weight: 700; font-size: .85rem; color: var(--encre-douce); }
+/* Course terminée : ligne teintée selon l'ambiance */
+.race--hot { background: linear-gradient(90deg, rgba(220, 138, 34, .22), rgba(220, 138, 34, .06) 75%); box-shadow: inset 4px 0 0 #dc8a22; }
+.race--cold { background: linear-gradient(90deg, rgba(106, 165, 207, .24), rgba(106, 165, 207, .07) 75%); box-shadow: inset 4px 0 0 #6aa5cf; }

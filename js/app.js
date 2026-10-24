@@ -362,12 +362,18 @@
   const sessionOf = (race) => [...D.SESSIONS, D.WORLDS].find((s) => s.races.includes(race.id));
 
   /* ---------- Courses d'une session (vue « Mon desk ») ---------- */
+  /** Course terminée : la ligne prend la couleur de l'ambiance (chaude si j'ai marqué, froide sinon). */
+  function doneCls(race) {
+    if (race.cancelled || !resOf(race)) return '';
+    const sc = G.scoreRace(race, (state.picks[state.me] || {})[race.id], state.results) || 0;
+    return sc > 0 ? ' race--done race--hot' : ' race--done race--cold';
+  }
   function raceRow(race, session) {
     const d = at(race.date);
     const flag = race.cancelled ? '<span class="flag flag--off">Annulée</span>'
       : race.moved ? `<span class="flag flag--moved" title="Choix modifiable jusqu’au nouveau départ">Reportée du ${esc(shortOf(race.originalDate))}, départ ${esc(hourText(G.raceStart(race)))}</span>` : '';
     const pick = race.cancelled ? '<span class="none">Course annulée : aucun choix</span>' : lockedRace(race) ? pickSummary(state.me, race) : pickEditor(race, session);
-    return `<li class="race${race.cancelled ? ' race--off' : ''}">
+    return `<li class="race${race.cancelled ? ' race--off' : ''}${doneCls(race)}">
       <div class="race__date race__date--${race.gender}"><span class="race__wd">${F_WD.format(d).replace('.', '')}</span><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_MO.format(d)}</span></div>
       <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong>
         <span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${flag}</span>
@@ -722,7 +728,7 @@
   }
   function liveRaceRow(race) {
     const d = at(race.date);
-    return `<li class="race${race.cancelled ? ' race--off' : ''}">
+    return `<li class="race${race.cancelled ? ' race--off' : ''}${doneCls(race)}">
       <div class="race__date race__date--${race.gender}"><span class="race__wd">${F_WD.format(d).replace('.', '')}</span><span class="race__num">${F_NUM.format(d)}</span><span class="race__mo">${F_MO.format(d)}</span></div>
       <div class="race__info"><strong class="race__place">${fl(placeLabel(race))}</strong><span class="race__tags"><span class="gender gender--${race.gender}">${genderLabel(race)}</span>${discBadge(race)}${raceStatus(race)}</span></div>
       <div class="race__pick">${race.cancelled ? '' : lockedRace(race) ? liveNote(race) : ''}${race.cancelled ? '<span class="none">Course annulée</span>' : lockedRace(race) ? shareTable(race) : ''}
