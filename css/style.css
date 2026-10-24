@@ -936,3 +936,31 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 /* Présence des joueurs (admin) */
 .presence { display: inline-block; width: .8rem; height: .8rem; border-radius: 50%; flex: none; margin-right: .1rem; box-shadow: 0 0 0 2px var(--neige), 0 0 0 3px rgba(0,0,0,.2); }
 .presence--on { background: #2fb36b; } .presence--off { background: #d4443a; }
+
+/* ---------- Data room ---------- */
+.plate--data { --c: #f0c94a; --ct: #1b2b44; }
+.dr__filters { margin: 0 0 .8rem; justify-content: flex-start; }
+.dr__sk { display: inline-flex; align-items: center; gap: .5rem; } .dr__nm { font-weight: 600; }
+.dr__bd { white-space: nowrap; }
+.db { display: inline-block; min-width: 1.7rem; margin-right: .25rem; padding: .05rem .3rem; text-align: center; border-radius: 6px; font-size: .72rem; font-weight: 800; border: 1.5px solid color-mix(in srgb, var(--c) 45%, transparent); color: color-mix(in srgb, var(--c) 55%, var(--encre-douce)); background: transparent; }
+.db.is-on { background: var(--c); border-color: var(--c); color: #fff; }
+.dr__light tr.is-mine th { font-weight: 800; }
+.dr__more { margin: -.6rem 0 1rem; }
+.dr__wrap { max-height: 75vh; overflow: auto; }
+.dr__grid { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: .85rem; }
+.dr__grid th, .dr__grid td { padding: .3rem .35rem; border-bottom: 1px solid var(--filet); text-align: center; }
+.dr__grid thead th { position: sticky; top: 0; z-index: 3; background: var(--neige); vertical-align: bottom; }
+.dr__sticky { position: sticky; left: 0; z-index: 2; text-align: left !important; min-width: 8.5rem; max-width: 8.5rem; background: var(--neige); box-shadow: 1px 0 0 var(--filet); display: table-cell; }
+.dr__grid thead .dr__sticky { z-index: 4; }
+.dr__sticky .dr__nm { display: inline-block; max-width: 6.4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; font-size: .82rem; }
+.dr__rk { display: inline-block; width: 1.4rem; color: var(--encre-douce); font-weight: 700; font-size: .75rem; }
+.dr__pts { font-weight: 800; min-width: 2.6rem; background: var(--neige); }
+.dr__rh { min-width: 2.7rem; }
+.dr__rh span { display: block; line-height: 1.15; } .dr__pl { font-weight: 800; font-size: .72rem; } .dr__dt { font-size: .65rem; color: var(--encre-douce); font-weight: 600; }
+.dr__ds { font-size: .62rem; padding: 0 .25rem; margin: .1rem auto; }
+.dr__c { font-weight: 700; min-width: 2.7rem; font-variant-numeric: tabular-nums; }
+.c-1 { background: #f0c94a; color: #1b2b44; } .c-2 { background: #cdd5dc; color: #1b2b44; } .c-3 { background: #d9a273; color: #1b2b44; }
+.c-top { background: color-mix(in srgb, #2fb36b 28%, var(--neige)); } .c-in { background: color-mix(in srgb, #5b8cc0 16%, var(--neige)); color: var(--encre-douce); } .c-st { background: color-mix(in srgb, #d4443a 22%, var(--neige)); color: var(--brique); font-size: .7rem; } .c-none { color: var(--encre-douce); }
+.dr__grid tr.is-mine .dr__sticky { background: color-mix(in srgb, var(--ocre) 26%, var(--neige)); }
+html[data-theme='nuit'] .c-1, html[data-theme='nuit'] .c-2, html[data-theme='nuit'] .c-3 { color: #111a26; }
+@media (max-width: 640px) { .dr__sticky { min-width: 7.2rem; max-width: 7.2rem; } .dr__sticky .dr__nm { max-width: 5.2rem; } .dr__rh, .dr__c { min-width: 2.4rem; } }

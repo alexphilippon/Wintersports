@@ -785,9 +785,9 @@
       { id: 'w', label: 'Mondiaux', note: '4 au 14 févr.' },
       { id: '3', label: 'Desk 3', note: `${shortOf(D.DESKS[2].from)} au ${shortOf(D.DESKS[2].to)}` },
       { id: 'gen', label: 'Classements', note: '' },
-    ];
+    ].concat(state.demo ? [{ id: 'data', label: 'Data room', note: '' }] : []);
   }
-  const TAB_IDS = ['next', '1', '2', 'w', '3', 'gen', 'adm'];
+  const TAB_IDS = ['next', '1', '2', 'w', '3', 'gen', 'data', 'adm'];
   /** Pictos des onglets (affichés sur mobile à la place des libellés longs). */
   const TAB_ICO = {
     next: '<path d="M6 21V4"/><path d="M6 5h11l-2.5 3.5L17 12H6"/>',
@@ -795,9 +795,10 @@
     2: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><text x="12" y="16.6" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor" stroke="none">2</text>',
     3: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><text x="12" y="16.6" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor" stroke="none">3</text>',
     w: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c3.2 3 3.2 14 0 17c-3.2-3-3.2-14 0-17z"/>',
+    data: '<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M9.5 4v16M15 9.5v10.5"/>',
     gen: '<path d="M3 20.5h18"/><rect x="9" y="7.5" width="6" height="13"/><rect x="3" y="13" width="6" height="7.5"/><rect x="15" y="15.5" width="6" height="5"/>',
   };
-  const TAB_SHORT = { next: 'À venir', 1: 'Desk 1', 2: 'Desk 2', w: 'Mondiaux', 3: 'Desk 3', gen: 'Général' };
+  const TAB_SHORT = { next: 'À venir', 1: 'Desk 1', 2: 'Desk 2', w: 'Mondiaux', 3: 'Desk 3', gen: 'Général', data: 'Data' };
   function renderTabs() {
     $('#tabs').innerHTML = tabs().map((t) => {
       const short = t.id === 'next' && /en cours/.test(t.label) ? 'En cours' : t.id === 'next' && /Dernière/.test(t.label) ? 'Terminée' : TAB_SHORT[t.id];
@@ -1262,7 +1263,7 @@
       return;
     }
     if (t === 'adm' && !isAdmin()) state.tab = 'next';
-    const html = state.tab === 'adm' ? window.SKI_ADMIN.render(adminCtx()) : state.tab === 'next' ? nextPanel() : state.tab === 'gen' ? generalPanel() : state.tab === 'w' ? deskPanel(0) : deskPanel(Number(state.tab));
+    const html = state.tab === 'adm' ? window.SKI_ADMIN.render(adminCtx()) : state.tab === 'next' ? nextPanel() : state.tab === 'gen' ? generalPanel() : state.tab === 'data' ? window.SKI_DR.render() : state.tab === 'w' ? deskPanel(0) : deskPanel(Number(state.tab));
     $('#panel').innerHTML = (state.demo ? '<p class="demo">Démonstration : joueurs, choix et résultats fictifs.</p>' : '') + html;
     $('#panel').setAttribute('aria-labelledby', 'tab-' + state.tab);
     applyTakenFilter();
@@ -1543,6 +1544,7 @@
   }, 30000);
 
   /* ---------- Démarrage ---------- */
+  window.SKI_DR.init({ state, G, D, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, rerender: renderPanel });
   SHARE.init({ state, G, D, esc, nameOf, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
   const adminCtx = () => ({ state, G, D, store, LIST, ATH, esc, norm, at, F_DAY, hourText, dlShort, shortOf, placeLabel, discLabel, genderLabel, nameOf, avatarOf, sortedRaces, lockedRace, active, canon, newPlayers, markPlayersSeen, rerender: render, fail, isAdmin });
   const q = new URLSearchParams(location.search);
