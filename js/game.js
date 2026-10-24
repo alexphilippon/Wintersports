@@ -202,10 +202,47 @@
     return used;
   }
 
+  /* ---------- Rentabilité d'un choix (onglet desk) ---------- */
+  const ANA_MIN = 2;   // autres joueurs nécessaires pour qu'une comparaison ait un sens
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const avg = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+  /** Comparaison de mon choix sur une course terminée.
+      skier : mes points vs la moyenne des autres joueurs ayant pris ce skieur dans le même desk (une fois par joueur, sur n'importe quelle course du desk jouée).
+      race  : mes points vs la moyenne des autres joueurs sur cette course, quel que soit leur skieur (ne bouge plus une fois la course jouée).
+      flakes : note de 0 à 5 par demi-flocon = 5 × (0,5 × √(points / max) + 0,25 × écart à la course + 0,25 × écart au skieur), les écarts valant 0,5 + (moi − moyenne) / max borné à [0 ; 1].
+      Sans comparaison « skieur » disponible : 0,65 / 0,35 et provisoire = true. Sans comparaison « course » : flakes = null. 0 point = 0 flocon. */
+  function pickAnalysis(race, meId, picksByPlayer, results, playerIds) {
+    const mp = picksByPlayer && picksByPlayer[meId] && picksByPlayer[meId][race.id];
+    if (!mp || !mp.a || race.cancelled || !results || !results[race.id]) return null;
+    const ath = effectiveAthlete(mp, results, race.id);
+    if (!ath) return null;
+    const max = pointsForRank(1) * (race.mult || 1), mine = scoreRace(race, mp, results) || 0;
+    const others = (playerIds || []).filter((id) => id !== meId);
+    const rPts = others.map((id) => picksByPlayer[id] && picksByPlayer[id][race.id]).filter((pk) => pk && pk.a).map((pk) => scoreRace(race, pk, results) || 0);
+    const scope = deskIdOf(race.id) === 0 ? [D.WORLDS] : D.SESSIONS.filter((x) => x.desk === deskIdOf(race.id));
+    const sPts = [];
+    others.forEach((id) => {
+      for (const s of scope) for (const r of sessionRaces(s)) {
+        if (r.gender !== race.gender || r.cancelled || !results[r.id]) continue;
+        const pk = picksByPlayer[id] && picksByPlayer[id][r.id];
+        if (pk && pk.a && effectiveAthlete(pk, results, r.id) === ath) { sPts.push(scoreRace(r, pk, results) || 0); return; }
+      }
+    });
+    const raceOk = rPts.length >= ANA_MIN, skierOk = sPts.length >= ANA_MIN;
+    const rAvg = rPts.length ? avg(rPts) : null, sAvg = sPts.length ? avg(sPts) : null;
+    let flakes = null;
+    if (raceOk) {
+      const abs = Math.sqrt(clamp01(mine / max)), rel = (m) => clamp01(0.5 + (mine - m) / max);
+      const score = skierOk ? 0.5 * abs + 0.25 * rel(rAvg) + 0.25 * rel(sAvg) : 0.65 * abs + 0.35 * rel(rAvg);
+      flakes = mine <= 0 ? 0 : Math.max(0.5, Math.round(score * 10) / 2);
+    }
+    return { ath, mine, max, skier: { ok: skierOk, n: sPts.length, avg: sAvg }, race: { ok: raceOk, n: rPts.length, avg: rAvg }, flakes, provisional: raceOk && !skierOk, min: ANA_MIN };
+  }
+
   const api = {
     parisInstant, setOverrides, raceOf, raceStart, activeRaces, sessionOfRace, raceLockTime, raceLocked, sessionRaces, sessionDeadline, sessionEnd, sessionState,
     pointsForRank, racePoints, FINALS_TOP, effectiveAthlete, substitute, drawSkier, autoDraws, scoreRace, worldsWinner, worldsBonus,
-    sessionScore, deskScore, worldsScore, disciplineScore, generalScore, usedInDesk,
+    pickAnalysis, sessionScore, deskScore, worldsScore, disciplineScore, generalScore, usedInDesk,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SKI_GAME = api;

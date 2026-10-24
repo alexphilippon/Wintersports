@@ -143,3 +143,21 @@ assert.strictEqual(fin(1), 200); assert.strictEqual(fin(15), 32); assert.strictE
 assert.strictEqual(G.scoreRace(D.RACES.M04, { a: 'a' }, { M04: [{ ath: 'a', rank: 16 }] }), 15, 'hors finale : barème normal jusqu’au 30e');
 
 console.log('Tous les tests passent.');
+
+// ---- Rentabilité d'un choix
+{
+  const rid = Object.keys(D.RACES).find((id) => D.RACES[id].gender === 'W' && D.RACES[id].kind !== 'mondial' && D.RACES[id].mult === 1);
+  const race = G.raceOf(rid), ids = ['me', 'a', 'b', 'c'];
+  const res = { [rid]: [1, 2, 3, 4, 5].map((r) => ({ ath: 'x' + r, rank: r })) };
+  const pk = (a) => ({ [rid]: { a } });
+  const picks = { me: pk('x4'), a: pk('x1'), b: pk('x2'), c: pk('x4') };
+  const an = G.pickAnalysis(race, 'me', picks, res, ids);
+  assert.strictEqual(an.mine, 50);
+  assert.strictEqual(an.race.n, 3); assert.strictEqual(an.race.avg, (100 + 80 + 50) / 3);
+  assert.strictEqual(an.skier.n, 1); assert.strictEqual(an.skier.ok, false, 'un seul autre joueur : pas assez de données');
+  assert.ok(an.provisional && an.flakes > 0 && an.flakes <= 5 && an.flakes * 2 === Math.round(an.flakes * 2));
+  assert.strictEqual(G.pickAnalysis(race, 'me', { me: pk('x4'), a: pk('x1') }, res, ids).flakes, null, 'trop peu de joueurs : attente');
+  assert.strictEqual(G.pickAnalysis(race, 'me', { me: pk('x9'), a: pk('x1'), b: pk('x2') }, res, ids).flakes, 0, '0 point = 0 flocon');
+  assert.strictEqual(G.pickAnalysis(race, 'me', { me: pk('x1'), a: pk('x4'), b: pk('x5') }, res, ids).flakes, 5, 'victoire face au peloton = 5 flocons');
+  assert.strictEqual(G.pickAnalysis(race, 'me', { a: pk('x1') }, res, ids), null);
+}

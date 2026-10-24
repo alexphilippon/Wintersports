@@ -1508,3 +1508,14 @@ html[data-theme='glace'] .masthead { border-bottom: 5px double #ffffff; }
 .draftbtn.is-on { color: var(--on-accent, #1b2b44); }
 html[data-theme='minimal'] { --on-accent: #ffffff; }
 html[data-theme='minimal'] button.info { color: #111; border-color: #111; }
+
+/* ---------- Pastille d'initiale : aux couleurs de l'ambiance choisie par le joueur (sans photo) ---------- */
+html .pav.pav--t-sapin { background: var(--tex-sapin, #14545c); background-color: #14545c; color: #fbf8ef; border-color: #7fb9a8; box-shadow: 0 0 0 1.5px #14545c; }
+html .pav.pav--t-glace { background: linear-gradient(145deg, #e9f6ff 0%, #9fd2ee 55%, #5ea6d2 100%); color: #12476a; border-color: #fff; box-shadow: 0 0 0 1.5px #8cc4e4, inset 0 0 6px rgba(255,255,255,.8); }
+html .pav.pav--t-nuit { background: radial-gradient(120% 90% at 20% 15%, #35e0a1 0%, rgba(53,224,161,0) 55%), radial-gradient(100% 90% at 85% 80%, #8a5bd8 0%, rgba(138,91,216,0) 60%), #0e2447; color: #fff; text-shadow: 0 0 6px rgba(120,255,200,.9); border-color: #5fe3b4; box-shadow: 0 0 0 1.5px #0e2447; }
+html .pav.pav--t-noel { background: repeating-linear-gradient(135deg, #b3262d 0 5px, #9a1f26 5px 10px); color: #fff; border-color: #f4f0e6; box-shadow: 0 0 0 1.5px #1f6b45; }
+html .pav.pav--t-halloween { background: radial-gradient(circle at 50% 40%, #ff9a2e 0%, #e8710a 70%); color: #140c05; border-color: #140c05; box-shadow: 0 0 0 1.5px #ff9a2e; }
+html .pav.pav--t-arcade { background: #1a1456; color: #ffe83a; border: 2px solid #29e6ff; border-radius: 22%; box-shadow: 2px 2px 0 #ff3ea5; font-family: 'Press Start 2P', monospace; font-weight: 400; text-shadow: 1px 1px 0 #ff3ea5; image-rendering: pixelated; }
+html .pav.pav--t-arcade.pav--xs { font-size: .5rem; } html .pav.pav--t-arcade.pav--sm { font-size: .62rem; } html .pav.pav--t-arcade.pav--lg { font-size: 1.05rem; }
+html .pav.pav--t-minimal { background: #fff; color: #111; border: 2px solid #111; box-shadow: none; }
+html .pav.pav--t-minimal.pav--xs { border-width: 1px; }

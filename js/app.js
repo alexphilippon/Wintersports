@@ -1254,6 +1254,7 @@
   function beat() {
     if (state.demo || !state.user || document.visibilityState !== 'visible' || !store.touchPresence) return;
     const p = state.players.find((x) => x.id === state.me); if (p) p.lastSeen = Date.now();
+    syncTheme();
     Promise.resolve(store.touchPresence(state.me)).catch(() => { /* hors ligne : on réessaie au prochain battement */ });
   }
   setInterval(beat, 2 * 60 * 1000);
@@ -1270,7 +1271,17 @@
     if (t === 'halloween' || t === 'arcade') de.setAttribute('data-skin', t); else de.removeAttribute('data-skin');
     document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)));
     const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', THEME_COLOR[t]);
-    if (save) { try { localStorage.setItem('skigame.theme', t); } catch (e) { /* ignoré */ } }
+    curTheme = t;
+    if (save) { try { localStorage.setItem('skigame.theme', t); } catch (e) { /* ignoré */ } syncTheme(); }
+  }
+  /** Ambiance choisie : enregistrée sur la fiche du joueur (liste admin, pastille d'initiale aux couleurs de son ambiance). */
+  let curTheme = 'sapin';
+  function syncTheme() {
+    if (state.demo || !state.user || !store.setPlayerTheme) return;
+    const p = state.players.find((x) => x.id === state.me);
+    if (!p || p.theme === curTheme) return;
+    p.theme = curTheme;
+    Promise.resolve(store.setPlayerTheme(state.me, curTheme)).catch(() => { /* hors ligne : au prochain battement */ });
   }
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-theme-set]'); if (b) setTheme(b.dataset.themeSet, true); });
   (function () { let t = 'sapin'; try { t = localStorage.getItem('skigame.theme') || 'sapin'; } catch (e) { /* ignoré */ } setTheme(t, false); })();
@@ -1297,7 +1308,7 @@
   const playerOf = (id) => state.players.find((p) => p.id === id) || { id, name: '', photo: '' };
   function pav(p, size) {
     const init = esc((p.name || '?').trim()[0] ? (p.name || '?').trim()[0].toUpperCase() : '?');
-    return `<span class="pav pav--${size || 'sm'}" aria-hidden="true">${p.photo ? `<img src="${p.photo}" alt="">` : `<span>${init}</span>`}</span>`;
+    return `<span class="pav pav--${size || 'sm'}${!p.photo && p.theme ? ' pav--t-' + esc(p.theme) : ''}" aria-hidden="true">${p.photo ? `<img src="${p.photo}" alt="">` : `<span>${init}</span>`}</span>`;
   }
   const FICHE_ON = true; // fiche joueur : désactivée pour le moment (passer à true pour la réactiver)
   const pname = (p) => !FICHE_ON ? `<span class="pn">${pav(p, 'xs')}<span>${esc(p.name)}</span></span>` : `<button type="button" class="pn pn--btn" data-player="${esc(p.id)}" title="Voir la fiche">${pav(p, 'xs')}<span>${esc(p.name)}</span></button>`;

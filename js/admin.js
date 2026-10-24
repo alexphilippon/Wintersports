@@ -15,6 +15,7 @@
   const entryText = (e) => e.status ? `${e.status} ${C.ATH[e.ath] ? C.ATH[e.ath].name : e.ath}` : `${e.rank} ${C.ATH[e.ath] ? C.ATH[e.ath].name : e.ath}`;
 
   /* ---------- Lecture d'un classement collé ---------- */
+  const THEME_NAMES = { sapin: 'Sapin', glace: 'Grand froid', nuit: 'Aurore boréale', noel: 'Noël', halloween: 'Halloween', arcade: 'Arcade', minimal: 'Minimal' };
   function matchLine(text, gender, list) {
     const toks = new Set(tokens(text));
     let best = [], bestN = 0;
@@ -73,7 +74,7 @@
     const dot = (p) => { const age = Date.now() - (p.lastSeen || 0), on = p.lastSeen && age < 5 * 60 * 1000;
       const ago = !p.lastSeen ? 'jamais vu' : on ? 'connecté' : age < 3600e3 ? `vu il y a ${Math.max(1, Math.round(age / 60e3))} min` : age < 86400e3 ? `vu il y a ${Math.round(age / 3600e3)} h` : `vu il y a ${Math.round(age / 86400e3)} j`;
       return `<span class="presence presence--${on ? 'on' : 'off'}" title="${ago}" aria-label="${ago}"></span>`; };
-    html += `<h3 class="subtitle">Joueurs inscrits (${state.players.length})</h3>${state.players.length ? `<ul class="adm__list">${state.players.map((p) => `<li class="adm__ph">${dot(p)}<span class="pav pav--sm">${p.photo ? `<img src="${p.photo}" alt="">` : `<span>${esc((p.name || '?')[0].toUpperCase())}</span>`}</span><strong>${esc(p.name)}</strong> <span class="sub">${p.lastSeen ? (Date.now() - p.lastSeen < 5 * 60e3 ? 'connecté' : 'vu ' + new Date(p.lastSeen).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : 'jamais vu'} · </span><span class="sub">${state.contacts[p.id] ? esc(state.contacts[p.id]) : 'e-mail non disponible'}</span>${p.blocked ? `<span class="sub">photo interdite</span> <button type="button" class="linkbtn" data-adm="photo-allow" data-id="${esc(p.id)}">Autoriser à nouveau</button>` : p.photo ? `<button type="button" class="linkbtn" data-adm="photo-censor" data-id="${esc(p.id)}">Retirer la photo</button>` : ''}</li>`).join('')}</ul>` : '<p class="hint">Personne pour l’instant.</p>'}`;
+    html += `<h3 class="subtitle">Joueurs inscrits (${state.players.length})</h3>${state.players.length ? `<ul class="adm__list">${state.players.map((p) => `<li class="adm__ph">${dot(p)}<span class="pav pav--sm${!p.photo && p.theme ? ' pav--t-' + esc(p.theme) : ''}">${p.photo ? `<img src="${p.photo}" alt="">` : `<span>${esc((p.name || '?')[0].toUpperCase())}</span>`}</span><strong>${esc(p.name)}</strong> <span class="sub">${p.theme ? 'ambiance ' + esc(THEME_NAMES[p.theme] || p.theme) : 'ambiance inconnue'} · </span><span class="sub">${p.lastSeen ? (Date.now() - p.lastSeen < 5 * 60e3 ? 'connecté' : 'vu ' + new Date(p.lastSeen).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : 'jamais vu'} · </span><span class="sub">${state.contacts[p.id] ? esc(state.contacts[p.id]) : 'e-mail non disponible'}</span>${p.blocked ? `<span class="sub">photo interdite</span> <button type="button" class="linkbtn" data-adm="photo-allow" data-id="${esc(p.id)}">Autoriser à nouveau</button>` : p.photo ? `<button type="button" class="linkbtn" data-adm="photo-censor" data-id="${esc(p.id)}">Retirer la photo</button>` : ''}</li>`).join('')}</ul>` : '<p class="hint">Personne pour l’instant.</p>'}`;
     return html;
   }
 
