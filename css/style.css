@@ -1230,6 +1230,6 @@ h3 .xicons { display: inline-flex; gap: .35rem; margin-left: .6rem; vertical-ali
 .fswrap.is-fs .tablewrap { flex: 0 1 auto; max-height: none; min-height: 0; overflow: auto; }
 body.fs-lock { overflow: hidden; }
 .c-st--dnf { background: color-mix(in srgb, #d4443a 24%, var(--neige)); color: #a52a22; }
-.c-st--dnq { background: color-mix(in srgb, #e0803a 22%, var(--neige)); color: #a0541a; }
+.c-st--dnq { background: color-mix(in srgb, #e0607a 20%, var(--neige)); color: #b03a55; }
 .c-st--dsq { background: color-mix(in srgb, #8a2f5a 20%, var(--neige)); color: #7a2450; }
 .c-st--dns { background: transparent; color: color-mix(in srgb, var(--encre) 14%, transparent); font-weight: 400; }

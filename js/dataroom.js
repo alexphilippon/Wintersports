@@ -38,7 +38,7 @@
     const res = allResults(), races = racesOf(g, discs, res), by = {};
     races.forEach((r) => (res[r.id] || []).forEach((e) => {
       const s = (by[e.ath] = by[e.ath] || { ath: e.ath, pts: 0, cells: {}, n: 0 });
-      if (e.status !== 'DNQ') s.cells[r.id] = e;   // non-qualifié en 2e manche : case vide, comme hors du top 30
+      s.cells[r.id] = e;
       s.n++;
       if (!e.status && e.rank) s.pts += C.G.racePoints(r, e.rank);
     }));
@@ -120,7 +120,7 @@
     const by = {}; const map = byFid();
     races.forEach((r) => r.res.forEach(([code, v, cp]) => {
       const s = (by[code] = by[code] || { ath: code, pts: 0, cells: {}, n: 0 });
-      if (v !== 'DNQ') s.cells[r.id] = typeof v === 'number' ? { rank: v } : { status: v };
+      s.cells[r.id] = typeof v === 'number' ? { rank: v } : { status: v };
       s.n++;
       if (typeof v === 'number') s.pts += cp != null ? cp : C.G.pointsForRank(v);   // points publiés par la FIS (les finales n'en donnent pas à tous)
     }));
