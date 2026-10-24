@@ -1066,3 +1066,4 @@ html[data-theme='nuit'] .rc__chip.me { background: #3a5fa8; color: #fff; }
 .mark--draft { border-style: dashed; opacity: .8; } .mark--draft .mark__l { background: transparent; color: var(--encre); }
 .grid--tk thead th.is-draft { opacity: .85; outline: 1.5px dashed var(--ocre); outline-offset: -3px; }
 .session__head .count--draft { color: #fff; border-color: var(--sun, #f1d78a); }
+.rf__sub { margin: 1rem 0 .3rem; font-weight: 700; font-size: .85rem; color: var(--encre-douce); }

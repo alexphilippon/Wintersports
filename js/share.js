@@ -41,7 +41,7 @@
   const how = (r) => (r.status ? r.status : r.rank ? C.ordinal(r.rank) : 'hors classement');
 
   /** Message à coller (WhatsApp) : choix seuls avant le résultat, résultat + choix ensuite. */
-  function raceText(race) {
+  function raceTextPre(race) {
     const { shares, res, podium, N } = raceRows(race);
     const L = [`🎿 *${titleOf(race)}* (${C.dayOf(race.date)})`];
     if (!shares.length) { L.push('Aucun choix.'); return L.join('\n'); }
@@ -70,7 +70,7 @@
     }).join('')}</ol>` : '<p class="hint">Aucun choix pour cette course.</p>';
     const pod = podium.length ? `<p class="rc__pod"><b>Podium</b> ${podium.map((e) => `${e.rank}. ${esc(C.nameOf(e.ath))}`).join(' · ')}</p>` : '';
     const note = res ? '' : '<p class="hint">Résultat pas encore saisi.</p>';
-    return `${head}${note}${res ? fullHtml(race) : ''}${res ? '<h4 class="rf__h">Qui avait pris qui</h4>' : ''}${pod && !res ? pod : ''}${body}<div class="rc__act"><button type="button" class="btn" data-rc-copy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-jpg="${race.id}">Image JPG</button></div><p class="auth__err" id="rc-msg" role="status"></p>`;
+    return `${head}${note}${res ? fullHtml(race) : ''}${res ? '' : pod}${res ? '' : body}${res ? `<p class="rf__sub">Résultat de la course</p>` : ''}<div class="rc__act"><button type="button" class="btn" data-rc-copy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-jpg="${race.id}">Image JPG</button></div>${res ? `<p class="rf__sub">Classement général des joueurs (mise à jour)</p><div class="rc__act"><button type="button" class="btn" data-rc-gcopy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-gjpg="${race.id}">Image JPG</button></div>` : ''}<p class="auth__err" id="rc-msg" role="status"></p>`;
   }
 
   /* ---------- Résultat complet : classement des joueurs + classement des skieurs (temps) ---------- */
@@ -128,7 +128,7 @@
     words.forEach((w) => { const t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; });
     if (cur) lines.push(cur); return lines;
   }
-  async function jpgCanvas(race) {
+  async function jpgCanvasPre(race) {
     const all = raceRows(race), res = all.res;
     const rows = all.shares;
     const ctx0 = document.createElement('canvas').getContext('2d');
@@ -317,6 +317,124 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 4000); say('Image téléchargée.');
     } catch (e) { console.error('JPG', e); say('Impossible de créer l’image.'); }
   }
-  const api = { init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas, fullHtml, sessionRows, sessionText, sessionOpen, sessionCopy, sessionJpg, sessionCanvas };
+
+  /* ---------- Course terminée : classement des skieurs + points des joueurs, puis classement général ---------- */
+  const sur2 = (id) => { const n = C.nameOf(id).split(' '); return n.length > 1 ? n.slice(1).join(' ') : n[0]; };
+  const sg = (n) => (n > 0 ? '+' : '') + n;
+  function resultRows(race) {
+    const all = raceRows(race), res = all.res || [];
+    const t0 = (res.find((e) => !e.status && e.rank === 1) || {}).time;
+    const rows = all.rows.map((r) => {
+      const who = r.pickers.filter((x) => !x.out);
+      return { ath: r.ath, rank: r.rank, status: r.status, who, time: (res.find((e) => e.ath === r.ath) || {}).time, diff: r.rank > 1 ? diffOf((res.find((e) => e.ath === r.ath) || {}).time, t0) : '' };
+    }).filter((r) => (r.rank && !r.status && (r.rank <= 10 || r.who.length)) || (r.status && r.who.length));
+    const hidden = res.filter((e) => !e.status && e.rank && e.rank > 10 && !rows.some((r) => r.ath === e.ath)).length;
+    return { rows, hidden, t0 };
+  }
+  function raceResultText(race) {
+    const { rows } = resultRows(race);
+    const L = [`🏁 *${titleOf(race)}* — résultat (${C.dayOf(race.date)})`, ''];
+    rows.forEach((r) => {
+      const lead = r.status ? `${r.status}` : r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : `${r.rank}.`;
+      const w = r.who.map((x) => `${x.p.name} *${sg(x.pts)}*${x.kind === 'remplaçant' ? ' (rempl.)' : x.kind === 'tiré au sort' ? ' (tirage)' : ''}`).join(', ');
+      L.push(`${lead} ${sur2(r.ath)}${w ? ' → ' + w : ''}`);
+    });
+    L.push('', 'skigame-2627.vercel.app');
+    return L.join('\n');
+  }
+  function raceText(race) { return (C.state.results[race.id] ? raceResultText : raceTextPre)(race); }
+
+  function generalRows(race) {
+    const { state, G } = C;
+    const R0 = Object.assign({}, state.results); delete R0[race.id];
+    const rank = (fn) => { const rows = state.players.map((p) => ({ p, v: fn(state.picks[p.id] || {}, p) })).sort((a, b) => b.v - a.v || a.p.name.localeCompare(b.p.name, 'fr')); let last = null, rk = 0; rows.forEach((r, i) => { if (r.v !== last) { rk = i + 1; last = r.v; } r.rank = rk; }); return rows; };
+    const before = {}; rank((pk) => G.generalScore(pk, R0).total).forEach((r) => { before[r.p.id] = r.rank; });
+    const rows = rank((pk) => G.generalScore(pk, state.results).total);
+    rows.forEach((r) => { r.gain = G.scoreRace(race, (state.picks[r.p.id] || {})[race.id], state.results) || 0; r.mv = before[r.p.id] - r.rank; });
+    return rows;
+  }
+  const mvTxt = (d) => (d > 0 ? `▲${d}` : d < 0 ? `▼${-d}` : '=');
+  function generalText(race) {
+    const rows = generalRows(race);
+    const L = [`📊 *Classement général* — après ${C.placeLabel(race)} ${C.genderLabel(race)} ${C.discLabel(race)}`, ''];
+    rows.forEach((r) => L.push(`${r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank + '.'} ${r.p.name} : *${r.v} pts* (${sg(r.gain)}) ${mvTxt(r.mv)}`));
+    L.push('', 'skigame-2627.vercel.app');
+    return L.join('\n');
+  }
+  function headerCanvas(g, K, head, t, sub, right, F, FD, H0) {
+    const gr = g.createLinearGradient(0, 0, 0, H0); gr.addColorStop(0, K.t); gr.addColorStop(1, K.b);
+    g.fillStyle = gr; g.fillRect(0, 0, W, H0);
+    g.strokeStyle = K.chev; g.lineWidth = 2;
+    for (let y = 18; y < H0; y += 30) for (let x = ((y / 30) % 2) * 20; x < W; x += 40) { g.beginPath(); g.moveTo(x, y + 8); g.lineTo(x + 8, y); g.lineTo(x + 16, y + 8); g.stroke(); }
+    g.fillStyle = K.edge; g.fillRect(0, H0 - 6, W, 6); g.textBaseline = 'alphabetic';
+    g.fillStyle = K.gold; g.font = `800 30px ${FD}`; g.fillText('SKI GAME · COUPE DU MONDE 2026-27', 56, 70);
+    g.fillStyle = K.head; g.font = `800 62px ${FD}`; g.fillText(t, 56, 150);
+    g.font = `600 34px ${F}`; g.fillStyle = K.sub; g.fillText(sub, 56, 200);
+    g.font = `700 26px ${F}`; g.fillStyle = K.gold; g.textAlign = 'right'; g.fillText(right, W - 56, 70); g.textAlign = 'left';
+  }
+  function footCanvas(g, K, H, footH, F) {
+    g.fillStyle = K.foot; g.fillRect(0, H - footH, W, footH);
+    g.fillStyle = K.footT; g.font = `600 26px ${F}`; g.textAlign = 'center'; g.fillText('skigame-2627.vercel.app', W / 2, H - footH / 2 + 9); g.textAlign = 'left';
+  }
+  async function resultCanvas(race) {
+    const { rows } = resultRows(race);
+    const F = '"Instrument Sans","Helvetica Neue",Arial,sans-serif', FD = '"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif';
+    const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = 230, footH = 90;
+    const ctx0 = document.createElement('canvas').getContext('2d'); ctx0.font = `600 27px ${F}`;
+    const whoX = 56 + 70 + 330 + 20, whoW = W - 56 - whoX;
+    const lay = rows.map((r) => { const t = r.who.map((x) => `${x.p.name} ${sg(x.pts)}${x.kind === 'remplaçant' ? ' (rempl.)' : x.kind === 'tiré au sort' ? ' (tirage)' : ''}`).join(' · '); const lines = t ? wrap(ctx0, t, whoW) : []; return { r, lines, h: Math.max(70, 26 + Math.max(1, lines.length) * 34) }; });
+    const H = headH + 20 + lay.reduce((a, l) => a + l.h, 0) + 30 + footH;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+    g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
+    headerCanvas(g, K, true, C.placeLabel(race), `${C.genderLabel(race)} · ${C.discLabel(race)} · ${C.dayOf(race.date)}`, 'Résultat', F, FD, headH);
+    let y = headH + 20;
+    lay.forEach((l, i) => {
+      const r = l.r, cy = y + l.h / 2;
+      if (i % 2) { g.fillStyle = K.band; g.fillRect(0, y, W, l.h); }
+      g.fillStyle = r.status ? K.bad : K.ink; g.font = `800 32px ${FD}`; g.textAlign = 'center'; g.fillText(r.status ? r.status : String(r.rank), padX + 34, cy + 11); g.textAlign = 'left';
+      g.fillStyle = K.ink; g.font = `700 30px ${F}`; g.fillText(sur2(r.ath), padX + 90, cy - (r.time ? 4 : -10));
+      if (r.time) { g.fillStyle = K.soft; g.font = `600 22px ${F}`; g.fillText(r.time + (r.diff ? '  ' + r.diff : ''), padX + 90, cy + 24); }
+      g.font = `600 27px ${F}`;
+      l.lines.forEach((s2, k) => { g.fillStyle = K.soft; g.fillText(s2, whoX, cy + 9 - ((l.lines.length - 1) * 17) + k * 34); });
+      y += l.h;
+    });
+    footCanvas(g, K, H, footH, F); return cv;
+  }
+  async function generalCanvas(race) {
+    const rows = generalRows(race);
+    const F = '"Instrument Sans","Helvetica Neue",Arial,sans-serif', FD = '"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif';
+    const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = 230, footH = 90, rowH = 76;
+    const H = headH + 30 + rows.length * rowH + 30 + footH;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+    g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
+    headerCanvas(g, K, true, 'Classement général', `après ${C.placeLabel(race)} · ${C.genderLabel(race)} · ${C.discLabel(race)}`, 'Mise à jour', F, FD, headH);
+    let y = headH + 30;
+    rows.forEach((r, i) => {
+      if (i % 2) { g.fillStyle = K.band; g.fillRect(0, y, W, rowH); }
+      const cy = y + rowH / 2;
+      g.fillStyle = K.ink; g.font = `800 34px ${FD}`; g.textAlign = 'center'; g.fillText(String(r.rank), padX + 28, cy + 12); g.textAlign = 'left';
+      g.font = `700 32px ${F}`; g.fillText(r.p.name, padX + 84, cy + 11);
+      g.textAlign = 'right'; g.font = `800 34px ${FD}`; g.fillText(`${r.v} pts`, W - padX, cy + 12);
+      g.font = `700 26px ${F}`; g.fillStyle = r.gain > 0 ? '#1f7a3d' : K.soft; g.fillText(sg(r.gain), W - padX - 190, cy + 10);
+      g.fillStyle = r.mv > 0 ? '#1f7a3d' : r.mv < 0 ? K.bad : K.soft; g.fillText(mvTxt(r.mv), W - padX - 290, cy + 10);
+      g.textAlign = 'left'; y += rowH;
+    });
+    footCanvas(g, K, H, footH, F); return cv;
+  }
+  async function jpgCanvas(race) { return C.state.results[race.id] ? resultCanvas(race) : jpgCanvasPre(race); }
+  async function sendCanvas(cv, name, title) {
+    const blob = await new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.92));
+    const file = new File([blob], name, { type: 'image/jpeg' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title }); say('Image partagée.'); return; } catch (e) { if (e && e.name === 'AbortError') { say(''); return; } } }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000); say('Image téléchargée.');
+  }
+  async function copyText(txt) {
+    try { await navigator.clipboard.writeText(txt); say('Message copié : colle-le dans WhatsApp.'); }
+    catch (e) { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); say('Message copié : colle-le dans WhatsApp.'); } catch (e2) { say('Copie impossible : sélectionne le texte à la main.'); } ta.remove(); }
+  }
+  const copyGeneral = (raceId) => copyText(generalText(C.G.raceOf(raceId)));
+  async function jpgGeneral(raceId) { const race = C.G.raceOf(raceId); say('Image en préparation…'); try { await sendCanvas(await generalCanvas(race), `ski-game-general-apres-${race.id.toLowerCase()}.jpg`, 'Classement général'); } catch (e) { console.error('JPG', e); say('Impossible de créer l’image.'); } }
+  const api = { init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas, fullHtml, raceResultText, generalText, copyGeneral, jpgGeneral, sessionRows, sessionText, sessionOpen, sessionCopy, sessionJpg, sessionCanvas };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SKI_SHARE = api;
 })(typeof window !== 'undefined' ? window : globalThis);

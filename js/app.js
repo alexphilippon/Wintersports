@@ -402,7 +402,6 @@
     : `<span class="count count--pts">${mine} pts</span>`}</div>
       </header>
       ${open && live.some((r) => (myPicks()[r.id] || {}).a) ? `<p class="session__draft">${nd === live.filter((r) => (myPicks()[r.id] || {}).a).length ? '📝 Cette session est en brouillon : ses choix ne comptent pas comme faits (ils seront pris tels quels à la deadline).' : ''} <button type="button" class="linkbtn" data-draft-session="${session.id}|${sessionDraftMode(session) ? 0 : 1}">${sessionDraftMode(session) ? 'Tout confirmer' : 'Tout passer en brouillon'}</button></p>` : ''}
-      ${races.some((r) => !r.cancelled && resOf(r)) ? `<p class="session__exp"><button type="button" class="linkbtn" data-sx-open="${session.id}">Exporter les points (WhatsApp)</button></p>` : ''}
       ${races.some((r) => r.kind === 'finale') ? '<p class="session__note">🏁 Finales : points ×2, et <strong>seuls les 15 premiers marquent</strong> (à partir de la 16ᵉ place : 0 point).</p>' : ''}
       <ul class="races">${races.filter(passF).map((r) => raceRow(r, session)).join('') || '<li class="race"><span class="none">Aucune course avec ces filtres.</span></li>'}</ul>
     </article>`;
@@ -1509,6 +1508,8 @@
     const dr1 = e.target.closest('[data-draft]'); if (dr1) { const pk = myPicks()[dr1.dataset.draft]; setDraft([dr1.dataset.draft], !(pk && pk.draft)); return; }
     const dr2 = e.target.closest('[data-draft-session]'); if (dr2) { const [sid, on] = dr2.dataset.draftSession.split('|'); const ss = allSessions().find((x) => String(x.id) === sid); if (ss) setDraft(active(G.sessionRaces(ss)).map((r) => r.id), on === '1'); return; }
     if (e.target.closest('[data-refresh-results]')) { loadResults(true); return; }
+    const rgc = e.target.closest('[data-rc-gcopy]'); if (rgc) { SHARE.copyGeneral(rgc.dataset.rcGcopy); return; }
+    const rgj = e.target.closest('[data-rc-gjpg]'); if (rgj) { SHARE.jpgGeneral(rgj.dataset.rcGjpg); return; }
     const rcc = e.target.closest('[data-rc-copy]'); if (rcc) { SHARE.copy(rcc.dataset.rcCopy); return; }
     const rcj = e.target.closest('[data-rc-jpg]'); if (rcj) { SHARE.jpg(rcj.dataset.rcJpg); return; }
     const tab = e.target.closest('[data-tab]');
