@@ -1273,21 +1273,22 @@
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-theme-set]'); if (b) setTheme(b.dataset.themeSet, true); });
   (function () { let t = 'sapin'; try { t = localStorage.getItem('skigame.theme') || 'sapin'; } catch (e) { /* ignoré */ } setTheme(t, false); })();
 
-  /* ---------- Recherche de skieurs (ordinateur) : ouvre la fiche ---------- */
+  /* ---------- Recherche de skieurs (ordinateur) : pop up de recherche, puis la fiche dans la même pop up ---------- */
   (function () {
-    const q = $('#skq'), res = $('#skres'); if (!q || !res) return;
-    const close = () => { res.hidden = true; res.innerHTML = ''; };
-    q.addEventListener('input', () => {
-      const t = norm(q.value.trim()).split(/\s+/).filter(Boolean);
-      if (!t.length) { close(); return; }
+    const results = (qv) => {
+      const t = norm(qv.trim()).split(/\s+/).filter(Boolean); if (!t.length) return '';
       const hits = [];
       ['W', 'M'].forEach((g) => (LIST[g] || []).forEach((a) => { const n = norm(nameOf(a.id) + ' ' + (a.name || '') + ' ' + (a.nat || '')); if (t.every((x) => n.includes(x))) hits.push(a); }));
       hits.sort((x, y) => nameOf(x.id).localeCompare(nameOf(y.id)));
-      res.innerHTML = hits.slice(0, 8).map((a) => `<li><button type="button" data-dr="sk:id~${esc(a.id)}" data-skres>${avatarOf(a.id, 'sm')}${flagOf(a.id)}<span>${esc(nameOf(a.id))}</span></button></li>`).join('') || '<li class="none">Aucun skieur trouvé.</li>';
-      res.hidden = false;
+      return hits.slice(0, 12).map((a) => `<li><button type="button" data-dr="sk:id~${esc(a.id)}">${avatarOf(a.id, 'sm')}${flagOf(a.id)}<span>${esc(nameOf(a.id))}</span>${a.g || a.gender ? '' : ''}</button></li>`).join('') || '<li class="none">Aucun skieur trouvé.</li>';
+    };
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#skfind')) return;
+      openModal('<h2>Chercher un skieur</h2><input id="skq" class="skq" type="search" placeholder="Nom, prénom ou pays…" autocomplete="off" aria-label="Chercher un skieur ou une skieuse"><ul class="skres" id="skres"></ul>');
+      setTimeout(() => { const q = $('#skq'); if (q) q.focus(); }, 50);
     });
-    q.addEventListener('keydown', (e) => { if (e.key === 'Escape') { q.value = ''; close(); } if (e.key === 'Enter') { const b = res.querySelector('button'); if (b) b.click(); } });
-    document.addEventListener('click', (e) => { if (e.target.closest('[data-skres]')) { q.value = ''; setTimeout(close, 0); } else if (!e.target.closest('#skfind')) close(); });
+    document.addEventListener('input', (e) => { if (e.target.id === 'skq') { const r = $('#skres'); if (r) r.innerHTML = results(e.target.value); } });
+    document.addEventListener('keydown', (e) => { if (e.target.id === 'skq' && e.key === 'Enter') { const b = document.querySelector('#skres button'); if (b) b.click(); } });
   })();
 
   /* ---------- Photo de profil ---------- */
