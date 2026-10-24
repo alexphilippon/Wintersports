@@ -1809,7 +1809,7 @@
 
   /* ---------- Démarrage ---------- */
   window.SKI_DR.init({ state, G, D, isDraft, flag: flagOf, locked: (r) => lockedRace(r), pav, STATS: window.SKI_STATS, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
-  SHARE.init({ state, G, D, esc, nameOf, surname, skn, pln, pname, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
+  SHARE.init({ state, G, D, esc, nameOf, surname, skn, pln, pname, flagOf: (id) => flagOf((ATH[id] || {}).nat), avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
   /** Résultats officiels (data/results.json) : relus chaque minute ; dès qu'une course est officialisée, tout bascule de « en attente » à « officiel ». */
   function loadResults(manual) {
     const btns = manual ? Array.from(document.querySelectorAll('[data-refresh-results]')) : [];

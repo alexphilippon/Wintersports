@@ -1199,3 +1199,7 @@ html[data-theme='nuit'] .pk__pt { color: #7fd6a6; }
 
 .dr__rh.is-click { cursor: pointer; } .dr__rh.is-click:hover { background: color-mix(in srgb, var(--ocre) 25%, var(--neige)); } .dr__rh.is-click .dr__pl { text-decoration: underline; text-underline-offset: 2px; }
 .rf__tb td.num { white-space: nowrap; }
+
+.rf__tb tbody th[scope="row"] { white-space: nowrap; } .rf__ath { min-width: 16rem; }
+@media (max-width: 640px) { .rf__ath { min-width: 0; } }
+.rf__ath .fl { flex: none; }
