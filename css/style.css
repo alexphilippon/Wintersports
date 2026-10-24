@@ -1493,3 +1493,14 @@ html[data-theme='minimal'] .forfait__label, html[data-theme='minimal'] .forfait_
 html[data-theme='minimal'] .dr__grid thead .dr__pts { background: #111; color: #fff; }
 html[data-theme='minimal'] .race--hot, html[data-theme='minimal'] .race--cold { background: #fafafa; box-shadow: inset 4px 0 0 #111; }
 html[data-theme='minimal'] .dr__grid .dr__pts { background: #f0f0f0; }
+/* Grand froid : du gris et du bleu glacial à la place du beige/jaune */
+html[data-theme='glace'] { --page: #dfe7ed; --papier: #e2e9ef; --chip: #dde7ee; }
+html[data-theme='glace'] .race--hot { background: linear-gradient(90deg, rgba(110, 135, 152, .20), rgba(110, 135, 152, .05) 75%); box-shadow: inset 4px 0 0 #6f8798; }
+html[data-theme='glace'] .grid caption, html[data-theme='glace'] .grid--rank.cap--gen caption, html[data-theme='glace'] .cap--d1 caption, html[data-theme='glace'] .cap--d2 caption, html[data-theme='glace'] .cap--d3 caption, html[data-theme='glace'] .cap--w caption { border-bottom-color: #8ec2e0; }
+html[data-theme='glace'] .grid--rank thead th.th--d3, html[data-theme='glace'] .grid--general tbody td:nth-child(6) { background: #e3eaf0; }
+html[data-theme='glace'] .grid--general tbody td:nth-child(6) { background: rgba(110, 135, 152, .10); }
+html[data-theme='glace'] .grid--rank thead th.th--d1 { background: #cfe3f1; } html[data-theme='glace'] .grid--rank thead th.th--d2 { background: #d5e6ee; } html[data-theme='glace'] .grid--rank thead th.th--w { background: #d9e8f2; }
+html[data-theme='glace'] .dr__grid thead .dr__pts { background: #5aa5cc; color: #fff; }
+html[data-theme='glace'] .dr__grid .dr__pts { border-left-color: #8ec2e0; border-right-color: #8ec2e0; background: #e6f1f8; }
+html[data-theme='glace'] .grid--general td.total { background: rgba(23, 54, 77, .10) !important; border-color: #17364d; }
+html[data-theme='glace'] .masthead { border-bottom: 5px double #ffffff; }
