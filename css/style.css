@@ -975,3 +975,5 @@ html[data-theme='nuit'] .c-1, html[data-theme='nuit'] .c-2, html[data-theme='nui
 .bb__n { font-weight: 800; white-space: nowrap; } .bb__tot { font-size: .8rem; font-weight: 600; color: var(--encre-douce); margin-left: .4rem; }
 .bb__d { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
 .bb__c { font-size: .8rem; padding: .1rem .5rem; border-radius: 999px; background: color-mix(in srgb, var(--brique) 12%, transparent); border: 1px solid color-mix(in srgb, var(--brique) 30%, transparent); }
+
+.bb__n small { color: var(--brique); font-size: 1rem; font-weight: 900; }

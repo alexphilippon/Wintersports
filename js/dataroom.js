@@ -122,7 +122,7 @@
   }
   function bubbleList(rows, nameF, subNameF, id) {
     const shown = ui.bub[id] ? rows : rows.slice(0, 10);
-    const li = shown.map((r) => `<li class="bb"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span><div class="bb__main"><div class="bb__h"><b>${C.esc(nameF(r.k))}</b><span class="bb__n" title="${r.n} bulle${r.n > 1 ? 's' : ''}">${r.n} <small>🫧</small></span></div>
+    const li = shown.map((r) => `<li class="bb"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span><div class="bb__main"><div class="bb__h"><b>${C.esc(nameF(r.k))}</b><span class="bb__n" title="${r.n} bulle${r.n > 1 ? 's' : ''}">${r.n} <small>✗</small></span></div>
       <div class="bb__d">${Object.values(r.sub).sort((a, b) => b.n - a.n).map((s) => `<span class="bb__c" title="${C.esc(s.why.join(' · '))}">${C.esc(subNameF(s.s))}${s.n > 1 ? ` <b>×${s.n}</b>` : ''}</span>`).join('')}</div></div></li>`).join('');
     return `<ol class="bblist">${li || '<li class="none">Aucune bulle pour l’instant.</li>'}</ol>${rows.length > 10 ? `<p class="dr__more"><button type="button" class="btn btn--ghost btn--sm" data-dr="bub:${id}">${ui.bub[id] ? 'Réduire' : `Voir les ${rows.length}`}</button></p>` : ''}`;
   }
@@ -131,8 +131,8 @@
     const lab = (x) => `${C.placeLabel(x.r)} ${C.D.DISC[x.r.disc].short} : ${x.why}`;
     const bySk = rankBy(ev, (x) => x.ath, (x) => x.pl.id, lab), byPl = rankBy(ev, (x) => x.pl.id, (x) => x.ath, lab);
     return `<p class="hint">Une bulle : le skieur choisi fait 0 point (DNF, disqualifié, non qualifié ou hors des 30 premiers). Un DNS n’en est pas une. Tous desks confondus, remplaçants pris en compte.</p>
-      <h3 class="subtitle">Les skieurs qui font le plus de bulles <span class="bb__tot">${ev.length} au total</span></h3>${bubbleList(bySk, (id) => fam(id), pn, 'sk')}
-      <h3 class="subtitle">Les joueurs les plus touchés</h3>${bubbleList(byPl, pn, (id) => fam(id), 'pl')}`;
+      <h3 class="subtitle">Les skieurs qui font le plus de bulles <span class="bb__tot">${ev.length} au total</span></h3>${bubbleList(bySk, (id) => C.nameOf(id), pn, 'sk')}
+      <h3 class="subtitle">Les joueurs les plus touchés</h3>${bubbleList(byPl, pn, (id) => C.nameOf(id), 'pl')}`;
   }
 
   function render() {
