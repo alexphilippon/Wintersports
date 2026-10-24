@@ -52,6 +52,7 @@
       entries.push(extraName[b] ? { ath: idOfBib[b], status, bib: b, name: extraName[b] } : { ath: idOfBib[b], status, bib: b });
     });
     add(raw.dnfBibs, 'DNF'); add(raw.dnqBibs, 'DNQ');
+    if (raw.dnf1Bibs) entries.forEach((e) => { if (e.status === 'DNF' && raw.dnf1Bibs.includes(e.bib)) e.run = 1; });   // abandon en 1re manche
     if (raw.dnqTimes) entries.forEach((e) => { if (e.status === 'DNQ' && raw.dnqTimes[e.bib]) e.time = raw.dnqTimes[e.bib]; });   // temps de la 1re manche des non-qualifiés add(raw.dsq, 'DSQ');
     add(dns.filter((d) => d.confirmed).map((d) => d.bib), 'DNS');
 

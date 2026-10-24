@@ -18,17 +18,17 @@ function parseLive(html) {
   const rows = [], out = [];
   if (head >= 0) {
     // classement : rang, dossard, code FIS, NOM Prénom, [année, nation], temps…  (les non-classés suivent un intitulé « Did not … »)
-    let k = head, label = '';
+    let k = head, label = '', run1 = false;
     const num = (x) => /^\d+$/.test(x || '');
     while (k < tok.length) {
       const t = tok[k];
-      if (/^Did not|^Disqualified/.test(t)) { label = /start/.test(t) ? 'DNS' : /qualify/.test(t) ? 'DNQ' : /^Disq/.test(t) ? 'DSQ' : 'DNF'; k++; continue; }
+      if (/^Did not|^Disqualified/.test(t)) { label = /start/.test(t) ? 'DNS' : /qualify/.test(t) ? 'DNQ' : /^Disq/.test(t) ? 'DSQ' : 'DNF'; run1 = /1st run/i.test(t); k++; continue; }
       if (!label && num(t) && num(tok[k + 1]) && num(tok[k + 2]) && /[A-Za-z]/.test(tok[k + 3] || '')) { let j = k + 4; while (j < tok.length && !(/^[A-Z]{3}$/.test(tok[j]) && /^\d{4}$/.test(tok[j - 1] || ''))) j++;
         const tm = /^\d+:\d\d\.\d\d$|^\d+\.\d\d$/.test(tok[j + 1] || '') ? tok[j + 1] : '';
         rows.push({ rank: +t, bib: +tok[k + 1], code: tok[k + 2], name: tok[k + 3], time: tm }); k += 4; continue; }
       if (label && num(t) && num(tok[k + 1]) && /[A-Za-z]/.test(tok[k + 2] || '')) { { let j = k + 3; while (j < tok.length && j < k + 12 && !(/^[A-Z]{3}$/.test(tok[j]) && /^\d{4}$/.test(tok[j - 1]))) j++;
         const tm = /^\d+:\d\d\.\d\d$|^\d+\.\d\d$/.test(tok[j + 1] || '') ? tok[j + 1] : '';   // temps de la 1re manche des non-qualifiés
-        out.push(tm ? { status: label, bib: +t, code: tok[k + 1], name: tok[k + 2], time: tm } : { status: label, bib: +t, code: tok[k + 1], name: tok[k + 2] }); k += 3; continue; } }
+        { const o = { status: label, bib: +t, code: tok[k + 1], name: tok[k + 2] }; if (tm) o.time = tm; if (label === 'DNF' && run1) o.run = 1; out.push(o); } k += 3; continue; } }
       if (label && num(t) && /[A-Za-z]/.test(tok[k + 1] || '') && !num(tok[k + 1])) { k++; continue; }
       k++;
     }
