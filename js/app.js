@@ -420,7 +420,7 @@
   /* ---------- Tendances : jauges indicatives, une fois la deadline passée ---------- */
   function trendsAny(key) { return scopeSessions(key).some((s) => sortedRaces(s).some((r) => !r.cancelled && lockedRace(r))); }
   function gauge(ath, pct, extra, cls) {
-    return `<li class="gauge${cls ? ' ' + cls : ''}"><span class="gauge__who">${avatarOf(ath, 'sm')}<span class="gauge__n">${esc(nameOf(ath))}${extra || ''}</span></span><span class="gauge__bar" role="img" aria-label="${pct} %"><i style="width:${Math.max(pct, 3)}%"></i></span><b class="gauge__v">${pct} %</b></li>`;
+    return `<li class="gauge${cls ? ' ' + cls : ''}"><span class="gauge__who">${avatarOf(ath, 'sm')}<span class="gauge__t"><span class="gauge__n">${esc(nameOf(ath))}</span>${extra ? `<span class="gauge__x">${extra}</span>` : ''}</span></span><span class="gauge__bar" role="img" aria-label="${pct} %"><i style="width:${Math.max(pct, 3)}%"></i></span><b class="gauge__v">${pct} %</b></li>`;
   }
   /** Part des joueurs ayant pris chaque skieur, sur un ensemble de courses verrouillées : { ath: part } triée, et le nombre de joueurs pris en compte. */
   function shareOf(races, perRace) {
@@ -625,7 +625,7 @@
     const { picks } = racePeople(race), hit = picks.filter((x) => lv.by[x.ath] && lv.by[x.ath].out);
     const upd = new Date(lv.L.fetched);
     return `<div class="livenote"><p><strong>1re manche terminée</strong>${lv.L.run2 ? ` · 2e manche à <strong>${hm(lv.L.run2)}</strong>` : ''} <span class="livenote__t">(mis à jour à ${F_HM.format(upd)})</span></p>
-      ${hit.length ? `<p class="livenote__b">⚠ <strong>Bulle${hit.length > 1 ? 's' : ''} actée${hit.length > 1 ? 's' : ''}</strong> (non qualifié${hit.length > 1 ? 's' : ''} pour la 2e manche, 0 point) : ${hit.map((x) => `${esc(x.p.name)} (${esc(nameOf(x.ath))})`).join(', ')}.</p>` : '<p class="livenote__b livenote__b--ok">Aucune bulle : tous les skieurs choisis passent en 2e manche.</p>'}</div>`;
+      ${hit.length ? `<p class="livenote__b">⚠ <strong>Bulle${hit.length > 1 ? 's' : ''} actée${hit.length > 1 ? 's' : ''}</strong> : non qualifié${hit.length > 1 ? 's' : ''} pour la 2e manche, 0 point.</p><ul class="livenote__l">${Object.entries(hit.reduce((m, x) => { (m[x.ath] = m[x.ath] || []).push(x.p.name); return m; }, {})).map(([a, ps]) => `<li><strong>${esc(nameOf(a))}</strong> : ${ps.map(esc).join(', ')}</li>`).join('')}</ul>` : '<p class="livenote__b livenote__b--ok">Aucune bulle : tous les skieurs choisis passent en 2e manche.</p>'}</div>`;
   }
   function shareTable(race) {
     const { picks, cnt } = racePeople(race), N = picks.length;
@@ -656,7 +656,7 @@
     const mine = active(races).map((r) => {
       const pk = (state.picks[state.me] || {})[r.id];
       const eff = pk && pk.a ? G.effectiveAthlete(pk, state.results, r.id) : null;
-      return `<li><span class="gender gender--${r.gender}">${genderLabel(r)}</span> ${discBadge(r)} ${eff ? `<strong>${esc(nameOf(eff))}</strong>` : '<span class="none">aucun choix</span>'}</li>`;
+      return `<li><span class="gender gender--${r.gender}">${genderLabel(r)}</span> ${discBadge(r)} ${eff ? `<strong>${esc(nameOf(eff))}</strong>${liveChip(liveOf(r), eff)}` : '<span class="none">aucun choix</span>'}</li>`;
     }).join('');
     return `<section>
       <div class="lockbar"><div class="lockbar__t"><span class="state state--en-cours">Session clôturée</span><strong>${fl(s.name)}</strong><span class="sub">Choix verrouillés</span></div>
