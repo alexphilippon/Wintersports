@@ -44,6 +44,7 @@ if (require.main === module) {
   (file ? Promise.resolve(fs.readFileSync(file, 'utf8')) : fetch(url).then((r) => { if (!r.ok) throw new Error('FIS : HTTP ' + r.status); return r.text(); })).then((html) => {
     const p = parseLive(html), f = path.join(root, 'data', 'live.json');
     const db = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : { races: {} };
+    if (!p.hasResults && db.races[id] && db.races[id].hasResults) { console.log(id + ' : la page FIS est repassée en start list (2e manche) ; classement de la 1re manche conservé.'); return; }
     db.races[id] = { raceid: races[id].raceid, source: url, fetched: new Date().toISOString(), run1: p.runs.run1 || null, run2: p.runs.run2 || null, run2status: p.status || '', hasResults: p.hasResults, qualify: 30, rows: p.rows, out: p.out };
     fs.writeFileSync(f, JSON.stringify(db));
     console.log(`${id} : ${p.hasResults ? p.rows.length + ' classés, ' + p.out.length + ' non classés' : 'pas encore de classement'} · manche 1 ${p.runs.run1 || '?'} · manche 2 ${p.runs.run2 || '?'} ${p.status}`);
