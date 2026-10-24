@@ -806,8 +806,6 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 .set__check { display: flex; gap: .6rem; align-items: flex-start; margin-bottom: .4rem; }
 .set__check input { margin-top: .25rem; }
 .set__links { display: flex; flex-wrap: wrap; gap: .5rem; }
-.set--desk { display: none; }
-@media (min-width: 760px) { .set--desk { display: block; } }
 .set__themes { display: flex; gap: .6rem; }
 .set__themes button { width: 2.2rem; height: 2.2rem; border-radius: 50%; padding: 0; cursor: pointer; border: 3px solid transparent; box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .3); }
 .set__themes button[aria-pressed='true'] { border-color: var(--nuit); box-shadow: 0 0 0 2px var(--neige), inset 0 0 0 1.5px rgba(0, 0, 0, .3); }

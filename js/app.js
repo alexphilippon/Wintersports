@@ -1231,7 +1231,7 @@
         ${snoozed ? '<button type="button" class="linkbtn" data-gate-reset>Réafficher les rappels reportés ou masqués</button>' : ''}
         <p class="hint">Réglage enregistré dans ce navigateur : à refaire sur un autre appareil.</p>
       </section>
-      <section class="set set--desk"><h3>Ambiance du site</h3><div class="set__themes">${dot('sapin', 'Sapin')}${dot('glace', 'Glace')}${dot('nuit', 'Nuit')}</div></section>
+      <section class="set"><h3>Ambiance du site</h3><div class="set__themes">${dot('sapin', 'Sapin')}${dot('glace', 'Glace')}${dot('nuit', 'Nuit')}</div></section>
       <section class="set"><h3>Application mobile</h3>
         ${isStandalone() ? '<p class="hint">L’app est déjà installée sur cet appareil ✓</p>' : '<p class="hint">Ajoute un raccourci Ski Game sur ton écran d’accueil : le jeu s’ouvre comme une application.</p><button type="button" class="btn btn--ghost btn--sm" data-install>📲 Installer l’app sur mon téléphone</button>'}
       </section>
