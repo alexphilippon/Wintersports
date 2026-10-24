@@ -1568,3 +1568,14 @@ html[data-theme='nuit'] .flk__i { color: rgba(255,255,255,.2); }
 .evl__d { font-size: .8rem; font-weight: 700; color: var(--encre-douce); text-transform: uppercase; grid-row: span 2; }
 .evl__n { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; } .evl__n .flk { font-size: 1.15rem; }
 @media (min-width: 760px) { .evl__row { grid-template-columns: 4.2rem minmax(0, 1.1fr) minmax(0, 1.2fr) 11rem; } .evl__d { grid-row: auto; } }
+
+/* Ambiances sombres : pastilles de filtre (disciplines, genre, nombre de courses) lisibles, actives comme inactives */
+html[data-theme='nuit'] .ffc { --c: #e8fbff; }
+html[data-theme='nuit'] .ffc--DH { --c: #ff9a85; } html[data-theme='nuit'] .ffc--SG { --c: #ffb870; }
+html[data-theme='nuit'] .ffc--GS { --c: #62d9ee; } html[data-theme='nuit'] .ffc--SL { --c: #9cbcff; }
+html[data-theme='nuit'] .ffc[aria-pressed='true'] { color: #0d1420; }
+
+/* Ambiances sombres : jamais de sombre sur sombre */
+html[data-theme='nuit'] .demo { color: #1a1405; }
+html[data-theme='nuit'] .c-st--dnf { color: #ff9a8f; } html[data-theme='nuit'] .c-st--dnq { color: #ff9fb5; } html[data-theme='nuit'] .c-st--dsq { color: #f2a6cc; }
+html[data-theme='nuit'] .sh__me { color: #ffb4a3; } html[data-skin='arcade'] .sh__me { color: #ff9bd2; } html[data-skin='halloween'] .sh__me { color: #ffc15a; }
