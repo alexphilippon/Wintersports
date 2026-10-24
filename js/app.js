@@ -625,7 +625,16 @@
     const dns = (a) => !!sl && starters.size > 0 && !starters.has(a);
     return { L, by, dns };
   }
-  const liveChip = (lv, a) => { if (lv && lv.dns(a)) return ' <span class="rank rank--dns" title="Absent de la liste de départ">Non partant (DNS)</span>'; const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
+  /** Skieurs qui remplacent le non-partant a pour chaque joueur concerné (remplaçant saisi, sinon tirage au sort). */
+  function subsOf(race, lv, a) {
+    const dr = lv._dr || (lv._dr = liveDraws(race, lv)), out = [];
+    state.players.forEach((p) => {
+      const pk = (state.picks[p.id] || {})[race.id]; if (!pk || pk.a !== a) return;
+      const r = pk.b && !lv.dns(pk.b) ? pk.b : (dr[p.id] && dr[p.id].ath); if (r && !out.includes(r)) out.push(r);
+    });
+    return out;
+  }
+  const liveChip = (lv, a, race) => { if (lv && lv.dns(a)) { const sb = race ? subsOf(race, lv, a) : []; return ` <span class="rank rank--dns" title="Absent de la liste de départ">Non partant (DNS)${sb.length ? ` · remp. par ${sb.map((x) => esc(nameOf(x))).join(', ')}` : ''}</span>`; } const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
   /** Titulaires qui ne prennent pas le départ : remplaçant du joueur, ou tirage au sort s'il n'en a pas (ou s'il est lui aussi absent). */
   /** Tirages au sort possibles dès la fin de la 1re manche : graine = temps du vainqueur de la 1re manche (publié avant la 2e), 30 premiers dossards. */
   function liveDraws(race, lv) {
@@ -638,7 +647,7 @@
     return d[race.id] || {};
   }
   function dnsNote(race, lv) {
-    const rows = [], dr = liveDraws(race, lv);
+    const rows = [], dr = lv._dr || (lv._dr = liveDraws(race, lv));
     state.players.forEach((p) => {
       const pk = (state.picks[p.id] || {})[race.id]; if (!pk || !pk.a || !lv.dns(pk.a)) return;
       const rep = pk.b && !lv.dns(pk.b) ? pk.b : null;
@@ -665,8 +674,8 @@
     if (!N) return '<span class="none">Aucun choix</span>';
     const mine = picks.find((x) => x.p.id === state.me), res = resOf(race);
     const rows = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || nameOf(a).localeCompare(nameOf(b)));
-    const lv = liveOf(race);
-    const how = (a) => { const e = res && res.find((x) => x.ath === a); if (!e && lv) return liveChip(lv, a); return e ? ` <span class="rank">${esc(e.status || ordinal(e.rank))}</span>` : ''; };
+    const lv = liveOf(race) || preLive(race);
+    const how = (a) => { const e = res && res.find((x) => x.ath === a); if (!e && lv) return liveChip(lv, a, race); return e ? ` <span class="rank">${esc(e.status || ordinal(e.rank))}</span>` : ''; };
     const pts = mine ? ptsChip(state.me, race) : '';
     return `<ul class="gauges sh">${rows.map((a) => gauge(a, Math.round(100 * cnt[a] / N), (mine && mine.ath === a ? ' <em class="sh__me">ton choix</em>' : '') + how(a), mine && mine.ath === a ? 'gauge--mine' : '')).join('')}</ul>
       <p class="sub sh__foot">${plural(N, 'joueur', 'joueurs')} ${N > 1 ? 'ont' : 'a'} choisi${mine ? '' : ' (pas toi : aucun choix)'}${pts ? ` · tes points ${pts}` : ''}</p>`;
@@ -1594,6 +1603,27 @@
   });
 
   /* ---------- Départ reporté : prévenir les joueurs qu'ils ont plus de temps (une fois par report et par navigateur) ---------- */
+  /* ---------- Alerte au joueur dont le titulaire ne prend pas le départ (remplaçant ou tirage au sort), une fois par course ---------- */
+  const DN_KEY = 'skigame.dnsalert';
+  function dnsAlertCheck() {
+    if (!state.user && !state.demo) return;
+    const m = $('#modal'); if (!m || !m.hidden || !state.me) return;
+    let seen = {}; try { seen = JSON.parse(localStorage.getItem(DN_KEY) || '{}') || {}; } catch (e) { /* ignoré */ }
+    for (const r of Object.values(D.RACES)) {
+      if (r.cancelled || !lockedRace(r) || resOf(r)) continue;
+      const pk = (state.picks[state.me] || {})[r.id]; if (!pk || !pk.a) continue;
+      const lv = liveOf(r) || preLive(r); if (!lv || !lv.dns(pk.a) || seen[r.id + '@' + pk.a]) continue;
+      const dr = lv._dr || (lv._dr = liveDraws(r, lv)), rep = pk.b && !lv.dns(pk.b) ? pk.b : null, tas = !rep && dr[state.me] ? dr[state.me].ath : null;
+      if (!rep && !tas) continue;
+      seen[r.id + '@' + pk.a] = 1; try { localStorage.setItem(DN_KEY, JSON.stringify(seen)); } catch (e) { /* ignoré */ }
+      openModal(`<div class="gate"><p class="gate__kicker">Non-partant</p>
+        <h2 class="gate__title">${esc(nameOf(pk.a))} ne prend pas le départ</h2>
+        <p class="gate__lead"><strong>${fl(placeLabel(r))}</strong> <span class="gender gender--${r.gender}">${genderLabel(r)}</span> ${discBadge(r)} : ton titulaire est absent de la liste de départ.</p>
+        <p class="gate__lead">${rep ? `Ton remplaçant <strong>${esc(nameOf(rep))}</strong> prend sa place.` : `Tu n’avais pas de remplaçant valable : le <strong>tirage au sort</strong> te donne <strong>${esc(nameOf(tas))}</strong> (1 sur ${dr[state.me].n}, d’après la liste de départ).`}</p>
+        <button type="button" class="btn btn--brique gate__go" data-gate-go="${sessionOf(r).id}">Voir la course</button></div>`);
+      return;
+    }
+  }
   const MV_KEY = 'skigame.moved';
   const mvGet = () => { try { return JSON.parse(localStorage.getItem(MV_KEY) || '{}') || {}; } catch (e) { return {}; } };
   function movedCheck() {
@@ -1620,7 +1650,7 @@
   setInterval(() => {
     const c = $('#countdown');
     if (c) c.innerHTML = countdownText(new Date(c.dataset.dl));
-    if (!document.hidden) movedCheck();
+    if (!document.hidden) { movedCheck(); dnsAlertCheck(); }
     gateCheck();
   }, 30000);
 
@@ -1641,12 +1671,12 @@
   const loadTimes = () => fetch('data/time-overrides.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
     const sg = JSON.stringify((j && j.races) || {}); if (sg === state.timesSig) return; state.timesSig = sg;
     Object.entries((j && j.races) || {}).forEach(([id, o]) => { if (D.RACES[id] && o && o.time) { if (!D.RACES[id].time0) D.RACES[id].time0 = D.RACES[id].time; D.RACES[id].time = o.time; D.RACES[id].timeKnown = true; } });
-    scheduleRender(); setTimeout(movedCheck, 400);
+    scheduleRender(); setTimeout(movedCheck, 400); setTimeout(dnsAlertCheck, 600);
   }).catch(() => {});
   loadTimes(); setInterval(() => { if (document.visibilityState === 'visible') loadTimes(); }, 60000);
-  const loadLive = () => fetch('data/live.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { const sg = JSON.stringify(j); if (sg !== state.liveSig) { state.liveSig = sg; state.live = j; scheduleRender(); } } }).catch(() => {});
+  const loadLive = () => fetch('data/live.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { const sg = JSON.stringify(j); if (sg !== state.liveSig) { state.liveSig = sg; state.live = j; scheduleRender(); setTimeout(dnsAlertCheck, 600); } } }).catch(() => {});
   loadLive(); setInterval(() => { if (document.visibilityState === 'visible') loadLive(); }, 60000);
-  fetch('data/startlists.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.startlists = j; scheduleRender(); } }).catch(() => {});
+  fetch('data/startlists.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.startlists = j; scheduleRender(); setTimeout(dnsAlertCheck, 800); } }).catch(() => {});
 
   render();
   window.SKI_APP = { state, render, store };
