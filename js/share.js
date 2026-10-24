@@ -129,7 +129,13 @@
     C.openModal(`<div class="rc">${cardHtml(race)}</div>`);
     const card = document.querySelector('#modal .modal__card'); if (card) card.classList.add('modal__card--wide');
   }
-  const say = (t) => { const m = document.getElementById('rc-msg'); if (m) m.textContent = t; };
+  const say = (t) => { const m = document.getElementById('rc-msg'); if (m) m.textContent = t; else if (t) toast(t); };
+  /** Petit message flottant (exports lancés depuis une page, hors fenêtre). */
+  function toast(t) {
+    let el = document.getElementById('xp-toast');
+    if (!el) { el = document.createElement('div'); el.id = 'xp-toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 3200);
+  }
   async function copy(raceId) {
     const txt = raceText(C.G.raceOf(raceId));
     try { await navigator.clipboard.writeText(txt); say('Message copié : colle-le dans WhatsApp.'); }
@@ -141,7 +147,7 @@
   }
 
   /* ---------- Image JPG (canvas, proportions maîtrisées) ---------- */
-  const W = 1080;
+  let W = 1080;
   const TH = { sapin: { t: '#2b5f4b', b: '#163629', chev: 'rgba(143,192,164,.18)', edge: '#e9f0f2', gold: '#f1d78a', head: '#fff', sub: '#d4e6ef', bg: '#fbf8ef', band: '#f3efe2', ink: '#1b2b44', soft: '#675e51', bad: '#a93a2c', foot: '#1f4a3a', footT: '#e9f0f2', ph: '#8faec0', track: '#e4e1d3', bar: '#2f8089' },
     glace: { t: '#f1f9fd', b: '#a8cfe4', chev: 'rgba(255,255,255,.4)', edge: '#ffffff', gold: '#1d6a9c', head: '#123a55', sub: '#2c5b78', bg: '#fbfdff', band: '#eaf3f9', ink: '#17364d', soft: '#566b79', bad: '#b83a2a', foot: '#1e5a80', footT: '#ffffff', ph: '#a8cfe4', track: '#d3e1eb', bar: '#1e5a80' },
     nuit: { t: '#1c2f55', b: '#0b1322', chev: 'rgba(120,160,230,.18)', edge: '#2f56d6', gold: '#8fb4ff', head: '#ffffff', sub: '#c9d9f5', bg: '#18222f', band: '#1e2b3b', ink: '#e4eaf2', soft: '#9aaabd', bad: '#ff9a8a', foot: '#0b1322', footT: '#cfe0ff', ph: '#3d527f', track: '#293648', bar: '#5b8cf0' } };
@@ -458,6 +464,63 @@
   }
   const copyGeneral = (raceId) => copyText(generalText(C.G.raceOf(raceId)));
   async function jpgGeneral(raceId) { const race = C.G.raceOf(raceId); say('Image en préparation…'); try { await sendCanvas(await generalCanvas(race), `ski-game-general-apres-${race.id.toLowerCase()}.jpg`, 'Classement général'); } catch (e) { console.error('JPG', e); say('Impossible de créer l’image.'); } }
-  const api = { init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas, fullHtml, raceResultText, generalText, copyGeneral, jpgGeneral, sessionRows, sessionText, sessionOpen, sessionCopy, sessionJpg, sessionCanvas };
+  /* ---------- Export générique d'un tableau (classements, Data room) : message WhatsApp et image JPG ---------- */
+  const XP = {}, MEDAL = ['🥇', '🥈', '🥉'];
+  /** spec : { key, title, sub, right, unit, head: ['Rang', 'Joueur', 'Total', …], rows: [{ c: ['1', 'Alexandre', '380', …], me }], note } */
+  function xbar(spec) {
+    XP[spec.key] = spec; const k = C.esc(spec.key);
+    return `<div class="xbar"><span class="xbar__l">Exporter</span><button type="button" class="btn btn--ghost btn--sm" data-xp="${k}|t">Message</button><button type="button" class="btn btn--ghost btn--sm" data-xp="${k}|j">Image JPG</button></div>`;
+  }
+  function xpText(sp) {
+    const L = [`🎿 *${sp.title}*`]; if (sp.sub) L.push(sp.sub); L.push('');
+    const ex = sp.head.slice(3).map((h) => String(h).replace(/\n/g, ' '));
+    sp.rows.forEach((r) => {
+      const c = r.c, n = /^\d+$/.test(c[0]) ? +c[0] : 0, rk = n && n <= 3 ? MEDAL[n - 1] : (c[0] ? c[0] + '.' : '•');
+      let line = `${rk} ${c[1]}`; if (c.length > 2 && c[2] !== '') line += ` — ${c[2]}${sp.unit || ''}`;
+      const parts = ex.map((h, i) => (c[3 + i] !== '' && c[3 + i] != null ? `${h} ${c[3 + i]}` : '')).filter(Boolean);
+      if (parts.length) line += ` (${parts.join(' · ')})`;
+      L.push(line);
+    });
+    if (sp.note) L.push('', sp.note);
+    L.push('', 'skigame-2627.vercel.app'); return L.join('\n');
+  }
+  function xpCanvas(sp) {
+    const F = '"Instrument Sans","Helvetica Neue",Arial,sans-serif', FD = '"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif';
+    const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = 230, footH = 90, rowH = 70, colH = 70;
+    const vals = sp.head.slice(2), nv = vals.length, cw = nv > 12 ? 70 : nv > 6 ? 84 : nv > 3 ? 120 : nv > 1 ? 160 : 200;
+    const Wc = Math.max(1080, padX * 2 + 90 + 380 + nv * cw), prev = W;
+    try {
+      W = Wc; const H = headH + colH + sp.rows.length * rowH + 30 + footH;
+      const cv = document.createElement('canvas'); cv.width = Wc; cv.height = H; const g = cv.getContext('2d');
+      g.fillStyle = K.bg; g.fillRect(0, 0, Wc, H);
+      headerCanvas(g, K, true, sp.title, sp.sub || '', sp.right || 'Classement', F, FD, headH);
+      let y = headH;
+      g.fillStyle = K.band; g.fillRect(0, y, Wc, colH); g.fillStyle = K.soft; g.font = `700 22px ${F}`;
+      g.fillText(sp.head[0], padX + 8, y + colH / 2 + 8); g.fillText(sp.head[1], padX + 90, y + colH / 2 + 8);
+      g.textAlign = 'right';
+      vals.forEach((h, j) => { const x = Wc - padX - (nv - 1 - j) * cw, ls = String(h).split('\n'); ls.forEach((t, k) => g.fillText(t, x, y + colH / 2 + 8 - (ls.length - 1) * 12 + k * 24)); });
+      g.textAlign = 'left'; y += colH;
+      const maxName = Wc - padX * 2 - 90 - nv * cw - 14;
+      sp.rows.forEach((r, i) => {
+        const c = r.c, cy = y + rowH / 2;
+        if (r.me) { g.fillStyle = K.gold; g.globalAlpha = 0.28; g.fillRect(0, y, Wc, rowH); g.globalAlpha = 1; } else if (i % 2) { g.fillStyle = K.band; g.fillRect(0, y, Wc, rowH); }
+        g.fillStyle = K.ink; g.font = `800 30px ${FD}`; g.textAlign = 'center'; g.fillText(c[0], padX + 34, cy + 11); g.textAlign = 'left';
+        g.font = `700 30px ${F}`; let nm = String(c[1]); while (g.measureText(nm).width > maxName && nm.length > 3) nm = nm.slice(0, -2); if (nm !== c[1]) nm += '…';
+        g.fillText(nm, padX + 90, cy + 11);
+        g.textAlign = 'right';
+        vals.forEach((h, j) => { const v = c[2 + j]; if (v === '' || v == null) return; const x = Wc - padX - (nv - 1 - j) * cw; if (j === 0) { g.font = `800 32px ${FD}`; g.fillStyle = K.ink; } else { g.font = `600 26px ${F}`; g.fillStyle = K.soft; } g.fillText(String(v), x, cy + 11); });
+        g.textAlign = 'left'; y += rowH;
+      });
+      footCanvas(g, K, H, footH, F); return cv;
+    } finally { W = prev; }
+  }
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-xp]'); if (!b) return;
+    const [key, fmt] = b.dataset.xp.split('|'), sp = XP[key]; if (!sp) return;
+    if (fmt === 't') { await copyText(xpText(sp)); return; }
+    toast('Image en préparation…');
+    try { await sendCanvas(xpCanvas(sp), 'ski-game-' + String(key).replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.jpg', sp.title); } catch (err) { console.error(err); toast('Image impossible.'); }
+  });
+  const api = { xbar, xpText, xpCanvas, init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas, fullHtml, raceResultText, generalText, copyGeneral, jpgGeneral, sessionRows, sessionText, sessionOpen, sessionCopy, sessionJpg, sessionCanvas };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SKI_SHARE = api;
 })(typeof window !== 'undefined' ? window : globalThis);

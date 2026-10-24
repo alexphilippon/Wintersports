@@ -1206,3 +1206,9 @@ html[data-theme='nuit'] .pk__pt { color: #7fd6a6; }
 
 .syncwarn { margin: .8rem 0; padding: .8rem 1rem; border: 2px solid var(--brique, #b3281f); border-radius: 12px; background: #fdecea; color: #7a1f17; font-size: .92rem; line-height: 1.45; }
 html[data-theme='nuit'] .syncwarn { background: #44221f; color: #ffd6cf; }
+
+/* Barre d'export sous les tableaux */
+.xbar { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: .35rem 0 1.1rem; } .xbar__l { font-size: .75rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--encre-douce); }
+#xp-toast { position: fixed; left: 50%; bottom: 1.2rem; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 9999; background: #1b2b44; color: #fff; padding: .6rem 1rem; border-radius: 99px; font-weight: 600; font-size: .9rem; transition: .2s; } #xp-toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+.dtl__tot { margin: .8rem 0 0; text-align: right; font-size: 1.05rem; }
