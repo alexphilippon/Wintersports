@@ -1260,14 +1260,14 @@
   document.addEventListener('visibilitychange', beat);
   setTimeout(beat, 3000);
 
-  const THEMESW = "<div class=\"themesw\" role=\"group\" aria-label=\"Ambiance du site\"><span>Ambiance</span><span class=\"themesw__dots\"><button type=\"button\" class=\"th--sapin\" data-theme-set=\"sapin\" aria-pressed=\"true\" title=\"Sapin\" aria-label=\"Ambiance Sapin\"></button><button type=\"button\" class=\"th--glace\" data-theme-set=\"glace\" aria-pressed=\"false\" title=\"Glace\" aria-label=\"Ambiance Glace\"></button><button type=\"button\" class=\"th--nuit\" data-theme-set=\"nuit\" aria-pressed=\"false\" title=\"Nuit\" aria-label=\"Ambiance Nuit\"></button><button type=\"button\" class=\"th--noel\" data-theme-set=\"noel\" aria-pressed=\"false\" title=\"Noël\" aria-label=\"Ambiance Noël\"></button><button type=\"button\" class=\"th--halloween\" data-theme-set=\"halloween\" aria-pressed=\"false\" title=\"Halloween\" aria-label=\"Ambiance Halloween\"></button></span></div>";
+  const THEMESW = "<div class=\"themesw\" role=\"group\" aria-label=\"Ambiance du site\"><span>Ambiance</span><span class=\"themesw__dots\"><button type=\"button\" class=\"th--sapin\" data-theme-set=\"sapin\" aria-pressed=\"true\" title=\"Sapin\" aria-label=\"Ambiance Sapin\"></button><button type=\"button\" class=\"th--glace\" data-theme-set=\"glace\" aria-pressed=\"false\" title=\"Glace\" aria-label=\"Ambiance Glace\"></button><button type=\"button\" class=\"th--nuit\" data-theme-set=\"nuit\" aria-pressed=\"false\" title=\"Nuit\" aria-label=\"Ambiance Nuit\"></button><button type=\"button\" class=\"th--noel\" data-theme-set=\"noel\" aria-pressed=\"false\" title=\"Noël\" aria-label=\"Ambiance Noël\"></button><button type=\"button\" class=\"th--halloween\" data-theme-set=\"halloween\" aria-pressed=\"false\" title=\"Halloween\" aria-label=\"Ambiance Halloween\"></button><button type=\"button\" class=\"th--arcade\" data-theme-set=\"arcade\" aria-pressed=\"false\" title=\"Arcade\" aria-label=\"Ambiance Arcade\"></button></span></div>";
   /* ---------- Ambiance (Sapin, Glace, Nuit), mémorisée dans le navigateur ---------- */
-  const THEME_COLOR = { sapin: '#163629', glace: '#a8cfe4', nuit: '#0b1322', noel: '#8f1620', halloween: '#1a0b2c' };
+  const THEME_COLOR = { sapin: '#163629', glace: '#a8cfe4', nuit: '#0b1322', noel: '#8f1620', halloween: '#1a0b2c', arcade: '#0d0b2a' };
   function setTheme(t, save) {
     if (!THEME_COLOR[t]) t = 'sapin';
     const de = document.documentElement;
-    if (t === 'sapin') de.removeAttribute('data-theme'); else de.setAttribute('data-theme', t === 'halloween' ? 'nuit' : t);   // Halloween = variante sombre de Nuit
-    if (t === 'halloween') de.setAttribute('data-skin', 'halloween'); else de.removeAttribute('data-skin');
+    if (t === 'sapin') de.removeAttribute('data-theme'); else de.setAttribute('data-theme', (t === 'halloween' || t === 'arcade') ? 'nuit' : t);   // Halloween = variante sombre de Nuit
+    if (t === 'halloween' || t === 'arcade') de.setAttribute('data-skin', t); else de.removeAttribute('data-skin');
     document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)));
     const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', THEME_COLOR[t]);
     if (save) { try { localStorage.setItem('skigame.theme', t); } catch (e) { /* ignoré */ } }
@@ -1493,7 +1493,7 @@
         ${snoozed ? '<button type="button" class="linkbtn" data-gate-reset>Réafficher les rappels reportés ou masqués</button>' : ''}
         <p class="hint">Réglage enregistré dans ce navigateur : à refaire sur un autre appareil.</p>
       </section>
-      <section class="set"><h3>Ambiance du site</h3><div class="set__themes">${dot('sapin', 'Sapin')}${dot('glace', 'Glace')}${dot('nuit', 'Nuit')}${dot('noel', 'Noël')}${dot('halloween', 'Halloween')}</div></section>
+      <section class="set"><h3>Ambiance du site</h3><div class="set__themes">${dot('sapin', 'Sapin')}${dot('glace', 'Glace')}${dot('nuit', 'Nuit')}${dot('noel', 'Noël')}${dot('halloween', 'Halloween')}${dot('arcade', 'Arcade')}</div></section>
       <section class="set"><h3>Application mobile</h3>
         ${isStandalone() ? '<p class="hint">L’app est déjà installée sur cet appareil ✓</p>' : '<p class="hint">Ajoute un raccourci Ski Game sur ton écran d’accueil : le jeu s’ouvre comme une application.</p><button type="button" class="btn btn--ghost btn--sm" data-install>📲 Installer l’app sur mon téléphone</button>'}
       </section>
