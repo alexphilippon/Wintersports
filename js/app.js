@@ -884,31 +884,56 @@
   }
 
   /* ---------- Classements ---------- */
+  /** Pastille de rang : 1-3 en médaille, 4 à 10 cerclés (sans fond), au-delà rien. */
+  const rnkCell = (rk) => `<span class="rnk rnk--${rk <= 3 ? rk : rk <= 10 ? 'c' : 'n'}">${rk}</span>`;
   function rankRows(scoreFn) {
     const rows = state.players.map((p) => ({ p, v: scoreFn(state.picks[p.id] || {}) })).sort((a, b) => b.v.total - a.v.total);
     let last = null, rank = 0;
     rows.forEach((r, i) => { if (r.v.total !== last) { rank = i + 1; last = r.v.total; } r.rank = rank; });
     return rows;
   }
-  function smallRanking(title, scoreFn, cls) {
+  /** Classement simple. photo=false : sans photo de profil (classements des desks). */
+  function smallRanking(title, scoreFn, cls, photo) {
     const rows = rankRows((pk) => ({ total: scoreFn(pk) }));
     return `<div class="tablewrap"><table class="grid grid--rank ${cls || ''}"><caption>${esc(title)}</caption>
       <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num">Points</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td><th scope="row">${pname(r.p)}</th><td class="num">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
+      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${photo === false ? pln(r.p) : pname(r.p)}</th><td class="num">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  /** Classement par compteur : rows = [{ p, v, sub }], déjà classées. */
+  function countRanking(title, rows, unit, cls, note) {
+    return `<div class="tablewrap"><table class="grid grid--rank ${cls || ''}"><caption>${esc(title)}${note ? ' ' + info(note) : ''}</caption>
+      <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num">${esc(unit)}</th></tr></thead>
+      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${pln(r.p)}${r.sub ? `<span class="sub"> ${esc(r.sub)}</span>` : ''}</th><td class="num total">${r.v}</td></tr>`).join('')}</tbody></table></div>`;
   }
   function generalPanel() {
-    const R = state.results;
-    const rows = rankRows((pk) => G.generalScore(pk, R));
-    const main = `<div class="tablewrap"><table class="grid grid--rank grid--general cap--gen"><caption>Le gros globe ${info('Classement général : somme des points des trois desks et des Mondiaux, bonus compris.')}</caption>
-      <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num th--d1">Desk 1</th><th scope="col" class="num th--d2">Desk 2</th><th scope="col" class="num th--d3">Desk 3</th><th scope="col" class="num th--w">Mondiaux</th><th scope="col" class="num">Total</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td><th scope="row">${pname(r.p)}</th>${r.v.desks.map((d) => `<td class="num">${d}</td>`).join('')}<td class="num">${r.v.worlds}</td><td class="num total">${r.v.total}</td></tr>`).join('')}</tbody></table></div>`;
-    const desks = D.DESKS.map((d) => smallRanking(`Classement du ${d.name}`, (pk) => G.deskScore(d.id, pk, R), 'cap--d' + d.id)).join('');
-    const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => smallRanking(`Petit globe de ${c === 'SG' ? 'super-G' : D.DISC[c].fr.toLowerCase()}`, (pk) => G.disciplineScore(c, pk, R), 'cap--' + c)).join('');
+    const R = state.results, sub = state.gsub || 'globes';
+    const seg = `<div class="seg gseg" role="tablist" aria-label="Classements">${[['globes', 'Globes'], ['bonus', 'Bulles et victoires'], ['series', 'Séries']].map(([id, l]) => `<button type="button" role="tab" class="seg__btn" aria-selected="${sub === id}" data-gsub="${id}">${l}</button>`).join('')}</div>`;
     const none = Object.keys(R).length === 0 ? '<p class="hint">Aucun résultat pour l’instant.</p>' : '';
+    let body = '';
+    if (sub === 'globes') {
+      const rows = rankRows((pk) => G.generalScore(pk, R));
+      const main = `<div class="tablewrap"><table class="grid grid--rank grid--general cap--gen"><caption>Le gros globe ${info('Classement général : somme des points des trois desks et des Mondiaux, bonus compris.')}</caption>
+        <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num th--tot">Total</th><th scope="col" class="num th--d1">Desk 1</th><th scope="col" class="num th--d2">Desk 2</th><th scope="col" class="num th--d3">Desk 3</th><th scope="col" class="num th--w">Mondiaux</th></tr></thead>
+        <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${pname(r.p)}</th><td class="num total">${r.v.total}</td>${r.v.desks.map((d) => `<td class="num">${d}</td>`).join('')}<td class="num">${r.v.worlds}</td></tr>`).join('')}</tbody></table></div>`;
+      const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => smallRanking(`Petit globe de ${c === 'SG' ? 'super-G' : D.DISC[c].fr.toLowerCase()}`, (pk) => G.disciplineScore(c, pk, R), 'cap--' + c)).join('');
+      const dk = (d) => smallRanking(`Classement du ${d.name}`, (pk) => G.deskScore(d.id, pk, R), 'cap--d' + d.id, false);
+      const wk = smallRanking('Classement des Mondiaux', (pk) => G.worldsScore(pk, R).total, 'cap--w', false);
+      body = `${main}<h3 class="subtitle">Petits globes</h3><div class="grid2">${discs}</div>
+        <h3 class="subtitle">Par desk</h3><div class="grid2">${dk(D.DESKS[0])}${dk(D.DESKS[1])}</div><div class="grid2">${wk}${dk(D.DESKS[2])}</div>`;
+    } else {
+      const evs = SKI_STATS.events(state, G, R), tot = SKI_STATS.totals(state, evs);
+      if (sub === 'bonus') {
+        const bub = SKI_STATS.rank(tot.map((t) => ({ p: t.p, v: t.bubbles, sub: `sur ${t.n}` })), (r) => r.v, true);
+        const win = SKI_STATS.rank(tot.map((t) => ({ p: t.p, v: t.wins, sub: `sur ${t.n}` })), (r) => r.v);
+        body = `<div class="grid2">${countRanking('Classement des bulles', bub, 'Bulles', 'cap--bub', 'Une bulle : ton skieur fait 0 point (DNF, DNQ, disqualifié ou hors des 30 premiers). Un DNS n’en est pas une. Le premier est le joueur qui en a subi le moins.')}
+          ${countRanking('Classement des victoires', win, 'Victoires', 'cap--vic', 'Nombre de fois où le skieur que tu avais choisi a gagné la course.')}</div>`;
+      } else {
+        const st = SKI_STATS.streaks(evs);
+        body = `<p class="hint">Plus longue série de courses consécutives de l’hiver. Une course sans choix, ou un échec, interrompt la série.</p><div class="grid2">${SKI_STATS.STREAKS.map((sd) => countRanking(sd.label, SKI_STATS.rank(state.players.map((p) => ({ p, v: (st[p.id] || {})[sd.id] ? st[p.id][sd.id].best : 0, sub: (st[p.id] && st[p.id][sd.id] && st[p.id][sd.id].now) ? `(en cours : ${st[p.id][sd.id].now})` : '' })), (r) => r.v), 'Série', 'cap--st')).join('')}</div>`;
+      }
+    }
     return `<section class="genpanel"><header class="deskhead"><div><h2>Classements</h2>
-      <p class="deskhead__meta">Général : trois desks et les Mondiaux, bonus compris</p></div></header>${none}${main}
-      <h3 class="subtitle">Par desk</h3><div class="grid3">${desks}</div>
-      <h3 class="subtitle">Petits globes</h3><div class="grid2">${discs}</div></section>`;
+      <p class="deskhead__meta">Général : trois desks et les Mondiaux, bonus compris</p></div></header>${none}<div class="deskbar">${seg}</div>${body}</section>`;
   }
 
   /* ---------- Navigation & rendu ---------- */
@@ -1565,6 +1590,7 @@
       else { const [k, x] = v.split(':'); const a = state.ff[k]; state.ff[k] = a.includes(x) ? a.filter((y) => y !== x) : a.concat(x); }
       renderPanel(); return;
     }
+    const gsb = e.target.closest('[data-gsub]'); if (gsb) { state.gsub = gsb.dataset.gsub; renderPanel(); return; }
     const sub = e.target.closest('[data-sub]');
     if (sub) { state.sub[Number(sub.dataset.key)] = sub.dataset.sub; renderPanel(); return; }
     const fr = e.target.closest('[data-free]');

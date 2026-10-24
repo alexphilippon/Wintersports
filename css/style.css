@@ -369,10 +369,10 @@ body.noscroll { overflow: hidden; }
 .grid--rank thead th { background: var(--chip); }
 .grid--rank thead th.th--d1 { background: #cfe3f1; } .grid--rank thead th.th--d2 { background: #cde9dc; }
 .grid--rank thead th.th--d3 { background: #f4dcc2; } .grid--rank thead th.th--w { background: #cfe5e7; }
-.grid--general tbody td:nth-child(3) { background: rgba(47, 127, 176, .07); }
-.grid--general tbody td:nth-child(4) { background: rgba(47, 138, 99, .07); }
-.grid--general tbody td:nth-child(5) { background: rgba(210, 122, 42, .08); }
-.grid--general tbody td:nth-child(6) { background: rgba(23, 86, 95, .08); }
+.grid--general tbody td:nth-child(4) { background: rgba(47, 127, 176, .07); }
+.grid--general tbody td:nth-child(5) { background: rgba(47, 138, 99, .07); }
+.grid--general tbody td:nth-child(6) { background: rgba(210, 122, 42, .08); }
+.grid--general tbody td:nth-child(7) { background: rgba(23, 86, 95, .08); }
 .grid--rank .me { background: rgba(47, 127, 176, .16); }
 .grid--rank .me th { font-weight: 700; }
 .grid--rank thead th.me { background: #2f7fb0; color: #fff; }
@@ -1127,3 +1127,11 @@ html[data-theme='nuit'] .rkpts--on { color: #7fd6a6; }
 .rcard__x { display: flex; flex-direction: column; align-items: flex-start; gap: .15rem; }
 .rcard__x:empty { display: none; }
 .draftbtn { width: fit-content; } .session__draft { padding: .1rem .5rem; }
+
+/* Classements : colonne Total qui ressort, nom plus étroit, rang cerclé de 4 à 10 */
+.grid--general tbody th { min-width: 0; width: 9.5rem; max-width: 11rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grid--general td.total { background: color-mix(in srgb, var(--ocre) 22%, transparent) !important; font-size: 1.3rem; border-left: 2px solid var(--ocre); border-right: 2px solid var(--ocre); }
+.grid--general thead th.th--tot { background: var(--ocre); color: #1b2b44; font-weight: 800; }
+.rnk--c { border: 2px solid var(--encre-douce); background: transparent; color: var(--encre); }
+.gseg { margin: .8rem 0 1rem; }
+.grid--rank.cap--bub caption, .grid--rank.cap--vic caption, .grid--rank.cap--st caption { background: linear-gradient(90deg, #1b2b44, #2f7fb0); }
