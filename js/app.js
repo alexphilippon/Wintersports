@@ -401,7 +401,7 @@
     ? `<span class="count${n === live.length ? ' count--ok' : ''}">${n}/${live.length} choisis</span>${nd ? `<span class="count count--draft">${nd} brouillon${nd > 1 ? 's' : ''}</span>` : ''}${remindBtn(session)}`
     : `<span class="count count--pts">${mine} pts</span>`}</div>
       </header>
-      ${open && live.some((r) => (myPicks()[r.id] || {}).a) ? `<p class="session__draft">${nd === live.filter((r) => (myPicks()[r.id] || {}).a).length ? '📝 Cette session est en brouillon : ses choix ne comptent pas comme faits (ils seront pris tels quels à la deadline).' : ''} <button type="button" class="linkbtn" data-draft-session="${session.id}|${sessionDraftMode(session) ? 0 : 1}">${sessionDraftMode(session) ? 'Tout confirmer' : 'Tout passer en brouillon'}</button></p>` : ''}
+      ${open && live.some((r) => (myPicks()[r.id] || {}).a) ? `<p class="session__draft">${nd === live.filter((r) => (myPicks()[r.id] || {}).a).length ? '📝 Cette session est en brouillon : ses choix ne comptent pas comme faits (ils seront confirmés automatiquement à la deadline).' : ''} <button type="button" class="linkbtn" data-draft-session="${session.id}|${sessionDraftMode(session) ? 0 : 1}">${sessionDraftMode(session) ? 'Tout confirmer' : 'Tout passer en brouillon'}</button></p>` : ''}
       ${races.some((r) => r.kind === 'finale') ? '<p class="session__note">🏁 Finales : points ×2, et <strong>seuls les 15 premiers marquent</strong> (à partir de la 16ᵉ place : 0 point).</p>' : ''}
       <ul class="races">${races.filter(passF).map((r) => raceRow(r, session)).join('') || '<li class="race"><span class="none">Aucune course avec ces filtres.</span></li>'}</ul>
     </article>`;
@@ -1622,7 +1622,7 @@
     const list = todo.map((r) => `<li class="gate__race"><span class="gate__when">${esc(dayOf(r.date))}</span><span class="gate__what"><strong>${fl(placeLabel(r))}</strong> <span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}</span></li>`).join('');
     openModal(`<div class="gate"><p class="gate__kicker">Au portillon</p>
       <h2 class="gate__title">${todo.length > 1 ? `${todo.length} choix t’attendent` : 'Un choix t’attend'}</h2>
-      ${nDraft ? `<p class="gate__lead">Dont <strong>${nDraft} brouillon${nDraft > 1 ? 's' : ''}</strong> à confirmer. Sans action de ta part, les brouillons seront pris tels quels à la deadline.</p>` : ''}
+      ${nDraft ? `<p class="gate__lead">Dont <strong>${nDraft} brouillon${nDraft > 1 ? 's' : ''}</strong> à confirmer. Sans action de ta part, les brouillons seront confirmés automatiquement à la deadline.</p>` : ''}
       <p class="gate__lead">Deadline <strong>${esc(dlShort(dl))}</strong>, dans ${esc(leftText(left))}. Ensuite, tout est verrouillé, <strong>y compris les courses des jours suivants</strong> : il faut tout valider avant la première course de la session.</p>
       <ul class="gate__list">${list}</ul>
       <button type="button" class="btn btn--brique gate__go" data-gate-go="${sid}">Je choisis maintenant</button>
