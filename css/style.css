@@ -964,3 +964,7 @@ html[data-theme='nuit'] .ffc--W { --c: #e08fbd; } html[data-theme='nuit'] .ffc--
 .dr__grid tr.is-mine .dr__sticky { background: color-mix(in srgb, var(--ocre) 26%, var(--neige)); }
 html[data-theme='nuit'] .c-1, html[data-theme='nuit'] .c-2, html[data-theme='nuit'] .c-3 { color: #111a26; }
 @media (max-width: 640px) { .dr__sticky { min-width: 7.2rem; max-width: 7.2rem; } .dr__sticky .dr__nm { max-width: 5.2rem; } .dr__rh, .dr__c { min-width: 2.4rem; } }
+
+.dr__c.c-pick { box-shadow: inset 0 0 0 2.5px var(--brique); position: relative; }
+.dr__c.c-pick::after { content: ''; position: absolute; inset: 0; border-radius: 2px; box-shadow: inset 0 0 0 1px #fff8; }
+.dr__sticky .dr__nm { max-width: 6.4rem; }

@@ -798,7 +798,7 @@
     data: '<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M9.5 4v16M15 9.5v10.5"/>',
     gen: '<path d="M3 20.5h18"/><rect x="9" y="7.5" width="6" height="13"/><rect x="3" y="13" width="6" height="7.5"/><rect x="15" y="15.5" width="6" height="5"/>',
   };
-  const TAB_SHORT = { next: 'À venir', 1: 'Desk 1', 2: 'Desk 2', w: 'Mondiaux', 3: 'Desk 3', gen: 'Général', data: 'Data' };
+  const TAB_SHORT = { next: 'À venir', 1: 'Desk 1', 2: 'Desk 2', w: 'WCh', 3: 'Desk 3', gen: 'Général', data: 'Data' };
   function renderTabs() {
     $('#tabs').innerHTML = tabs().map((t) => {
       const short = t.id === 'next' && /en cours/.test(t.label) ? 'En cours' : t.id === 'next' && /Dernière/.test(t.label) ? 'Terminée' : TAB_SHORT[t.id];

@@ -54,6 +54,15 @@
     });
     return m;
   }
+  /** Nom de famille seul (le champ « fis » commence par le nom en majuscules). */
+  function fam(id) {
+    const a = C.ATH()[id]; if (!a) return id;
+    const t = a.name.split(/\s+/), f = (a.fis || '').split(/\s+/).filter(Boolean);
+    if (f.length) { const given = f.filter((w) => w !== w.toUpperCase() || /^[a-zà-ÿ]/.test(w)).length; if (given && given < t.length) return t.slice(given).join(' '); }
+    return t[t.length - 1];
+  }
+  /** Course -> skieur que j'ai choisi. */
+  const myPick = () => { const o = {}; Object.entries(C.state.picks[C.state.me] || {}).forEach(([rid, pk]) => { if (pk && pk.a) o[rid] = pk.a; }); return o; };
   const chip = (attr, v, label, on, cls) => `<button type="button" class="ffc ${cls || ''}" data-dr="${attr}:${v}" aria-pressed="${on}">${label}</button>`;
   const genderChips = () => `<span class="ff__g">${chip('g', 'W', 'Dames', ui.g === 'W', 'ffc--W')}${chip('g', 'M', 'Messieurs', ui.g === 'M', 'ffc--M')}</span>`;
   const discChips = (list) => `<span class="ff__g">${DISC.map((d) => chip('disc', d, C.D.DISC[d].short, list.includes(d), 'ffc--' + d)).join('')}</span>`;
@@ -65,7 +74,7 @@
     const globe = !ui.disc.length ? 'Gros globe (cumul des quatre disciplines)' : ui.disc.length === 1 ? `Petit globe de ${DNAME[ui.disc[0]].toLowerCase()}` : `Cumul : ${ui.disc.map((d) => DNAME[d].toLowerCase()).join(' + ')}`;
     const badges = (id) => ['1', '2', '3', 'M'].map((k) => `<span class="db${used[id] && used[id].has(k) ? ' is-on' : ''}" style="--c:${DESKC[k]}" title="${used[id] && used[id].has(k) ? 'Déjà pris' : 'Pas encore pris'} (${k === 'M' ? 'Mondiaux' : 'Desk ' + k})">${k === 'M' ? 'M' : 'D' + k}</span>`).join('');
     const body = shown.map((r) => `<tr class="${used[r.ath] ? 'is-mine' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td>
-      <th scope="row"><span class="dr__sk">${C.avatarOf(r.ath, 'sm')}<span class="dr__nm">${C.esc(C.nameOf(r.ath))}</span></span></th>
+      <th scope="row"><span class="dr__sk">${C.avatarOf(r.ath, 'sm')}<span class="dr__nm">${C.esc(fam(r.ath))}</span></span></th>
       <td class="num"><b>${r.pts}</b></td><td class="dr__bd">${badges(r.ath)}</td></tr>`).join('');
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(ui.disc)}${ui.disc.length ? '<button type="button" class="ff__x" data-dr="disc:clear">Cumul des quatre</button>' : ''}</div>
       <div class="tablewrap"><table class="grid grid--rank dr__light"><caption>${C.esc(globe)}, ${ui.g === 'M' ? 'messieurs' : 'dames'}</caption>
@@ -78,18 +87,18 @@
   const mo = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'numeric', timeZone: 'UTC' });
   const cellCls = (e) => (!e ? 'c-none' : e.status ? 'c-st' : e.rank === 1 ? 'c-1' : e.rank === 2 ? 'c-2' : e.rank === 3 ? 'c-3' : e.rank <= 10 ? 'c-top' : 'c-in');
   function premium() {
-    const t = table(ui.g, ui.prem.disc), used = mine();
+    const t = table(ui.g, ui.prem.disc), used = mine(), mp = myPick();
     const races = ui.last ? t.races.slice(-ui.last) : t.races;
     let rows = t.rows;
     if (ui.rows === 'top') rows = rows.slice(0, 30); else if (ui.rows === 'mine') rows = rows.filter((r) => used[r.ath]);
     const head = races.map((r) => `<th scope="col" class="dr__rh" title="${C.esc(`${C.placeLabel(r)} · ${C.discLabel(r)} · ${mo.format(new Date(r.date + 'T12:00:00Z'))}`)}"><span class="dr__pl">${C.esc(C.placeLabel(r).replace(/[^A-Za-zÀ-ÿ]/g, '').slice(0, 3).toUpperCase())}</span><span class="dr__ds disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="dr__dt">${mo.format(new Date(r.date + 'T12:00:00Z'))}</span></th>`).join('');
-    const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><span class="dr__nm">${used[s.ath] ? '★ ' : ''}${C.esc(C.nameOf(s.ath))}</span></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}">${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
+    const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><span class="dr__nm">${used[s.ath] ? '★ ' : ''}${C.esc(fam(s.ath))}</span></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
     const sel = (k, opts) => `<span class="ff__g">${opts.map(([v, l]) => chip(k, v, l, String(ui[k]) === String(v))).join('')}</span>`;
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(ui.prem.disc).replace(/data-dr="disc:/g, 'data-dr="pdisc:')}</div>
       <div class="ff dr__filters"><span class="sub">Courses</span>${sel('last', [[6, '6 dernières'], [12, '12'], [0, 'Toutes']])}<span class="sub">Skieurs</span>${sel('rows', [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']])}</div>
       <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid"><caption>Résultats, ${ui.g === 'M' ? 'messieurs' : 'dames'} · ${races.length} course${races.length > 1 ? 's' : ''}</caption>
       <thead><tr><th scope="col" class="dr__sticky">Skieur</th><th scope="col" class="dr__pts">Pts</th>${head}</tr></thead><tbody>${body || `<tr><td colspan="${races.length + 2}"><span class="none">Aucun résultat.</span></td></tr>`}</tbody></table></div>
-      <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS, DNQ, DSQ sont notés. Case vide : hors des 30 premiers. ★ : skieur que tu as déjà choisi. Fais glisser le tableau pour voir les courses.</p>`;
+      <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS, DNQ, DSQ sont notés. Case vide : hors des 30 premiers. ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course. Fais glisser le tableau pour voir les courses.</p>`;
   }
 
   function render() {
