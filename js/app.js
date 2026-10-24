@@ -620,15 +620,28 @@
     const by = {}, q = L.qualify || 30;
     (L.rows || []).forEach((r) => { const a = codeAth[r.code]; if (a) by[a] = { rank: r.rank, out: r.rank > q }; });
     (L.out || []).forEach((r) => { const a = codeAth[r.code]; if (a && r.status !== 'DNS') by[a] = { status: r.status, out: true }; });
-    return { L, by };
+    // non-partant : skieur du jeu absent de la liste de départ FIS alors que le classement de la 1re manche est publié
+    const starters = new Set(((sl && sl.rows) || []).map((r) => r.ath).filter(Boolean));
+    const dns = (a) => !!sl && starters.size > 0 && !starters.has(a);
+    return { L, by, dns };
   }
-  const liveChip = (lv, a) => { const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
+  const liveChip = (lv, a) => { if (lv && lv.dns(a)) return ' <span class="rank rank--dns" title="Absent de la liste de départ">Non partant (DNS)</span>'; const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
+  /** Titulaires qui ne prennent pas le départ : remplaçant du joueur, ou tirage au sort s'il n'en a pas (ou s'il est lui aussi absent). */
+  function dnsNote(race, lv) {
+    const rows = [];
+    state.players.forEach((p) => {
+      const pk = (state.picks[p.id] || {})[race.id]; if (!pk || !pk.a || !lv.dns(pk.a)) return;
+      const rep = pk.b && !lv.dns(pk.b) ? pk.b : null;
+      rows.push(`<li><strong>${skn(pk.a)}</strong> : ${pln(p)} → ${rep ? `remplaçant <strong>${skn(rep)}</strong>` : '<strong>pas de remplaçant valable : tirage au sort</strong>'}</li>`);
+    });
+    return rows.length ? `<p class="livenote__b livenote__b--dns">🚫 <strong>Non-partant${rows.length > 1 ? 's' : ''}</strong> (absent${rows.length > 1 ? 's' : ''} de la liste de départ, pas de bulle) :</p><ul class="livenote__l">${rows.join('')}</ul>` : '';
+  }
   function liveNote(race) {
     const lv = liveOf(race); if (!lv) return '';
     const { picks } = racePeople(race), hit = picks.filter((x) => lv.by[x.ath] && lv.by[x.ath].out);
     const upd = new Date(lv.L.fetched);
     return `<div class="livenote"><p><strong>1re manche terminée</strong>${lv.L.run2 ? ` · 2e manche à <strong>${hm(lv.L.run2)}</strong>` : ''} <span class="livenote__t">(mis à jour à ${F_HM.format(upd)})</span></p>
-      ${hit.length ? `<p class="livenote__b">⚠ <strong>Bulle${hit.length > 1 ? 's' : ''} actée${hit.length > 1 ? 's' : ''}</strong> : non qualifié${hit.length > 1 ? 's' : ''} pour la 2e manche, 0 point.</p><ul class="livenote__l">${Object.entries(hit.reduce((m, x) => { (m[x.ath] = m[x.ath] || []).push(x.p); return m; }, {})).map(([a, ps]) => `<li><strong>${skn(a)}</strong> : ${ps.map(pln).join(', ')}</li>`).join('')}</ul>` : '<p class="livenote__b livenote__b--ok">Aucune bulle : tous les skieurs choisis passent en 2e manche.</p>'}</div>`;
+      ${dnsNote(race, lv)}${hit.length ? `<p class="livenote__b">⚠ <strong>Bulle${hit.length > 1 ? 's' : ''} actée${hit.length > 1 ? 's' : ''}</strong> : non qualifié${hit.length > 1 ? 's' : ''} pour la 2e manche, 0 point.</p><ul class="livenote__l">${Object.entries(hit.reduce((m, x) => { (m[x.ath] = m[x.ath] || []).push(x.p); return m; }, {})).map(([a, ps]) => `<li><strong>${skn(a)}</strong> : ${ps.map(pln).join(', ')}</li>`).join('')}</ul>` : '<p class="livenote__b livenote__b--ok">Aucune bulle : tous les skieurs choisis passent en 2e manche.</p>'}</div>`;
   }
   function shareTable(race) {
     const { picks, cnt } = racePeople(race), N = picks.length;

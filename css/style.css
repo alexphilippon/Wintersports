@@ -1033,3 +1033,6 @@ html[data-theme='nuit'] .seg__btn--past:not([aria-selected="true"]) { color: #c4
 .sk__t--win { background: #1f6b4a; border-color: #174f37; color: #fff; } .sk__t--win span { color: #d8efe3; }
 .sk__t--bub { background: color-mix(in srgb, #d4443a 16%, var(--neige)); border-color: #d4443a; color: #b3281f; } .sk__t--bub span { color: #b3281f; }
 html[data-theme='nuit'] .sk__t--pts { color: #1b2b44; } html[data-theme='nuit'] .sk__t--bub, html[data-theme='nuit'] .sk__t--bub span { color: #ff8f86; }
+
+.rank--dns { background: color-mix(in srgb, #8a6d1f 20%, transparent); color: #6e5513; font-weight: 700; } .livenote__b--dns { color: #6e5513 !important; }
+html[data-theme='nuit'] .rank--dns, html[data-theme='nuit'] .livenote__b--dns { color: #e8cf86 !important; }
