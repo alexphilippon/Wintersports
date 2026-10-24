@@ -3,11 +3,12 @@
 (function (root) {
   'use strict';
   let C = null;
-  const ui = { pp: { disc: [] }, bub: {}, sub: 'light', g: 'M', disc: [], more: false, last: 0, rows: 'top', prem: { disc: [] } };
+  const ui = { pp: { disc: [] }, bub: {}, sub: 'light', g: 'M', disc: [], more: false, last: 10, gInit: false, rows: 'top', prem: { disc: [] } };
   const init = (ctx) => { C = ctx; };
   const DISC = ['DH', 'SG', 'GS', 'SL'], DNAME = { DH: 'Descente', SG: 'Super-G', GS: 'Géant', SL: 'Slalom' };
   const DESKC = { 1: '#2f7fb0', 2: '#2f8a63', 3: '#d27a2a', M: '#2c8f94' };
 
+  const rnkc = (rk) => `<span class="rnk rnk--${rk <= 3 ? rk : rk <= 10 ? 'c' : 'n'}">${rk}</span>`;
   const h01 = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h >>> 0) % 100000) / 100000; };
 
   /** Résultats utilisés : ceux du jeu ; en démonstration, 14 courses par genre complétées de résultats fictifs. */
@@ -45,10 +46,11 @@
     return { races, rows };
   }
   /** Skieurs que j'ai déjà choisis, par desk (1, 2, 3, M = Mondiaux). */
-  function mine() {
+  function mine(drafts) {
     const m = {};
     Object.entries(C.state.picks[C.state.me] || {}).forEach(([rid, pk]) => {
       const r = C.G.raceOf(rid); if (!r || !pk || !pk.a || r.cancelled) return;
+      if (!!C.isDraft(pk, r) !== !!drafts) return;
       const s = C.sessionOf(r); const k = r.kind === 'mondial' ? 'M' : s && s.desk;
       if (k) (m[pk.a] = m[pk.a] || new Set()).add(String(k));
     });
@@ -62,19 +64,26 @@
     return t[t.length - 1];
   }
   /** Course -> skieur que j'ai choisi. */
-  const myPick = () => { const o = {}; Object.entries(C.state.picks[C.state.me] || {}).forEach(([rid, pk]) => { if (pk && pk.a) o[rid] = pk.a; }); return o; };
+  const myPick = (drafts) => { const o = {}; Object.entries(C.state.picks[C.state.me] || {}).forEach(([rid, pk]) => { const r = C.G.raceOf(rid); if (pk && pk.a && r && !!C.isDraft(pk, r) === !!drafts) o[rid] = pk.a; }); return o; };
   const chip = (attr, v, label, on, cls) => `<button type="button" class="ffc ${cls || ''}" data-dr="${attr}:${v}" aria-pressed="${on}">${label}</button>`;
   const genderChips = () => `<span class="ff__g">${chip('g', 'W', 'Dames', ui.g === 'W', 'ffc--W')}${chip('g', 'M', 'Messieurs', ui.g === 'M', 'ffc--M')}</span>`;
   const discChips = (list) => `<span class="ff__g">${DISC.map((d) => chip('disc', d, C.D.DISC[d].short, list.includes(d), 'ffc--' + d)).join('')}</span>`;
 
+  /** Par défaut : le genre de la course terminée la plus récente. */
+  function initG() {
+    if (ui.gInit) return; ui.gInit = true;
+    const res = allResults(); let best = null;
+    Object.keys(res).forEach((id) => { const r = C.G.raceOf(id); if (r && !r.cancelled && res[id] && res[id].length && (!best || C.G.raceStart(r) > C.G.raceStart(best))) best = r; });
+    if (best) ui.g = best.gender;
+  }
   /* ---------- 1. Classements (version légère) ---------- */
   function light() {
-    const { rows } = table(ui.g, ui.disc), used = mine();
+    initG(); const { rows } = table(ui.g, ui.disc), used = mine(), dr = mine(true);
     const shown = ui.more ? rows : rows.slice(0, 30);
     const globe = !ui.disc.length ? 'Gros globe (cumul des quatre disciplines)' : ui.disc.length === 1 ? `Petit globe de ${DNAME[ui.disc[0]].toLowerCase()}` : `Cumul : ${ui.disc.map((d) => DNAME[d].toLowerCase()).join(' + ')}`;
-    const badges = (id) => ['1', '2', '3', 'M'].map((k) => `<span class="db${used[id] && used[id].has(k) ? ' is-on' : ''}" style="--c:${DESKC[k]}" title="${used[id] && used[id].has(k) ? 'Déjà pris' : 'Pas encore pris'} (${k === 'M' ? 'Mondiaux' : 'Desk ' + k})">${k === 'M' ? 'M' : 'D' + k}</span>`).join('');
-    const body = shown.map((r) => `<tr class="${used[r.ath] ? 'is-mine' : ''}"><td class="num"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span></td>
-      <th scope="row"><button type="button" class="dr__sk dr__lnk" data-dr="sk:id~${r.ath}">${C.avatarOf(r.ath, 'sm')}<span class="dr__nm">${C.esc(fam(r.ath))}</span></button></th>
+    const badges = (id) => ['1', '2', '3', 'M'].map((k) => { const on = used[id] && used[id].has(k), dft = !on && dr[id] && dr[id].has(k); return `<span class="db${on ? ' is-on' : dft ? ' is-draft' : ''}" style="--c:${DESKC[k]}" title="${on ? 'Déjà pris' : dft ? 'Brouillon (non confirmé)' : 'Pas encore pris'} (${k === 'M' ? 'Mondiaux' : 'Desk ' + k})">${k === 'M' ? 'M' : 'D' + k}</span>`; }).join('');
+    const body = shown.map((r) => `<tr class="${used[r.ath] ? 'is-mine' : ''}"><td class="num">${rnkc(r.rank)}</td>
+      <th scope="row"><button type="button" class="dr__sk dr__lnk" data-dr="sk:id~${r.ath}">${C.avatarOf(r.ath, 'sm')}<span class="dr__nm">${C.esc(C.nameOf(r.ath))}</span></button></th>
       <td class="num"><b>${r.pts}</b></td><td class="dr__bd">${badges(r.ath)}</td></tr>`).join('');
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(ui.disc)}${ui.disc.length ? '<button type="button" class="ff__x" data-dr="disc:clear">Cumul des quatre</button>' : ''}</div>
       <div class="tablewrap"><table class="grid grid--rank dr__light"><caption>${C.esc(globe)}, ${ui.g === 'M' ? 'messieurs' : 'dames'}</caption>
@@ -112,7 +121,7 @@
       s.cells[r.id] = typeof v === 'number' ? { rank: v } : { status: v }; s.n++;
       if (typeof v === 'number') s.pts += cp != null ? cp : C.G.pointsForRank(v);   // points publiés par la FIS (les finales n'en donnent pas à tous)
     }));
-    const nameOfCode = (code) => { const id = map[code]; if (id) return fam(id); const n = (past.ath[code] || [code])[0].split(' '); const up = []; while (n.length && n[0] === n[0].toUpperCase()) up.push(n.shift()); return titleCase((up.length ? up : n).join(' ')); };
+    const nameOfCode = (code) => { const id = map[code]; if (id) return fam(id); const n = (past.ath[code] || [code])[0].split(' '); const up = []; while (n.length && n[0] === n[0].toUpperCase()) up.push(n.shift()); return (n.length ? n.join(' ') + ' ' : '') + (up.length ? up : n).join(' ').toUpperCase(); };
     const rows = Object.values(by).sort((a, b) => b.pts - a.pts || a.n - b.n);
     rows.forEach((r) => { r.name = nameOfCode(r.ath); });
     let last = null, rk = 0; rows.forEach((r, i) => { if (r.pts !== last) { rk = i + 1; last = r.pts; } r.rank = rk; });
@@ -121,17 +130,17 @@
   function premium(isPast) {
     if (isPast) { loadPast(); if (!past) return '<p class="hint">Chargement des résultats 2025-26…</p>'; if (past.error) return '<p class="hint">Résultats 2025-26 indisponibles.</p>'; }
     const P = isPast ? ui.pp : ui.prem;
-    const t = isPast ? pastTable(ui.g, P.disc) : table(ui.g, P.disc), used = isPast ? {} : mine(), mp = isPast ? {} : myPick();
+    initG(); const t = isPast ? pastTable(ui.g, P.disc) : table(ui.g, P.disc), used = isPast ? {} : mine(), mp = isPast ? {} : myPick(), mpd = isPast ? {} : myPick(true);
     const races = (ui.last ? t.races.slice(-ui.last) : t.races).slice().reverse();   // la course la plus récente à gauche
     let rows = t.rows;
     if (ui.rows === 'top') rows = rows.slice(0, 30); else if (ui.rows === 'mine') rows = isPast ? rows.slice(0, 30) : rows.filter((r) => used[r.ath]);
     const cd = codes(races), pk = isPast ? 'ppdisc' : 'pdisc';
     const head = races.map((r) => `<th scope="col" class="dr__rh" title="${C.esc(`${placeOf(r)} · ${C.D.DISC[r.disc].short} · ${frDate(r)}`)}"><span class="dr__pl">${C.esc(cd[placeOf(r)])}</span><span class="dr__ds disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="dr__dt">${frDate(r)}</span></th>`).join('');
-    const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><button type="button" class="dr__nm dr__lnk" data-dr="sk:${isPast ? 'code' : 'id'}~${s.ath}">${used[s.ath] ? '★ ' : ''}${C.esc(isPast ? s.name : fam(s.ath))}</button></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
+    const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><button type="button" class="dr__nm dr__lnk" data-dr="sk:${isPast ? 'code' : 'id'}~${s.ath}">${used[s.ath] ? '★ ' : ''}${C.esc(isPast ? s.name : C.nameOf(s.ath))}</button></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : mpd[r.id] === s.ath ? ' c-pick c-pick--draft' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : mpd[r.id] === s.ath ? ' title="Ton brouillon pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
     const sel = (k, opts) => `<span class="ff__g">${opts.map(([v, l]) => chip(k, v, l, String(ui[k]) === String(v))).join('')}</span>`;
     const rowOpts = isPast ? [['top', 'Top 30'], ['all', 'Tous']] : [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']];
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(P.disc).replace(/data-dr="disc:/g, `data-dr="${pk}:`)}</div>
-      <div class="ff dr__filters"><span class="sub">Courses</span>${sel('last', [[6, '6 dernières'], [12, '12'], [0, 'Toutes']])}<span class="sub">Skieurs</span>${sel('rows', rowOpts)}</div>
+      <div class="ff dr__filters"><span class="sub">Courses</span>${sel('last', [[5, '5 dernières'], [10, '10'], [20, '20'], [0, 'Toutes']])}<span class="sub">Skieurs</span>${sel('rows', rowOpts)}</div>
       <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid${isPast ? ' dr__grid--past' : ''}"><caption>${isPast ? 'Saison 2025-26 · ' : ''}${ui.g === 'M' ? 'Messieurs' : 'Dames'} · ${races.length} course${races.length > 1 ? 's' : ''}</caption>
       <thead><tr><th scope="col" class="dr__sticky">Skieur</th><th scope="col" class="dr__pts">Pts</th>${head}</tr></thead><tbody>${body || `<tr><td colspan="${races.length + 2}"><span class="none">Aucun résultat.</span></td></tr>`}</tbody></table></div>
       <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS, DNQ, DSQ sont notés. Case vide : hors des 30 premiers.${isPast ? ' Points : barème Coupe du monde sur les courses affichées.' : ' ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course.'} Fais glisser le tableau pour voir les courses.</p>`;
@@ -158,7 +167,7 @@
   }
   function bubbleList(rows, linkF, subLinkF, id) {
     const shown = ui.bub[id] ? rows : rows.slice(0, 10);
-    const li = shown.map((r) => `<li class="bb"><span class="rnk rnk--${r.rank <= 3 ? r.rank : 'n'}">${r.rank}</span><div class="bb__main"><div class="bb__h"><b>${linkF(r.k)}</b><span class="bb__n" title="${r.n} bulle${r.n > 1 ? 's' : ''}">${r.n} <small>✗</small></span></div>
+    const li = shown.map((r) => `<li class="bb">${rnkc(r.rank)}<div class="bb__main"><div class="bb__h"><b>${linkF(r.k)}</b><span class="bb__n" title="${r.n} bulle${r.n > 1 ? 's' : ''}">${r.n} <small>✗</small></span></div>
       <div class="bb__d">${Object.values(r.sub).sort((a, b) => b.n - a.n).map((s) => `<span class="bb__c" title="${C.esc(s.why.join(' · '))}">${subLinkF(s.s)}${s.n > 1 ? ` <b>×${s.n}</b>` : ''}</span>`).join('')}</div></div></li>`).join('');
     return `<ol class="bblist">${li || '<li class="none">Aucune bulle pour l’instant.</li>'}</ol>${rows.length > 10 ? `<p class="dr__more"><button type="button" class="btn btn--ghost btn--sm" data-dr="bub:${id}">${ui.bub[id] ? 'Réduire' : `Voir les ${rows.length}`}</button></p>` : ''}`;
   }
@@ -167,10 +176,14 @@
     const skLink = (id) => `<button type="button" class="dr__lnk" data-dr="sk:id~${id}">${C.esc(C.nameOf(id))}</button>`;
     const plLink = (pid) => `<button type="button" class="dr__lnk" data-player="${C.esc(pid)}">${C.esc(pn(pid))}</button>`;
     const lab = (x) => `${C.placeLabel(x.r)} ${C.D.DISC[x.r.disc].short} : ${x.why}`;
-    const bySk = rankBy(ev, (x) => x.ath, (x) => x.pl.id, lab), byPl = rankBy(ev, (x) => x.pl.id, (x) => x.ath, lab);
+    const victims = rankBy(ev, (x) => x.ath, (x) => x.pl.id, lab);
+    // « bulles » : une seule par skieur et par course, quel que soit le nombre de joueurs qui l'avaient choisi
+    const seen = new Set(), once = ev.filter((x) => { const k = x.ath + '|' + x.r.id; if (seen.has(k)) return false; seen.add(k); return true; });
+    const bub = rankBy(once, (x) => x.ath, (x) => x.r.id, lab);
+    const bubSub = (rid) => { const r = C.G.raceOf(rid); return `<span class="dr__lnk">${C.esc(C.placeLabel(r) + ' ' + C.D.DISC[r.disc].short)}</span>`; };
     return `<p class="hint">Une bulle : le skieur choisi fait 0 point (DNF, disqualifié, non qualifié ou hors des 30 premiers). Un DNS n’en est pas une. Tous desks confondus, remplaçants pris en compte.</p>
-      <h3 class="subtitle">Les skieurs qui font le plus de bulles <span class="bb__tot">${ev.length} au total</span></h3>${bubbleList(bySk, (id) => skLink(id), (pid) => plLink(pid), 'sk')}
-      <h3 class="subtitle">Les joueurs les plus touchés</h3>${bubbleList(byPl, (pid) => plLink(pid), (id) => skLink(id), 'pl')}`;
+      <h3 class="subtitle">Les skieurs qui ont fait le plus de victimes<span class="bb__tot">${ev.length} au total</span></h3><p class="hint">Un skieur à 0 point choisi par 5 joueurs compte pour 5 victimes.</p>${bubbleList(victims, (id) => skLink(id), (pid) => plLink(pid), 'sk')}
+      <h3 class="subtitle">Les skieurs qui font le plus de bulles <span class="bb__tot">${once.length} au total</span></h3><p class="hint">Une bulle par course, quel que soit le nombre de joueurs touchés.</p>${bubbleList(bub, (id) => skLink(id), bubSub, 'pl')}`;
   }
 
   /* ---------- Fiche skieur : saison en cours (2026-27) et saison passée (2025-26) ---------- */

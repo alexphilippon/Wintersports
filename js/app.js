@@ -176,7 +176,16 @@
     return `<span class="avatar avatar--${a.gender}${size ? ' avatar--' + size : ''}${on === false ? ' is-off' : ''}" aria-hidden="true"><span class="avatar__in">${esc(initials)}</span><img class="avatar__img" src="${PHOTO_DIR}${a.id}.jpg" alt="" loading="lazy" onerror="this.style.display='none'"></span>`;
   }
   const avatarOf = (id, size) => (ATH[id] ? avatar(ATH[id], true, size) : '');
-  const nameOf = (id) => (ATH[id] ? ATH[id].name : id);
+  /** Nom affiché : « Prénom NOM » (nom de famille en majuscules dès qu'il suit un prénom). */
+  const dispCache = {};
+  const nameOf = (id) => {
+    const a = ATH[id]; if (!a) return id;
+    if (dispCache[id] && dispCache[id][0] === a.name) return dispCache[id][1];
+    let out = a.name;
+    if (a.fis) { const sn = surnameOf(a), first = a.fis.slice(sn.length).trim(); if (first) out = first + ' ' + sn.toUpperCase(); }
+    else { const w = a.name.trim().split(/\s+/); if (w.length > 1) out = w.slice(0, -1).join(' ') + ' ' + w[w.length - 1].toUpperCase(); }
+    dispCache[id] = [a.name, out]; return out;
+  };
   /** Nom de skieur cliquable (ouvre sa fiche) et nom de joueur cliquable (ouvre sa fiche). */
   const skn = (id, label) => `<button type="button" class="lnk" data-dr="sk:id~${esc(id)}" title="Voir la fiche">${esc(label != null ? label : nameOf(id))}</button>`;
   const pln = (p) => `<button type="button" class="lnk" data-player="${esc(p.id)}" title="Voir la fiche">${esc(p.name)}</button>`;
@@ -1765,7 +1774,7 @@
   }, 30000);
 
   /* ---------- Démarrage ---------- */
-  window.SKI_DR.init({ state, G, D, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
+  window.SKI_DR.init({ state, G, D, isDraft, STATS: window.SKI_STATS, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
   SHARE.init({ state, G, D, esc, nameOf, surname, skn, pln, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
   /** Résultats officiels (data/results.json) : relus chaque minute ; dès qu'une course est officialisée, tout bascule de « en attente » à « officiel ». */
   function loadResults(manual) {
