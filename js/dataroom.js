@@ -259,7 +259,7 @@
     loadPast(); const ix = pastIndex();
     const id = sk.id || ix.byCode[sk.code] || null, code = sk.code || ix.byId[id] || null;
     const a = id ? C.ATH()[id] : null;
-    const pn = a ? C.nameOf(id) : (code && past && past.ath[code] ? titleCase(past.ath[code][0].split(' ').filter((w) => w !== w.toUpperCase()).join(' ')) + ' ' + titleCase(past.ath[code][0].split(' ').filter((w) => w === w.toUpperCase()).join(' ')) : '');
+    const pn = a ? C.nameOf(id) : (code && past && past.ath[code] ? titleCase(past.ath[code][0].split(' ').filter((w) => w !== w.toUpperCase()).join(' ')) + ' ' + titleCase(past.ath[code][0].split(' ').filter((w) => w === w.toUpperCase()).join(' ')) : (id ? C.nameOf(id) : ''));
     const nat = a ? a.nat : (code && past && past.ath[code] ? past.ath[code][1] : '');
     const rows = skierRows(id, code, sk.season === 'picks' ? 'now' : sk.season), pts = rows.reduce((s, r) => s + r.pts, 0);
     const wins = rows.filter((r) => r.rank === 1).length, podium = rows.filter((r) => r.rank && r.rank <= 3).length, top10 = rows.filter((r) => r.rank && r.rank <= 10).length, zero = rows.filter((r) => r.status !== 'DNS' && !r.pts).length;   // bulle : 0 point hors DNS

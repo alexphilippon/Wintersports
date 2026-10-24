@@ -32,7 +32,7 @@
     const start = startRows(raw.start1), ranked = rankRows(raw.ranked);
     const bibName = {}; start.forEach((r) => { bibName[r.bib] = r; });
     if (new Set(start.map((r) => r.bib)).size !== start.length) throw new Error('Dossards en double dans le départ.');
-    const idOfBib = {}; start.forEach((r) => { idOfBib[r.bib] = resolve(r.name); });
+    const idOfBib = {}, extraName = {}; start.forEach((r) => { const known = !!byName[norm(r.name)]; idOfBib[r.bib] = resolve(r.name); if (!known) extraName[r.bib] = r.name; });   // skieurs hors jeu : on garde leur nom (classement FIS complet)
 
     const dns = (raw.dns || []).map((d) => (typeof d === 'number' ? { bib: d, confirmed: false } : d));
     const pendingDns = dns.filter((d) => !d.confirmed).map((d) => ({ bib: d.bib, name: bibName[d.bib] ? bibName[d.bib].name : '?' }));
@@ -45,11 +45,11 @@
       if (s.code !== r.code) warnings.push(`Dossard ${r.bib} : code FIS ${r.code} au classement, ${s.code} au départ.`);
       if (r.rank < prev) throw new Error(`Rangs non croissants à ${r.name}.`);
       prev = r.rank;
-      entries.push(r.time ? { ath: idOfBib[r.bib], rank: r.rank, bib: r.bib, time: r.time } : { ath: idOfBib[r.bib], rank: r.rank, bib: r.bib });
+      const en = { ath: idOfBib[r.bib], rank: r.rank, bib: r.bib }; if (r.time) en.time = r.time; if (extraName[r.bib]) en.name = extraName[r.bib]; entries.push(en);
     });
     const add = (bibs, status) => (bibs || []).forEach((b) => {
       if (!bibName[b]) throw new Error(`Dossard ${b} (${status}) absent du départ.`);
-      entries.push({ ath: idOfBib[b], status, bib: b });
+      entries.push(extraName[b] ? { ath: idOfBib[b], status, bib: b, name: extraName[b] } : { ath: idOfBib[b], status, bib: b });
     });
     add(raw.dnfBibs, 'DNF'); add(raw.dnqBibs, 'DNQ'); add(raw.dsq, 'DSQ');
     add(dns.filter((d) => d.confirmed).map((d) => d.bib), 'DNS');

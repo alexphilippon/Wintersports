@@ -6,6 +6,7 @@
   const PHOTO_DIR = 'img/athletes/'; // une photo par skieur : img/athletes/<id>.jpg (voir README)
 
   // Liste des skieurs : la liste de base (js/athletes.js) + ceux ajoutés par l'admin ou saisis librement par un joueur.
+  const RESNAMES = {};   // noms des skieurs hors jeu, tirés du classement FIS complet
   let LIST = { M: BASE.M.slice(), W: BASE.W.slice() }, ATH = {};
   function rebuildAthletes() {
     LIST = { M: BASE.M.concat(state.addl.M), W: BASE.W.concat(state.addl.W) }; // liste de base + skieurs de data/extra-athletes.json
@@ -132,6 +133,7 @@
     });
     Object.entries(state.raw.results).forEach(([rid, entries]) => { res[rid] = (entries || []).map((e) => Object.assign({}, e, { ath: canon(e.ath) })); delete meta[rid]; });
     state.results = res;
+    Object.values(res).forEach((l) => l.forEach((e) => { if (e.name && !ATH[e.ath]) RESNAMES[e.ath] = prettyFis(e.name); }));
     state.draws = G.autoDraws(res, meta, picks); // tirages au sort : fonction pure des données publiques, donc vérifiables
     Object.entries(state.draws).forEach(([rid, byPlayer]) => Object.entries(byPlayer).forEach(([pid, d]) => { picks[pid][rid] = Object.assign({}, picks[pid][rid], { d: d.ath, auto: true }); }));
     state.picks = picks;
@@ -178,8 +180,10 @@
   const avatarOf = (id, size) => (ATH[id] ? avatar(ATH[id], true, size) : '');
   /** Nom affiché : « Prénom NOM » (nom de famille en majuscules dès qu'il suit un prénom). */
   const dispCache = {};
+  /** « NOM Prénom » (FIS) -> « Prénom NOM ». */
+  const prettyFis = (n) => { const w = String(n).trim().split(/\s+/); let k = 0; while (k < w.length - 1 && w[k] === w[k].toUpperCase()) k++; return k && k < w.length ? w.slice(k).join(' ') + ' ' + w.slice(0, k).join(' ') : n; };
   const nameOf = (id) => {
-    const a = ATH[id]; if (!a) return id;
+    const a = ATH[id]; if (!a) return RESNAMES[id] || id;
     if (dispCache[id] && dispCache[id][0] === a.name) return dispCache[id][1];
     let out = a.name;
     if (a.fis) { const sn = surnameOf(a), first = a.fis.slice(sn.length).trim(); if (first) out = first + ' ' + sn.toUpperCase(); }
