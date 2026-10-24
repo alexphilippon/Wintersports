@@ -1187,3 +1187,9 @@ html[data-theme='nuit'] .pk__pt { color: #7fd6a6; }
 .dr__sticky { min-width: 16rem; }
 .dr__sticky .dr__nm { font-size: 1.02rem; }
 @media (max-width: 640px) { .dr__grid .dr__rh, .dr__grid .dr__c { min-width: 3.6rem; } .dr__sticky { min-width: 0; } .dr__grid { font-size: .9rem; } .dr__grid th, .dr__grid td { padding: .55rem .3rem; } }
+
+/* Noms de skieurs : même gabarit dans Classements et Par course, avec photo et drapeau si la fenêtre est assez large */
+.dr__nm { font-weight: 600; font-size: 1rem; }
+.dr__sticky .dr__nm { font-weight: 600; font-size: 1rem; }
+.dr__sticky .dr__sk { gap: .45rem; } .dr__flag { flex: none; }
+@media (max-width: 760px) { .dr__sticky .dr__av, .dr__sticky .dr__fl { display: none; } }

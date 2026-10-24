@@ -72,6 +72,9 @@
   /* Drapeaux : images (les emoji de drapeaux ne s'affichent pas sous Windows). */
   const PLACE_CC = { 'Sölden': 'at', 'Levi': 'fi', 'Gurgl': 'at', 'Copper Mountain': 'us', 'Beaver Creek': 'us', 'Val d’Isère': 'fr', "Val d'Isère": 'fr', 'Val Gardena': 'it', 'Alta Badia': 'it', 'Madonna di Campiglio': 'it', 'Madonna': 'it', 'Bormio': 'it', 'Kranjska Gora': 'si', 'Adelboden': 'ch', 'Wengen': 'ch', 'Kitzbühel': 'at', 'Schladming': 'at', 'Chamonix': 'fr', 'Garmisch-Partenkirchen': 'de', 'Garmisch': 'de', 'Saalbach': 'at', 'Kvitfjell': 'no', 'Åre': 'se', 'Sun Valley': 'us', 'Killington': 'us', 'Tremblant': 'ca', 'Saint-Moritz': 'ch', 'Courchevel': 'fr', 'Gosau': 'at', 'Flachau': 'at', 'Val di Fassa': 'it', 'Cortina d’Ampezzo': 'it', 'Cortina': 'it', 'Kronplatz': 'it', 'Jasná': 'sk', 'Lenzerheide': 'ch', 'Soldeu': 'ad', 'Narvik': 'no', 'Crans-Montana': 'ch' };
   const PLACE_RE = new RegExp(Object.keys(PLACE_CC).sort((a, b) => b.length - a.length).map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
+  /** Drapeau d'une nation (code CIO à 3 lettres). */
+  const NAT_CC = { SUI: 'ch', BRA: 'br', NOR: 'no', AUT: 'at', ITA: 'it', FRA: 'fr', USA: 'us', FIN: 'fi', GER: 'de', BEL: 'be', CRO: 'hr', SLO: 'si', CAN: 'ca', CZE: 'cz', SWE: 'se', GBR: 'gb', BUL: 'bg', AND: 'ad', CHI: 'cl', ESP: 'es', JPN: 'jp', EST: 'ee', SVK: 'sk', NED: 'nl', NZL: 'nz', ALB: 'al', POL: 'pl', LAT: 'lv', BIH: 'ba', HUN: 'hu', ISR: 'il', AUS: 'au', KOR: 'kr', CHN: 'cn', LIE: 'li', LUX: 'lu', ARG: 'ar', UKR: 'ua', TUR: 'tr', GRE: 'gr', IRL: 'ie', DEN: 'dk', ROU: 'ro', SRB: 'rs', KAZ: 'kz', MON: 'mc' };
+  const flagOf = (nat) => { const cc = NAT_CC[String(nat || '').toUpperCase()]; return cc ? `<img class="fl dr__flag" src="https://flagcdn.com/w40/${cc}.png" srcset="https://flagcdn.com/w80/${cc}.png 2x" width="20" height="15" alt="${esc(nat)}" title="${esc(nat)}" loading="lazy" onerror="this.style.display='none'">` : ''; };
   /** Texte HTML échappé avec un drapeau devant chaque nom de station connu. */
   function fl(text) {
     let out = '', last = 0, m;
@@ -1805,7 +1808,7 @@
   }, 30000);
 
   /* ---------- Démarrage ---------- */
-  window.SKI_DR.init({ state, G, D, isDraft, locked: (r) => lockedRace(r), pav, STATS: window.SKI_STATS, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
+  window.SKI_DR.init({ state, G, D, isDraft, flag: flagOf, locked: (r) => lockedRace(r), pav, STATS: window.SKI_STATS, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
   SHARE.init({ state, G, D, esc, nameOf, surname, skn, pln, pname, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
   /** Résultats officiels (data/results.json) : relus chaque minute ; dès qu'une course est officialisée, tout bascule de « en attente » à « officiel ». */
   function loadResults(manual) {

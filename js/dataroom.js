@@ -83,7 +83,7 @@
     const globe = !ui.disc.length ? 'Gros globe (cumul des quatre disciplines)' : ui.disc.length === 1 ? `Petit globe de ${DNAME[ui.disc[0]].toLowerCase()}` : `Cumul : ${ui.disc.map((d) => DNAME[d].toLowerCase()).join(' + ')}`;
     const badges = (id) => ['1', '2', '3', 'M'].map((k) => { const on = used[id] && used[id].has(k), dft = !on && dr[id] && dr[id].has(k); return `<span class="db${on ? ' is-on' : dft ? ' is-draft' : ''}" style="--c:${DESKC[k]}" title="${on ? 'Déjà pris' : dft ? 'Brouillon (non confirmé)' : 'Pas encore pris'} (${k === 'M' ? 'Mondiaux' : 'Desk ' + k})">${k === 'M' ? 'M' : 'D' + k}</span>`; }).join('');
     const body = shown.map((r) => `<tr class="${used[r.ath] ? 'is-mine' : ''}"><td class="num">${rnkc(r.rank)}</td>
-      <th scope="row"><button type="button" class="dr__sk dr__lnk" data-dr="sk:id~${r.ath}">${C.avatarOf(r.ath, 'sm')}<span class="dr__nm">${C.esc(C.nameOf(r.ath))}</span></button></th>
+      <th scope="row"><button type="button" class="dr__sk dr__lnk" data-dr="sk:id~${r.ath}">${C.avatarOf(r.ath, 'sm')}${C.flag((C.ATH()[r.ath] || {}).nat)}<span class="dr__nm">${C.esc(C.nameOf(r.ath))}</span></button></th>
       <td class="num"><b>${r.pts}</b></td><td class="dr__bd">${badges(r.ath)}</td></tr>`).join('');
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(ui.disc)}${ui.disc.length ? '<button type="button" class="ff__x" data-dr="disc:clear">Cumul des quatre</button>' : ''}</div>
       <div class="tablewrap"><table class="grid grid--rank dr__light"><caption>${C.esc(globe)}, ${ui.g === 'M' ? 'messieurs' : 'dames'}</caption>
@@ -123,7 +123,7 @@
     }));
     const nameOfCode = (code) => { const id = map[code]; if (id) return fam(id); const n = (past.ath[code] || [code])[0].split(' '); const up = []; while (n.length && n[0] === n[0].toUpperCase()) up.push(n.shift()); return (n.length ? n.join(' ') + ' ' : '') + (up.length ? up : n).join(' ').toUpperCase(); };
     const rows = Object.values(by).sort((a, b) => b.pts - a.pts || a.n - b.n);
-    rows.forEach((r) => { r.name = nameOfCode(r.ath); });
+    rows.forEach((r) => { r.name = nameOfCode(r.ath); r.id = map[r.ath] || (pastIndex().byCode || {})[r.ath] || null; r.nat = (past.ath[r.ath] || [])[1] || (r.id && (C.ATH()[r.id] || {}).nat) || ''; });
     let last = null, rk = 0; rows.forEach((r, i) => { if (r.pts !== last) { rk = i + 1; last = r.pts; } r.rank = rk; });
     return { races, rows };
   }
@@ -144,7 +144,7 @@
     if (ui.rows === 'top') rows = rows.slice(0, 30); else if (ui.rows === 'mine') rows = isPast ? rows.slice(0, 30) : rows.filter((r) => used[r.ath]);
     const cd = codes(races), pk = isPast ? 'ppdisc' : 'pdisc';
     const head = races.map((r) => `<th scope="col" class="dr__rh" title="${C.esc(`${placeOf(r)} · ${C.D.DISC[r.disc].short} · ${frDate(r)}`)}"><span class="dr__pl">${C.esc(cd[placeOf(r)])}</span><span class="dr__ds disc disc--${r.disc}">${C.D.DISC[r.disc].short}</span><span class="dr__dt">${frDate(r)}</span></th>`).join('');
-    const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><button type="button" class="dr__nm dr__lnk" data-dr="sk:${isPast ? 'code' : 'id'}~${s.ath}">${used[s.ath] ? '★ ' : ''}${C.esc(isPast ? s.name : C.nameOf(s.ath))}</button></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : mpd[r.id] === s.ath ? ' c-pick c-pick--draft' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : mpd[r.id] === s.ath ? ' title="Ton brouillon pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
+    const body = rows.map((s) => `<tr class="${used[s.ath] ? 'is-mine' : ''}"><th scope="row" class="dr__sticky"><span class="dr__rk">${s.rank}</span><button type="button" class="dr__sk dr__lnk" data-dr="sk:${isPast ? 'code' : 'id'}~${s.ath}">${(isPast ? s.id : s.ath) ? `<span class="dr__av">${C.avatarOf(isPast ? s.id : s.ath, 'sm')}</span>` : ''}<span class="dr__fl">${C.flag(isPast ? s.nat : (C.ATH()[s.ath] || {}).nat)}</span><span class="dr__nm">${used[s.ath] ? '★ ' : ''}${C.esc(isPast ? s.name : C.nameOf(s.ath))}</span></button></th><td class="dr__pts">${s.pts}</td>${races.map((r) => { const e = s.cells[r.id]; return `<td class="dr__c ${cellCls(e)}${mp[r.id] === s.ath ? ' c-pick' : mpd[r.id] === s.ath ? ' c-pick c-pick--draft' : ''}"${mp[r.id] === s.ath ? ' title="Ton choix pour cette course"' : mpd[r.id] === s.ath ? ' title="Ton brouillon pour cette course"' : ''}>${e ? (e.status ? e.status : e.rank) : ''}</td>`; }).join('')}</tr>`).join('');
     const sel = (k, opts) => `<span class="ff__g">${opts.map(([v, l]) => chip(k, v, l, String(ui[k]) === String(v))).join('')}</span>`;
     const rowOpts = isPast ? [['top', 'Top 30'], ['all', 'Tous']] : [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']];
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(P.disc).replace(/data-dr="disc:/g, `data-dr="${pk}:`)}</div>
