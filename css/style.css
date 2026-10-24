@@ -1246,3 +1246,4 @@ body.fs-lock { overflow: hidden; }
 .sk__xp { display: flex; justify-content: flex-end; margin-bottom: .5rem; } .sk__xp .xicons { display: inline-flex; gap: .35rem; } .sk__xp .xic { border-color: var(--filet); background: var(--neige); color: var(--nuit); width: 1.9rem; height: 1.9rem; }
 .pk .fh { display: flex; align-items: baseline; flex-wrap: wrap; } .pk .fh .xicons { margin-left: auto; align-self: center; }
 .pk .fh small { margin-left: .5rem; }
+.sk__disc .sep { color: var(--filet); margin: 0 .25rem; }
