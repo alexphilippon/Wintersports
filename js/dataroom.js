@@ -87,8 +87,8 @@
       <th scope="row"><button type="button" class="dr__sk dr__lnk" data-dr="sk:id~${r.ath}">${C.avatarOf(r.ath, 'sm')}${C.flag((C.ATH()[r.ath] || {}).nat)}<span class="dr__nm">${C.esc(C.nameOf(r.ath))}</span></button></th>
       <td class="num"><b>${r.pts}</b></td><td class="dr__bd">${badges(r.ath)}</td></tr>`).join('');
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(ui.disc)}${ui.disc.length ? '<button type="button" class="ff__x" data-dr="disc:clear">Cumul des quatre</button>' : ''}</div>
-      <div class="tablewrap"><table class="grid grid--rank dr__light"><caption>${C.esc(globe)}, ${ui.g === 'M' ? 'messieurs' : 'dames'}${xb}</caption>
-      <thead><tr><th class="num" scope="col">Rang</th><th scope="col">Skieur</th><th class="num" scope="col">Pts</th><th scope="col">Déjà pris par moi</th></tr></thead><tbody>${body || '<tr><td colspan="4"><span class="none">Aucun résultat.</span></td></tr>'}</tbody></table></div>
+      ${root.SKI_SHARE.fsOpen()}<div class="tablewrap"><table class="grid grid--rank dr__light"><caption>${C.esc(globe)}, ${ui.g === 'M' ? 'messieurs' : 'dames'}${xb}</caption>
+      <thead><tr><th class="num" scope="col">Rang</th><th scope="col">Skieur</th><th class="num" scope="col">Pts</th><th scope="col">Déjà pris par moi</th></tr></thead><tbody>${body || '<tr><td colspan="4"><span class="none">Aucun résultat.</span></td></tr>'}</tbody></table></div></div>
       ${rows.length > 30 ? `<p class="dr__more"><button type="button" class="btn btn--ghost btn--sm" data-dr="more">${ui.more ? 'Réduire' : `Voir les ${rows.length} skieurs`}</button></p>` : ''}
       <p class="hint">Points de la Coupe du monde (100, 80, 60…), d’après les résultats saisis. D1, D2, D3 et M : skieur déjà choisi dans le desk correspondant ou aux Mondiaux.</p>`;
   }
@@ -153,7 +153,7 @@
     const rowOpts = isPast ? [['top', 'Top 30'], ['all', 'Tous']] : [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']];
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(P.disc).replace(/data-dr="disc:/g, `data-dr="${pk}:`)}</div>
       <div class="ff dr__filters"><span class="sub">Courses</span>${sel('last', [[5, '5 dernières'], [10, '10'], [20, '20'], [0, 'Toutes']])}<span class="sub">Skieurs</span>${sel('rows', rowOpts)}</div>
-      <div class="fswrap"><div class="fsbar"><button type="button" class="btn btn--sm fsbtn" data-dr="fs:on" aria-pressed="false"><svg class="fsic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="fsbtn__on">Mettre le tableau en plein écran</span><span class="fsbtn__off">Quitter le plein écran</span></button></div>
+      ${root.SKI_SHARE.fsOpen()}
       <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid${isPast ? ' dr__grid--past' : ''}"><caption>${isPast ? 'Saison 2025-26 · ' : ''}${ui.g === 'M' ? 'Messieurs' : 'Dames'} · ${races.length} course${races.length > 1 ? 's' : ''}${xb}</caption>
       <thead><tr><th scope="col" class="dr__sticky">Skieur</th><th scope="col" class="dr__pts">Pts</th>${head}</tr></thead><tbody>${body || `<tr><td colspan="${races.length + 2}"><span class="none">Aucun résultat.</span></td></tr>`}</tbody></table></div></div>
       <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS, DNQ, DSQ sont notés. Case vide : hors des 30 premiers.${isPast ? ' Points : barème Coupe du monde sur les courses affichées.' : ' ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course.'} Fais glisser le tableau pour voir les courses.</p>`;

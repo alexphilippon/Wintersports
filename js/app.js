@@ -462,12 +462,12 @@
       return `<tr><th scope="row"><span class="rowhead__day">${dayOf(r.date)}</span> ${fl(placeLabel(r))}<br>${discBadge(r)}<span class="gender gender--${r.gender}">${genderLabel(r)}</span>${r.cancelled || !lockedRace(r) ? '' : `<br><button type="button" class="linkbtn rcbtn" data-racecard="${r.id}">Voir plus…</button>`}</th>${cells}</tr>`;
     }).join('');
     const totals = order.map((p) => `<td class="${p.id === state.me ? 'me' : ''}"><strong>${G.sessionScore(session, state.picks[p.id], state.results)} pts</strong></td>`).join('');
-    return `<div class="tablewrap"><table class="grid grid--fx grid--fxrecap" style="--n:${state.players.length}">
+    return `${SHARE.fsOpen()}<div class="tablewrap"><table class="grid grid--fx grid--fxrecap" style="--n:${state.players.length}">
       <caption>${fl(session.name)}</caption>
       <thead><tr><th scope="col">Course</th>${head}</tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><th scope="row">Total de la session</th>${totals}</tr></tfoot>
-    </table></div>`;
+    </table></div></div>`;
   }
   /* ---------- Tendances : jauges indicatives, une fois la deadline passée ---------- */
   function trendsAny(key) { return scopeSessions(key).some((s) => sortedRaces(s).some((r) => !r.cancelled && lockedRace(r))); }
@@ -550,9 +550,9 @@
         }).join('');
         return `<tr class="${p.id === state.me ? 'me' : ''}"><th scope="row"><strong>${pln(p)}</strong><span class="sub">${totals[g][p.id] || 0} pts rapportés</span></th>${cells}</tr>`;
       }).join('');
-      return `<div class="tablewrap tablewrap--scroll"><table class="grid grid--tk">
+      return `${SHARE.fsOpen()}<div class="tablewrap tablewrap--scroll"><table class="grid grid--tk">
         <caption>${g === 'M' ? 'Messieurs' : 'Dames'}, ${taken} sur ${list.length} déjà pris${drafted ? `, ${drafted} en brouillon` : ''}</caption>
-        <thead><tr><th scope="col" class="tk__corner">Joueur</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+        <thead><tr><th scope="col" class="tk__corner">Joueur</th>${head}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
     }).join('') + '<p class="hint">En couleur : choix confirmé. En pointillés : brouillon (réservé mais pas encore confirmé). En noir et blanc : encore libre. Les choix des autres apparaissent à la deadline de chaque session.</p>';
   }
 
@@ -960,9 +960,9 @@
     if (sub === 'globes') {
       const rows = rankRows((pk) => G.generalScore(pk, R));
       const xbGG = SHARE.xbar({ key: 'cl:gros-globe', title: 'Le gros globe', sub: 'Ski Game · Coupe du monde 2026-27', unit: ' pts', head: ['Rang', 'Joueur', 'Total', 'Desk 1', 'Desk 2', 'Desk 3', 'Mondiaux'], rows: rows.map((r) => ({ c: [String(r.rank), r.p.name, String(r.v.total)].concat(r.v.desks.map(String), [String(r.v.worlds)]), me: r.p.id === state.me })) });
-      const main = `<div class="tablewrap"><table class="grid grid--rank grid--general cap--gen"><caption>Le gros globe ${info('Classement général : somme des points des trois desks et des Mondiaux, bonus compris.')}${xbGG}</caption>
+      const main = `${SHARE.fsOpen()}<div class="tablewrap"><table class="grid grid--rank grid--general cap--gen"><caption>Le gros globe ${info('Classement général : somme des points des trois desks et des Mondiaux, bonus compris.')}${xbGG}</caption>
         <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num th--tot">Total</th><th scope="col" class="num th--d1">Desk 1</th><th scope="col" class="num th--d2">Desk 2</th><th scope="col" class="num th--d3">Desk 3</th><th scope="col" class="num th--w">Mondiaux</th></tr></thead>
-        <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${pname(r.p)}</th><td class="num total">${ptsBtn(r.v.total, 'tot', r.p.id)}</td>${r.v.desks.map((d, i) => `<td class="num">${ptsBtn(d, 'd' + D.DESKS[i].id, r.p.id)}</td>`).join('')}<td class="num">${ptsBtn(r.v.worlds, 'w', r.p.id)}</td></tr>`).join('')}</tbody></table></div>
+        <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${pname(r.p)}</th><td class="num total">${ptsBtn(r.v.total, 'tot', r.p.id)}</td>${r.v.desks.map((d, i) => `<td class="num">${ptsBtn(d, 'd' + D.DESKS[i].id, r.p.id)}</td>`).join('')}<td class="num">${ptsBtn(r.v.worlds, 'w', r.p.id)}</td></tr>`).join('')}</tbody></table></div></div>
 `;
       const discs = ['DH', 'SG', 'GS', 'SL'].map((c) => smallRanking(`Petit globe de ${c === 'SG' ? 'super-G' : D.DISC[c].fr.toLowerCase()}`, (pk) => G.disciplineScore(c, pk, R), 'cap--' + c, undefined, 'disc:' + c)).join('');
       const dk = (d) => smallRanking(`Classement du ${d.name}`, (pk) => G.deskScore(d.id, pk, R), 'cap--d' + d.id, false, 'd' + d.id);

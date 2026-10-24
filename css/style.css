@@ -1227,5 +1227,5 @@ h3 .xicons { display: inline-flex; gap: .35rem; margin-left: .6rem; vertical-ali
 .fsbtn .fsbtn__off, .fswrap.is-fs .fsbtn__on { display: none; }
 .fswrap.is-fs .fsbtn__off { display: inline; }
 .fswrap.is-fs { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; padding: .6rem .8rem; background: var(--papier); }
-.fswrap.is-fs .dr__wrap { flex: 1; max-height: none; min-height: 0; }
+.fswrap.is-fs .tablewrap { flex: 0 1 auto; max-height: none; min-height: 0; overflow: auto; }
 body.fs-lock { overflow: hidden; }
