@@ -1563,9 +1563,34 @@
     const g = gateGet(); if (e.target.checked) delete g.off; else g.off = true; gateSet(g);
   });
 
+  /* ---------- Départ reporté : prévenir les joueurs qu'ils ont plus de temps (une fois par report et par navigateur) ---------- */
+  const MV_KEY = 'skigame.moved';
+  const mvGet = () => { try { return JSON.parse(localStorage.getItem(MV_KEY) || '{}') || {}; } catch (e) { return {}; } };
+  function movedCheck() {
+    if (!state.user && !state.demo) return;
+    const m = $('#modal'); if (!m || !m.hidden) return;
+    const seen = mvGet(), t = now();
+    const list = Object.values(D.RACES).filter((r) => r.time0 && r.time > r.time0 && !seen[r.id + '@' + r.time]);
+    for (const r of list) {
+      const sess = sessionOf(r); if (!sess || G.sessionState(sess, t) !== 'ouverte') continue;
+      const group = list.filter((x) => sessionOf(x) === sess);
+      group.forEach((x) => { seen[x.id + '@' + x.time] = 1; });
+      const dlOld = Math.min(...active(sortedRaces(sess)).map((x) => G.raceStart(Object.assign({}, x, { time: x.time0 || x.time })).getTime()));
+      if (!(G.sessionDeadline(sess).getTime() > dlOld)) { try { localStorage.setItem(MV_KEY, JSON.stringify(seen)); } catch (e) { /* ignoré */ } continue; }   // la deadline (1re course de la session) n'a pas bougé : rien à signaler
+      try { localStorage.setItem(MV_KEY, JSON.stringify(seen)); } catch (e) { /* ignoré */ }
+      const dl = G.sessionDeadline(sess), todo = active(sortedRaces(sess)).filter((x) => !lockedRace(x) && !(myPicks()[x.id] || {}).a);
+      openModal(`<div class="gate"><p class="gate__kicker">Départ reporté</p>
+        <h2 class="gate__title">Tu as plus de temps pour choisir</h2>
+        ${group.map((x) => `<p class="gate__lead"><strong>${fl(placeLabel(x))}</strong> <span class="gender gender--${x.gender}">${genderLabel(x)}</span> ${discBadge(x)} : départ reporté de ${esc(hm(x.time0))} à <strong>${esc(hm(x.time))}</strong>.</p>`).join('')}
+        <p class="gate__lead">Les choix de <strong>${fl(sess.name)}</strong> restent ouverts jusqu’au <strong>${esc(dlShort(dl))}</strong> (dans ${esc(leftText(dl - t))}).${todo.length ? ` Il te reste <strong>${todo.length}</strong> choix à faire.` : ' Tous tes choix sont déjà faits : tu peux encore les modifier.'}</p>
+        <button type="button" class="btn btn--brique gate__go" data-gate-go="${sess.id}">Voir mes choix</button></div>`);
+      return;
+    }
+  }
   setInterval(() => {
     const c = $('#countdown');
     if (c) c.innerHTML = countdownText(new Date(c.dataset.dl));
+    if (!document.hidden) movedCheck();
     gateCheck();
   }, 30000);
 
@@ -1585,8 +1610,8 @@
   /** Horaires corrigés (data/time-overrides.json, écrit par tools/check-times.js) : la clôture des choix suit l'heure officielle FIS. */
   const loadTimes = () => fetch('data/time-overrides.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
     const sg = JSON.stringify((j && j.races) || {}); if (sg === state.timesSig) return; state.timesSig = sg;
-    Object.entries((j && j.races) || {}).forEach(([id, o]) => { if (D.RACES[id] && o && o.time) { D.RACES[id].time = o.time; D.RACES[id].timeKnown = true; } });
-    scheduleRender();
+    Object.entries((j && j.races) || {}).forEach(([id, o]) => { if (D.RACES[id] && o && o.time) { if (!D.RACES[id].time0) D.RACES[id].time0 = D.RACES[id].time; D.RACES[id].time = o.time; D.RACES[id].timeKnown = true; } });
+    scheduleRender(); setTimeout(movedCheck, 400);
   }).catch(() => {});
   loadTimes(); setInterval(() => { if (document.visibilityState === 'visible') loadTimes(); }, 60000);
   const loadLive = () => fetch('data/live.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { const sg = JSON.stringify(j); if (sg !== state.liveSig) { state.liveSig = sg; state.live = j; scheduleRender(); } } }).catch(() => {});
