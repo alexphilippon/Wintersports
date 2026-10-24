@@ -1504,3 +1504,6 @@ html[data-theme='glace'] .dr__grid thead .dr__pts { background: #5aa5cc; color: 
 html[data-theme='glace'] .dr__grid .dr__pts { border-left-color: #8ec2e0; border-right-color: #8ec2e0; background: #e6f1f8; }
 html[data-theme='glace'] .grid--general td.total { background: rgba(23, 54, 77, .10) !important; border-color: #17364d; }
 html[data-theme='glace'] .masthead { border-bottom: 5px double #ffffff; }
+/* contraste : texte lisible sur les fonds d'accent, toutes ambiances */
+.draftbtn.is-on { color: var(--on-accent, #1b2b44); }
+html[data-theme='minimal'] { --on-accent: #ffffff; }
