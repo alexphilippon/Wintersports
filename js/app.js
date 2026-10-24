@@ -755,6 +755,7 @@
         <div class="bilan__card"><h4>Podium de la session</h4><ol class="podium">${podium}</ol></div>
         ${bcHtml}
       </div>
+      <p><button type="button" class="btn" data-sx-open="${s.id}">Exporter le récap (WhatsApp)</button></p>
       <h3 class="subtitle">Course par course</h3>
       <div class="session"><ul class="races">${races.map((r) => raceRow(r, s)).join('')}</ul></div>
       ${nxHtml}
@@ -1464,6 +1465,9 @@
     if (slc) { const [rid, slot] = slc.dataset.slclear.split('|'); onPick({ dataset: { race: rid, slot }, value: '', id: 'sl' }).then(() => startListModal(rid, true)); return; }
     const slb = e.target.closest('[data-startlist]');
     if (slb) { startListModal(slb.dataset.startlist); return; }
+    const sxo = e.target.closest('[data-sx-open]'); if (sxo) { SHARE.sessionOpen(sxo.dataset.sxOpen); return; }
+    const sxc = e.target.closest('[data-sx-copy]'); if (sxc) { SHARE.sessionCopy(sxc.dataset.sxCopy); return; }
+    const sxj = e.target.closest('[data-sx-jpg]'); if (sxj) { SHARE.sessionJpg(sxj.dataset.sxJpg); return; }
     const rcc = e.target.closest('[data-rc-copy]'); if (rcc) { SHARE.copy(rcc.dataset.rcCopy); return; }
     const rcj = e.target.closest('[data-rc-jpg]'); if (rcj) { SHARE.jpg(rcj.dataset.rcJpg); return; }
     const tab = e.target.closest('[data-tab]');

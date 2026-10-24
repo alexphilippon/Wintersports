@@ -90,6 +90,9 @@
 
   /* ---------- Image JPG (canvas, proportions maîtrisées) ---------- */
   const W = 1080;
+  const TH = { sapin: { t: '#2b5f4b', b: '#163629', chev: 'rgba(143,192,164,.18)', edge: '#e9f0f2', gold: '#f1d78a', head: '#fff', sub: '#d4e6ef', bg: '#fbf8ef', band: '#f3efe2', ink: '#1b2b44', soft: '#675e51', bad: '#a93a2c', foot: '#1f4a3a', footT: '#e9f0f2', ph: '#8faec0', track: '#e4e1d3', bar: '#2f8089' },
+    glace: { t: '#f1f9fd', b: '#a8cfe4', chev: 'rgba(255,255,255,.4)', edge: '#ffffff', gold: '#1d6a9c', head: '#123a55', sub: '#2c5b78', bg: '#fbfdff', band: '#eaf3f9', ink: '#17364d', soft: '#566b79', bad: '#b83a2a', foot: '#1e5a80', footT: '#ffffff', ph: '#a8cfe4', track: '#d3e1eb', bar: '#1e5a80' },
+    nuit: { t: '#1c2f55', b: '#0b1322', chev: 'rgba(120,160,230,.18)', edge: '#2f56d6', gold: '#8fb4ff', head: '#ffffff', sub: '#c9d9f5', bg: '#18222f', band: '#1e2b3b', ink: '#e4eaf2', soft: '#9aaabd', bad: '#ff9a8a', foot: '#0b1322', footT: '#cfe0ff', ph: '#3d527f', track: '#293648', bar: '#5b8cf0' } };
   function loadImg(src) { return new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; }); }
   function wrap(ctx, text, maxW) {
     const words = text.split(' '), lines = []; let cur = '';
@@ -111,9 +114,6 @@
     const headH = all.podium.length ? 290 : 250, footH = 90;
     let bodyH = lay.reduce((s, l) => s + l.h, 0);
     const H = Math.min(Math.max(headH + bodyH + footH, 1080), 2400);
-    const TH = { sapin: { t: '#2b5f4b', b: '#163629', chev: 'rgba(143,192,164,.18)', edge: '#e9f0f2', gold: '#f1d78a', head: '#fff', sub: '#d4e6ef', bg: '#fbf8ef', band: '#f3efe2', ink: '#1b2b44', soft: '#675e51', bad: '#a93a2c', foot: '#1f4a3a', footT: '#e9f0f2', ph: '#8faec0', track: '#e4e1d3', bar: '#2f8089' },
-      glace: { t: '#f1f9fd', b: '#a8cfe4', chev: 'rgba(255,255,255,.4)', edge: '#ffffff', gold: '#1d6a9c', head: '#123a55', sub: '#2c5b78', bg: '#fbfdff', band: '#eaf3f9', ink: '#17364d', soft: '#566b79', bad: '#b83a2a', foot: '#1e5a80', footT: '#ffffff', ph: '#a8cfe4', track: '#d3e1eb', bar: '#1e5a80' },
-      nuit: { t: '#1c2f55', b: '#0b1322', chev: 'rgba(120,160,230,.18)', edge: '#2f56d6', gold: '#8fb4ff', head: '#ffffff', sub: '#c9d9f5', bg: '#18222f', band: '#1e2b3b', ink: '#e4eaf2', soft: '#9aaabd', bad: '#ff9a8a', foot: '#0b1322', footT: '#cfe0ff', ph: '#3d527f', track: '#293648', bar: '#5b8cf0' } };
     const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
@@ -166,6 +166,104 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 4000); say('Image téléchargée.');
     } catch (e) { console.error('JPG', e); say('Impossible de créer l’image.'); }
   }
-  const api = { init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas };
+
+  /* ---------- Récap de session (WhatsApp) ---------- */
+  function sessionRows(session) {
+    const { state, G } = C;
+    const races = G.sessionRaces(session).filter((r) => !r.cancelled && state.results[r.id]).sort((a, b) => (a.date + a.id).localeCompare(b.date + b.id));
+    const rows = state.players.map((p) => {
+      const pk = state.picks[p.id] || {};
+      const per = races.map((r) => ({ race: r, pts: G.scoreRace(r, pk[r.id], state.results) || 0, ath: pk[r.id] && pk[r.id].a ? G.effectiveAthlete(pk[r.id], state.results, r.id) : null }));
+      return { p, per, total: per.reduce((s, x) => s + x.pts, 0), gen: G.generalScore(pk, state.results) };
+    }).sort((a, b) => b.total - a.total || b.gen - a.gen || a.p.name.localeCompare(b.p.name, 'fr'));
+    let last = null, rank = 0;
+    rows.forEach((r, i) => { if (r.total !== last) { rank = i + 1; last = r.total; } r.rank = rank; });
+    const pods = races.map((r) => ({ race: r, pod: (state.results[r.id] || []).filter((e) => !e.status && e.rank && e.rank <= 3).sort((a, b) => a.rank - b.rank) }));
+    return { races, rows, pods };
+  }
+  const MED = ['🥇', '🥈', '🥉'];
+  const raceShort = (r) => `${C.placeLabel(r)} ${r.gender === 'W' ? 'dames' : 'hommes'} ${C.discLabel(r)}`;
+  function sessionText(session) {
+    const { rows, pods, races } = sessionRows(session);
+    const L = [`🎿 *${session.name}* — bilan de la session`, ''];
+    if (!races.length) return L.concat('Aucun résultat pour l’instant.').join('\n');
+    L.push('🏆 *Classement de la session*');
+    rows.forEach((r) => {
+      const d = r.per.map((x) => `${x.pts}`).join(' + ');
+      L.push(`${MED[r.rank - 1] && r.rank <= 3 ? MED[r.rank - 1] : r.rank + '.'} ${r.p.name} : *${r.total} pts*${races.length > 1 ? ` (${d})` : ''}`);
+    });
+    L.push('', '🏁 *Podiums*');
+    pods.forEach(({ race, pod }) => L.push(`• ${raceShort(race)} : ` + (pod.length ? pod.map((e) => `${MED[e.rank - 1]} ${C.nameOf(e.ath)}`).join(' ') : '—')));
+    L.push('', 'skigame-2627.vercel.app');
+    return L.join('\n');
+  }
+  function sessionOpen(sid) {
+    const s = C.D.SESSIONS.concat([C.D.WORLDS]).find((x) => String(x.id) === String(sid)); if (!s) return;
+    C.openModal(`<div class="rc"><h3 class="rc__title">${C.esc(s.name)} · récap</h3><p class="hint">Message WhatsApp et image du bilan de la session.</p>
+      <pre class="rc__pre">${C.esc(sessionText(s))}</pre>
+      <div class="rc__act"><button type="button" class="btn" data-sx-copy="${s.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-sx-jpg="${s.id}">Image JPG</button></div><p id="rc-msg" class="hint" role="status"></p></div>`);
+    const card = document.querySelector('#modal .modal__card'); if (card) card.classList.add('modal__card--wide');
+  }
+  async function sessionCopy(sid) {
+    const txt = sessionText(C.D.SESSIONS.concat([C.D.WORLDS]).find((x) => String(x.id) === String(sid)));
+    try { await navigator.clipboard.writeText(txt); say('Message copié : colle-le dans WhatsApp.'); }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); say('Message copié : colle-le dans WhatsApp.'); } catch (e2) { say('Copie impossible : sélectionne le texte à la main.'); }
+      ta.remove();
+    }
+  }
+  async function sessionCanvas(session) {
+    const { rows, pods, races } = sessionRows(session);
+    const F = '"Instrument Sans","Helvetica Neue",Arial,sans-serif', FD = '"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif';
+    const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin;
+    const padX = 56, headH = 250, rowH = 74, footH = 90, podH = 92;
+    const H = headH + 70 + rows.length * rowH + 70 + pods.length * podH + 30 + footH;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+    g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
+    const gr = g.createLinearGradient(0, 0, 0, headH); gr.addColorStop(0, K.t); gr.addColorStop(1, K.b);
+    g.fillStyle = gr; g.fillRect(0, 0, W, headH);
+    g.strokeStyle = K.chev; g.lineWidth = 2;
+    for (let y = 18; y < headH; y += 30) for (let x = ((y / 30) % 2) * 20; x < W; x += 40) { g.beginPath(); g.moveTo(x, y + 8); g.lineTo(x + 8, y); g.lineTo(x + 16, y + 8); g.stroke(); }
+    g.fillStyle = K.edge; g.fillRect(0, headH - 6, W, 6);
+    g.textBaseline = 'alphabetic';
+    g.fillStyle = K.gold; g.font = `800 30px ${FD}`; g.fillText('SKI GAME · COUPE DU MONDE 2026-27', padX, 70);
+    g.fillStyle = K.head; g.font = `800 62px ${FD}`; g.fillText(session.name, padX, 150);
+    g.fillStyle = K.sub; g.font = `600 34px ${F}`; g.fillText('Bilan de la session', padX, 205);
+    let y = headH + 50;
+    g.fillStyle = K.ink; g.font = `800 32px ${FD}`; g.fillText('Classement', padX, y); y += 20;
+    rows.forEach((r, i) => {
+      if (i % 2) { g.fillStyle = K.band; g.fillRect(0, y, W, rowH); }
+      const cy = y + rowH / 2;
+      g.fillStyle = K.ink; g.font = `800 34px ${FD}`; g.textAlign = 'center'; g.fillText(r.rank <= 3 ? MED[r.rank - 1] : String(r.rank), padX + 28, cy + 12); g.textAlign = 'left';
+      g.font = `700 32px ${F}`; g.fillText(r.p.name, padX + 90, cy + 11);
+      g.textAlign = 'right'; g.font = `800 34px ${FD}`; g.fillText(`${r.total} pts`, W - padX, cy + 12);
+      if (races.length > 1) { g.font = `600 24px ${F}`; g.fillStyle = K.soft; g.fillText(r.per.map((x) => x.pts).join(' + '), W - padX - 170, cy + 10); }
+      g.textAlign = 'left'; y += rowH;
+    });
+    y += 50; g.fillStyle = K.ink; g.font = `800 32px ${FD}`; g.fillText('Podiums', padX, y); y += 20;
+    pods.forEach(({ race, pod }) => {
+      g.fillStyle = K.ink; g.font = `700 25px ${F}`; g.fillText(raceShort(race), padX, y + 34);
+      g.fillStyle = K.soft; g.font = `600 24px ${F}`;
+      g.fillText(pod.map((e) => `${e.rank}. ${C.nameOf(e.ath)}`).join('  ·  '), padX, y + 74);
+      y += podH;
+    });
+    g.fillStyle = K.foot; g.fillRect(0, H - footH, W, footH);
+    g.fillStyle = K.footT; g.font = `600 26px ${F}`; g.textAlign = 'center'; g.fillText('skigame-2627.vercel.app', W / 2, H - footH / 2 + 9); g.textAlign = 'left';
+    return cv;
+  }
+  async function sessionJpg(sid) {
+    const s = C.D.SESSIONS.concat([C.D.WORLDS]).find((x) => String(x.id) === String(sid)); say('Image en préparation…');
+    try {
+      const cv = await sessionCanvas(s);
+      const blob = await new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.92));
+      const name = `ski-game-recap-${String(s.id).toLowerCase()}.jpg`;
+      const file = new File([blob], name, { type: 'image/jpeg' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: s.name }); say('Image partagée.'); return; } catch (e) { if (e && e.name === 'AbortError') { say(''); return; } } }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000); say('Image téléchargée.');
+    } catch (e) { console.error('JPG', e); say('Impossible de créer l’image.'); }
+  }
+  const api = { init, raceRows, raceText, cardHtml, open, copy, jpg, jpgCanvas, sessionRows, sessionText, sessionOpen, sessionCopy, sessionJpg, sessionCanvas };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SKI_SHARE = api;
 })(typeof window !== 'undefined' ? window : globalThis);
