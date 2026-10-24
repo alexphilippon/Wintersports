@@ -1260,9 +1260,9 @@
   document.addEventListener('visibilitychange', beat);
   setTimeout(beat, 3000);
 
-  const THEMESW = "<div class=\"themesw\" role=\"group\" aria-label=\"Ambiance du site\"><span>Ambiance</span><span class=\"themesw__dots\"><button type=\"button\" class=\"th--sapin\" data-theme-set=\"sapin\" aria-pressed=\"true\" title=\"Sapin\" aria-label=\"Ambiance Sapin\"></button><button type=\"button\" class=\"th--glace\" data-theme-set=\"glace\" aria-pressed=\"false\" title=\"Glace\" aria-label=\"Ambiance Glace\"></button><button type=\"button\" class=\"th--nuit\" data-theme-set=\"nuit\" aria-pressed=\"false\" title=\"Nuit\" aria-label=\"Ambiance Nuit\"></button></span></div>";
+  const THEMESW = "<div class=\"themesw\" role=\"group\" aria-label=\"Ambiance du site\"><span>Ambiance</span><span class=\"themesw__dots\"><button type=\"button\" class=\"th--sapin\" data-theme-set=\"sapin\" aria-pressed=\"true\" title=\"Sapin\" aria-label=\"Ambiance Sapin\"></button><button type=\"button\" class=\"th--glace\" data-theme-set=\"glace\" aria-pressed=\"false\" title=\"Glace\" aria-label=\"Ambiance Glace\"></button><button type=\"button\" class=\"th--nuit\" data-theme-set=\"nuit\" aria-pressed=\"false\" title=\"Nuit\" aria-label=\"Ambiance Nuit\"></button><button type=\"button\" class=\"th--noel\" data-theme-set=\"noel\" aria-pressed=\"false\" title=\"Noël\" aria-label=\"Ambiance Noël\"></button></span></div>";
   /* ---------- Ambiance (Sapin, Glace, Nuit), mémorisée dans le navigateur ---------- */
-  const THEME_COLOR = { sapin: '#163629', glace: '#a8cfe4', nuit: '#0b1322' };
+  const THEME_COLOR = { sapin: '#163629', glace: '#a8cfe4', nuit: '#0b1322', noel: '#8f1620' };
   function setTheme(t, save) {
     if (!THEME_COLOR[t]) t = 'sapin';
     if (t === 'sapin') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
@@ -1491,7 +1491,7 @@
         ${snoozed ? '<button type="button" class="linkbtn" data-gate-reset>Réafficher les rappels reportés ou masqués</button>' : ''}
         <p class="hint">Réglage enregistré dans ce navigateur : à refaire sur un autre appareil.</p>
       </section>
-      <section class="set"><h3>Ambiance du site</h3><div class="set__themes">${dot('sapin', 'Sapin')}${dot('glace', 'Glace')}${dot('nuit', 'Nuit')}</div></section>
+      <section class="set"><h3>Ambiance du site</h3><div class="set__themes">${dot('sapin', 'Sapin')}${dot('glace', 'Glace')}${dot('nuit', 'Nuit')}${dot('noel', 'Noël')}</div></section>
       <section class="set"><h3>Application mobile</h3>
         ${isStandalone() ? '<p class="hint">L’app est déjà installée sur cet appareil ✓</p>' : '<p class="hint">Ajoute un raccourci Ski Game sur ton écran d’accueil : le jeu s’ouvre comme une application.</p><button type="button" class="btn btn--ghost btn--sm" data-install>📲 Installer l’app sur mon téléphone</button>'}
       </section>

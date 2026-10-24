@@ -150,7 +150,8 @@
   let W = 1080;
   const TH = { sapin: { t: '#2b5f4b', b: '#163629', chev: 'rgba(143,192,164,.18)', edge: '#e9f0f2', gold: '#f1d78a', head: '#fff', sub: '#d4e6ef', bg: '#fbf8ef', band: '#f3efe2', ink: '#1b2b44', soft: '#675e51', bad: '#a93a2c', foot: '#1f4a3a', footT: '#e9f0f2', ph: '#8faec0', track: '#e4e1d3', bar: '#2f8089' },
     glace: { t: '#f1f9fd', b: '#a8cfe4', chev: 'rgba(255,255,255,.4)', edge: '#ffffff', gold: '#1d6a9c', head: '#123a55', sub: '#2c5b78', bg: '#fbfdff', band: '#eaf3f9', ink: '#17364d', soft: '#566b79', bad: '#b83a2a', foot: '#1e5a80', footT: '#ffffff', ph: '#a8cfe4', track: '#d3e1eb', bar: '#1e5a80' },
-    nuit: { t: '#1c2f55', b: '#0b1322', chev: 'rgba(120,160,230,.18)', edge: '#2f56d6', gold: '#8fb4ff', head: '#ffffff', sub: '#c9d9f5', bg: '#18222f', band: '#1e2b3b', ink: '#e4eaf2', soft: '#9aaabd', bad: '#ff9a8a', foot: '#0b1322', footT: '#cfe0ff', ph: '#3d527f', track: '#293648', bar: '#5b8cf0' } };
+    nuit: { t: '#1c2f55', b: '#0b1322', chev: 'rgba(120,160,230,.18)', edge: '#2f56d6', gold: '#8fb4ff', head: '#ffffff', sub: '#c9d9f5', bg: '#18222f', band: '#1e2b3b', ink: '#e4eaf2', soft: '#9aaabd', bad: '#ff9a8a', foot: '#0b1322', footT: '#cfe0ff', ph: '#3d527f', track: '#293648', bar: '#5b8cf0' },
+    noel: { t: '#b3261e', b: '#6e0f18', chev: 'rgba(255,220,150,.2)', edge: '#e6b94c', gold: '#ffd86b', head: '#fff', sub: '#ffe9c9', bg: '#fffaf1', band: '#f7ebdb', ink: '#2a1a17', soft: '#7a625a', bad: '#b3261e', foot: '#1f5a3a', footT: '#fff8e8', ph: '#e0a79c', track: '#ecdcc6', bar: '#1f5a3a' } };
   function loadImg(src) { return new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; }); }
   function wrap(ctx, text, maxW) {
     const words = text.split(' '), lines = []; let cur = '';
