@@ -551,7 +551,7 @@
     del: (k) => { try { localStorage.removeItem(k); } catch (e) { /* ignoré */ } },
   };
   const H24 = 24 * 3600 * 1000;
-  /** La « dernière session » reste affichée 24 h après qu'on l'a vue, 48 h après sa fin si on ne l'a pas vue ; « skip » la masque (une fois, pour cette session). */
+  /** La « dernière session » reste affichée 24 h après sa fin, 48 h si le joueur ne l'a pas vue pendant ces 24 h ; « skip » la masque (une fois, pour cette session). */
   function finishedWindow(s) {
     if (LS.get('skigame.skip.' + s.id)) return false;
     return finishedWindowIgnoringSkip(s);
@@ -559,7 +559,8 @@
   function finishedWindowIgnoringSkip(s) {
     const seen = Number(LS.get('skigame.seen.' + s.id)) || 0;
     const end = G.sessionEnd(s).getTime();
-    return now().getTime() < (seen ? seen + H24 : end + 2 * H24);
+    // 24 h pour tout le monde ; une 2e journée si le joueur n'est pas passé sur le site pendant la première
+    return now().getTime() < (seen && seen <= end + H24 ? end + H24 : end + 2 * H24);
   }
   function homeMode() {
     const all = allSessions(), st = (s) => G.sessionState(s, now());
