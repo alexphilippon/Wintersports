@@ -794,7 +794,7 @@
   const TAB_SHORT = { next: 'À venir', 1: 'Desk 1', 2: 'Desk 2', w: 'Mondiaux', 3: 'Desk 3', gen: 'Général' };
   function renderTabs() {
     $('#tabs').innerHTML = tabs().map((t) => {
-      const short = t.id === 'next' && /en cours/.test(t.label) ? 'En cours' : TAB_SHORT[t.id];
+      const short = t.id === 'next' && /en cours/.test(t.label) ? 'En cours' : t.id === 'next' && /Dernière/.test(t.label) ? 'Terminée' : TAB_SHORT[t.id];
       return `<button type="button" role="tab" class="plate plate--${t.id}" id="tab-${t.id}" data-tab="${t.id}" aria-selected="${state.tab === t.id}" aria-label="${esc(t.label + (t.note ? ', ' + t.note : ''))}">
       <svg class="plate__ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TAB_ICO[t.id]}</svg><span class="plate__short">${short}</span>
       <span class="plate__label">${t.label}</span>${t.note ? `<span class="plate__note">${t.note}</span>` : ''}</button>`;
