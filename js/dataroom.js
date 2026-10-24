@@ -153,8 +153,9 @@
     const rowOpts = isPast ? [['top', 'Top 30'], ['all', 'Tous']] : [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']];
     return `<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(P.disc).replace(/data-dr="disc:/g, `data-dr="${pk}:`)}</div>
       <div class="ff dr__filters"><span class="sub">Courses</span>${sel('last', [[5, '5 dernières'], [10, '10'], [20, '20'], [0, 'Toutes']])}<span class="sub">Skieurs</span>${sel('rows', rowOpts)}</div>
+      <div class="fswrap"><div class="fsbar"><button type="button" class="btn btn--sm fsbtn" data-dr="fs:on" aria-pressed="false"><svg class="fsic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="fsbtn__on">Mettre le tableau en plein écran</span><span class="fsbtn__off">Quitter le plein écran</span></button></div>
       <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid${isPast ? ' dr__grid--past' : ''}"><caption>${isPast ? 'Saison 2025-26 · ' : ''}${ui.g === 'M' ? 'Messieurs' : 'Dames'} · ${races.length} course${races.length > 1 ? 's' : ''}${xb}</caption>
-      <thead><tr><th scope="col" class="dr__sticky">Skieur</th><th scope="col" class="dr__pts">Pts</th>${head}</tr></thead><tbody>${body || `<tr><td colspan="${races.length + 2}"><span class="none">Aucun résultat.</span></td></tr>`}</tbody></table></div>
+      <thead><tr><th scope="col" class="dr__sticky">Skieur</th><th scope="col" class="dr__pts">Pts</th>${head}</tr></thead><tbody>${body || `<tr><td colspan="${races.length + 2}"><span class="none">Aucun résultat.</span></td></tr>`}</tbody></table></div></div>
       <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS, DNQ, DSQ sont notés. Case vide : hors des 30 premiers.${isPast ? ' Points : barème Coupe du monde sur les courses affichées.' : ' ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course.'} Fais glisser le tableau pour voir les courses.</p>`;
   }
 
@@ -302,9 +303,11 @@
       <div class="deskbar"><div class="seg" role="tablist" aria-label="Data room"><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'light'}" data-dr="sub:light">Globes</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'prem'}" data-dr="sub:prem">Par course</button><button type="button" role="tab" class="seg__btn" aria-selected="${ui.sub === 'bub'}" data-dr="sub:bub">Bulles</button><button type="button" role="tab" class="seg__btn seg__btn--past" aria-selected="${ui.sub === 'past'}" data-dr="sub:past">2025-26</button></div></div>
       ${body}</section>`;
   }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { const w = document.querySelector('.fswrap.is-fs'); if (w && !document.querySelector('.modal.is-open, dialog[open]')) { w.classList.remove('is-fs'); document.body.classList.remove('fs-lock'); } } });
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-dr]'); if (!b || !C) return;
     const [k, v] = b.dataset.dr.split(':');
+    if (k === 'fs') { const w = b.closest('.fswrap'); const on = w.classList.toggle('is-fs'); document.body.classList.toggle('fs-lock', on); b.setAttribute('aria-pressed', on); return; }
     if (k === 'sk') { const [t, x] = v.split('~'); openSkier(t === 'id' ? x : null, t === 'code' ? x : null, ui.sub === 'past' ? 'past' : 'now'); return; }
     if (k === 'race') { if (root.SKI_SHARE) root.SKI_SHARE.open(v); return; }
     if (k === 'pastrace') { pastRaceModal(v); return; }

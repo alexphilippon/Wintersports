@@ -1219,3 +1219,13 @@ caption .xicons { float: right; display: inline-flex; gap: .35rem; margin-left: 
 .xic { display: inline-flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem; padding: 0; border: 1.5px solid rgba(255,255,255,.55); border-radius: 8px; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; }
 .xic:hover { background: rgba(255,255,255,.28); }
 h3 .xicons { display: inline-flex; gap: .35rem; margin-left: .6rem; vertical-align: middle; } h3 .xic { border-color: var(--filet); background: var(--neige); color: var(--nuit); width: 1.8rem; height: 1.8rem; }
+
+/* plein écran des gros tableaux */
+.fsbar { display: flex; justify-content: flex-end; margin: .2rem 0 .5rem; }
+.fsbtn { display: inline-flex; align-items: center; gap: .45rem; font-weight: 800; background: var(--nuit); color: #fff; border: 0; border-radius: 10px; padding: .45rem .8rem; cursor: pointer; }
+.fsbtn:hover { filter: brightness(1.15); }
+.fsbtn .fsbtn__off, .fswrap.is-fs .fsbtn__on { display: none; }
+.fswrap.is-fs .fsbtn__off { display: inline; }
+.fswrap.is-fs { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; padding: .6rem .8rem; background: var(--papier); }
+.fswrap.is-fs .dr__wrap { flex: 1; max-height: none; min-height: 0; }
+body.fs-lock { overflow: hidden; }
