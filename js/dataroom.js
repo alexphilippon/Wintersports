@@ -38,7 +38,8 @@
     const res = allResults(), races = racesOf(g, discs, res), by = {};
     races.forEach((r) => (res[r.id] || []).forEach((e) => {
       const s = (by[e.ath] = by[e.ath] || { ath: e.ath, pts: 0, cells: {}, n: 0 });
-      s.cells[r.id] = e; s.n++;
+      if (e.status !== 'DNQ') s.cells[r.id] = e;   // non-qualifié en 2e manche : case vide, comme hors du top 30
+      s.n++;
       if (!e.status && e.rank) s.pts += C.G.racePoints(r, e.rank);
     }));
     const rows = Object.values(by).sort((a, b) => b.pts - a.pts || a.n - b.n || C.nameOf(a.ath).localeCompare(C.nameOf(b.ath), 'fr'));
@@ -119,7 +120,8 @@
     const by = {}; const map = byFid();
     races.forEach((r) => r.res.forEach(([code, v, cp]) => {
       const s = (by[code] = by[code] || { ath: code, pts: 0, cells: {}, n: 0 });
-      s.cells[r.id] = typeof v === 'number' ? { rank: v } : { status: v }; s.n++;
+      if (v !== 'DNQ') s.cells[r.id] = typeof v === 'number' ? { rank: v } : { status: v };
+      s.n++;
       if (typeof v === 'number') s.pts += cp != null ? cp : C.G.pointsForRank(v);   // points publiés par la FIS (les finales n'en donnent pas à tous)
     }));
     const nameOfCode = (code) => { const id = map[code]; if (id) return fam(id); const n = (past.ath[code] || [code])[0].split(' '); const up = []; while (n.length && n[0] === n[0].toUpperCase()) up.push(n.shift()); return (n.length ? n.join(' ') + ' ' : '') + (up.length ? up : n).join(' ').toUpperCase(); };
@@ -153,9 +155,9 @@
     const rowOpts = isPast ? [['top', 'Top 30'], ['all', 'Tous']] : [['top', 'Top 30'], ['all', 'Tous'], ['mine', '★ Mes choix']];
     return `${root.SKI_SHARE.fsOpen(1)}<div class="ff dr__filters" role="group" aria-label="Filtres">${genderChips()}${discChips(P.disc).replace(/data-dr="disc:/g, `data-dr="${pk}:`)}</div>
       <div class="ff dr__filters"><span class="sub">Courses</span>${sel('last', [[5, '5 dernières'], [10, '10'], [20, '20'], [0, 'Toutes']])}<span class="sub">Skieurs</span>${sel('rows', rowOpts)}</div>
-      <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid${isPast ? ' dr__grid--past' : ''}"><caption>${isPast ? 'Saison 2025-26 · ' : ''}${ui.g === 'M' ? 'Messieurs' : 'Dames'} · ${isPast ? races.length + ' course' + (races.length > 1 ? 's' : '') : (t.races.length ? (ui.last ? Math.min(ui.last, t.races.length) : t.races.length) : 0) + ' disputée' + ((ui.last ? Math.min(ui.last, t.races.length) : t.races.length) > 1 ? 's' : '') + ' · ' + (races.length - (ui.last ? Math.min(ui.last, t.races.length) : t.races.length)) + ' à venir'}${xb}</caption>
+      <div class="tablewrap tablewrap--scroll dr__wrap"><table class="grid dr__grid${isPast ? ' dr__grid--past' : ''}"><caption>${isPast ? 'Saison 2025-26 · ' : ''}${ui.g === 'M' ? 'Messieurs' : 'Dames'} · ${isPast ? races.length + ' course' + (races.length > 1 ? 's' : '') : (t.races.length ? (ui.last ? Math.min(ui.last, t.races.length) : t.races.length) : 0) + ' disputée' + ((ui.last ? Math.min(ui.last, t.races.length) : t.races.length) > 1 ? 's' : '') + ''}${xb}</caption>
       <thead><tr><th scope="col" class="dr__sticky">Skieur</th><th scope="col" class="dr__pts">Pts</th>${head}</tr></thead><tbody>${body || `<tr><td colspan="${races.length + 2}"><span class="none">Aucun résultat.</span></td></tr>`}</tbody></table></div></div>
-      <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS, DNQ, DSQ sont notés. Case vide : hors des 30 premiers.${isPast ? ' Points : barème Coupe du monde sur les courses affichées.' : ' ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course.'} Fais glisser le tableau pour voir les courses.</p>`;
+      <p class="hint">Rang à l’arrivée (30 premiers) ; DNF, DNS et DSQ sont notés. Case vide : hors des 30 premiers ou non qualifié pour la 2e manche.${isPast ? ' Points : barème Coupe du monde sur les courses affichées.' : ' ★ : skieur que tu as déjà choisi ; case encadrée : ton choix pour cette course.'} Fais glisser le tableau pour voir les courses.</p>`;
   }
 
   /* ---------- 3. Bulles : un skieur choisi qui ne marque aucun point (hors DNS) ---------- */
