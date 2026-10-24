@@ -23,7 +23,9 @@ function parseLive(html) {
     while (k < tok.length) {
       const t = tok[k];
       if (/^Did not|^Disqualified/.test(t)) { label = /start/.test(t) ? 'DNS' : /qualify/.test(t) ? 'DNQ' : /^Disq/.test(t) ? 'DSQ' : 'DNF'; k++; continue; }
-      if (!label && num(t) && num(tok[k + 1]) && num(tok[k + 2]) && /[A-Za-z]/.test(tok[k + 3] || '')) { rows.push({ rank: +t, bib: +tok[k + 1], code: tok[k + 2], name: tok[k + 3] }); k += 4; continue; }
+      if (!label && num(t) && num(tok[k + 1]) && num(tok[k + 2]) && /[A-Za-z]/.test(tok[k + 3] || '')) { let j = k + 4; while (j < tok.length && !(/^[A-Z]{3}$/.test(tok[j]) && /^\d{4}$/.test(tok[j - 1] || ''))) j++;
+        const tm = /^\d+:\d\d\.\d\d$|^\d+\.\d\d$/.test(tok[j + 1] || '') ? tok[j + 1] : '';
+        rows.push({ rank: +t, bib: +tok[k + 1], code: tok[k + 2], name: tok[k + 3], time: tm }); k += 4; continue; }
       if (label && num(t) && num(tok[k + 1]) && /[A-Za-z]/.test(tok[k + 2] || '')) { out.push({ status: label, bib: +t, code: tok[k + 1], name: tok[k + 2] }); k += 3; continue; }
       if (label && num(t) && /[A-Za-z]/.test(tok[k + 1] || '') && !num(tok[k + 1])) { k++; continue; }
       k++;
@@ -45,7 +47,7 @@ if (require.main === module) {
     const p = parseLive(html), f = path.join(root, 'data', 'live.json');
     const db = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : { races: {} };
     if (!p.hasResults && db.races[id] && db.races[id].hasResults) { console.log(id + ' : la page FIS est repassée en start list (2e manche) ; classement de la 1re manche conservé.'); return; }
-    db.races[id] = { raceid: races[id].raceid, source: url, fetched: new Date().toISOString(), run1: p.runs.run1 || null, run2: p.runs.run2 || null, run2status: p.status || '', hasResults: p.hasResults, qualify: 30, rows: p.rows, out: p.out };
+    db.races[id] = { raceid: races[id].raceid, source: url, fetched: new Date().toISOString(), run1: p.runs.run1 || null, run2: p.runs.run2 || null, run2status: p.status || '', hasResults: p.hasResults, seed1: (p.rows.find((r) => r.rank === 1) || {}).time || '', qualify: 30, rows: p.rows, out: p.out };
     fs.writeFileSync(f, JSON.stringify(db));
     console.log(`${id} : ${p.hasResults ? p.rows.length + ' classés, ' + p.out.length + ' non classés' : 'pas encore de classement'} · manche 1 ${p.runs.run1 || '?'} · manche 2 ${p.runs.run2 || '?'} ${p.status}`);
   }).catch((e) => { console.error(e.message); process.exit(1); });

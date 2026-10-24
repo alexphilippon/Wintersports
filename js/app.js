@@ -627,12 +627,22 @@
   }
   const liveChip = (lv, a) => { if (lv && lv.dns(a)) return ' <span class="rank rank--dns" title="Absent de la liste de départ">Non partant (DNS)</span>'; const e = lv && lv.by[a]; if (!e) return ''; return e.out ? ` <span class="rank rank--bubble" title="Non qualifié pour la 2e manche">⚠ Bulle : ${e.status ? esc(e.status) : 'hors du top 30 (' + e.rank + 'e)'}, 0 pt</span>` : ` <span class="rank rank--live">1re manche : ${ordinal(e.rank)}</span>`; };
   /** Titulaires qui ne prennent pas le départ : remplaçant du joueur, ou tirage au sort s'il n'en a pas (ou s'il est lui aussi absent). */
+  /** Tirages au sort possibles dès la fin de la 1re manche : graine = temps du vainqueur de la 1re manche (publié avant la 2e), 30 premiers dossards. */
+  function liveDraws(race, lv) {
+    const sl = startListOf(race); if (!sl || !lv.L.seed1) return {};
+    const fake = [];
+    state.players.forEach((p) => { const pk = (state.picks[p.id] || {})[race.id]; if (pk && pk.a) [pk.a, pk.b].forEach((a) => { if (a && lv.dns(a) && !fake.some((x) => x.ath === a)) fake.push({ ath: a, status: 'DNS' }); }); });
+    if (!fake.length) return {};
+    const picks = {}; state.players.forEach((p) => { picks[p.id] = Object.assign({}, state.picks[p.id]); if (picks[p.id][race.id]) picks[p.id][race.id] = Object.assign({}, picks[p.id][race.id], { d: undefined }); });
+    const d = G.autoDraws(Object.assign({}, state.results, { [race.id]: fake }), { [race.id]: { seed: lv.L.seed1, start: sl.rows.filter((r) => r.ath).map((r) => ({ bib: r.bib, ath: r.ath })) } }, picks);
+    return d[race.id] || {};
+  }
   function dnsNote(race, lv) {
-    const rows = [];
+    const rows = [], dr = liveDraws(race, lv);
     state.players.forEach((p) => {
       const pk = (state.picks[p.id] || {})[race.id]; if (!pk || !pk.a || !lv.dns(pk.a)) return;
       const rep = pk.b && !lv.dns(pk.b) ? pk.b : null;
-      rows.push(`<li><strong>${skn(pk.a)}</strong> : ${pln(p)} → ${rep ? `remplaçant <strong>${skn(rep)}</strong>` : '<strong>pas de remplaçant valable : tirage au sort</strong>'}</li>`);
+      rows.push(`<li><strong>${skn(pk.a)}</strong> : ${pln(p)} → ${rep ? `remplaçant <strong>${skn(rep)}</strong>` : dr[p.id] ? `pas de remplaçant valable : <strong>tirage au sort → ${skn(dr[p.id].ath)}</strong> <span class="sub">(1 sur ${dr[p.id].n}, graine ${esc(lv.L.seed1)})</span>` : '<strong>pas de remplaçant valable : tirage au sort</strong>'}</li>`);
     });
     return rows.length ? `<p class="livenote__b livenote__b--dns">🚫 <strong>Non-partant${rows.length > 1 ? 's' : ''}</strong> (absent${rows.length > 1 ? 's' : ''} de la liste de départ, pas de bulle) :</p><ul class="livenote__l">${rows.join('')}</ul>` : '';
   }

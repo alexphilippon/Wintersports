@@ -58,7 +58,7 @@
     const missing = start.filter((r) => !seen.has(r.bib) && !pendingDns.some((d) => d.bib === r.bib));
     if (missing.length) warnings.push(`${missing.length} partant(s) du départ sans résultat : ${missing.map((r) => r.name).join(', ')}.`);
     if (seen.size !== entries.length) throw new Error('Un même dossard apparaît dans plusieurs listes.');
-    const seed = ranked.length ? ranked[0].time : '';
+    const seed = raw.seed || (ranked.length ? ranked[0].time : '');   // raw.seed : course à deux manches, graine = temps du vainqueur de la 1re manche (publié avant la 2e)
     return {
       race: raw.race, entries: pendingDns.length ? [] : entries,
       start: start.map((r) => ({ bib: r.bib, ath: idOfBib[r.bib] })), seed,
