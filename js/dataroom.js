@@ -3,7 +3,7 @@
 (function (root) {
   'use strict';
   let C = null;
-  const ui = { pp: { disc: [] }, bub: {}, sub: 'light', g: 'M', disc: [], more: false, last: 8, rows: 'top', prem: { disc: [] } };
+  const ui = { pp: { disc: [] }, bub: {}, sub: 'light', g: 'M', disc: [], more: false, last: 0, rows: 'top', prem: { disc: [] } };
   const init = (ctx) => { C = ctx; };
   const DISC = ['DH', 'SG', 'GS', 'SL'], DNAME = { DH: 'Descente', SG: 'Super-G', GS: 'Géant', SL: 'Slalom' };
   const DESKC = { 1: '#2f7fb0', 2: '#2f8a63', 3: '#d27a2a', M: '#2c8f94' };
@@ -107,10 +107,10 @@
   function pastTable(g, discs) {
     const races = past.races.filter((r) => r.g === g && (!discs.length || discs.includes(r.disc)));
     const by = {}; const map = byFid();
-    races.forEach((r) => r.res.forEach(([code, v]) => {
+    races.forEach((r) => r.res.forEach(([code, v, cp]) => {
       const s = (by[code] = by[code] || { ath: code, pts: 0, cells: {}, n: 0 });
       s.cells[r.id] = typeof v === 'number' ? { rank: v } : { status: v }; s.n++;
-      if (typeof v === 'number') s.pts += C.G.pointsForRank(v);
+      if (typeof v === 'number') s.pts += cp != null ? cp : C.G.pointsForRank(v);   // points publiés par la FIS (les finales n'en donnent pas à tous)
     }));
     const nameOfCode = (code) => { const id = map[code]; if (id) return fam(id); const n = (past.ath[code] || [code])[0].split(' '); const up = []; while (n.length && n[0] === n[0].toUpperCase()) up.push(n.shift()); return titleCase((up.length ? up : n).join(' ')); };
     const rows = Object.values(by).sort((a, b) => b.pts - a.pts || a.n - b.n);

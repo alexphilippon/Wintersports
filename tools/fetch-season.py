@@ -33,11 +33,14 @@ for ev in events:
         i = p.find('Cup Points|'); body = p[i + 11:] if i > 0 else ''
         res, seen = [], set()
         # classés : rang|dossard|code|NOM|-->|-->|année|NAT
-        parts = re.split(r'\|(Did not [a-z ]+(?:run)?|Disqualified[^|]*)\|', body)
-        for m2 in re.finditer(r'(?:^|\|)(\d+)\|(\d+)\|(\d+)\|([^|]+)\|-->\|-->\|(\d{4})\|([A-Z]{3})\|', parts[0]):
+        parts = re.split(r'\|(Did not [^|]+|Disqualified[^|]*)\|', body)
+        ms = list(re.finditer(r'(?:^|\|)(\d+)\|(\d+)\|(\d+)\|([^|]+)\|-->\|-->\|(\d{4})\|([A-Z]{3})\|', parts[0]))
+        for n2, m2 in enumerate(ms):
             rk, bib, code, name, yr, nat = m2.groups()
-            if int(rk) <= 30 and code not in seen:
-                seen.add(code); res.append([code, int(rk)]); ath[code] = [name, nat]
+            seg = parts[0][m2.end():(ms[n2 + 1].start() if n2 + 1 < len(ms) else len(parts[0]))].strip('|').split('|')
+            cp = int(seg[-1]) if seg and re.fullmatch(r'\d+', seg[-1]) else 0     # points de Coupe du monde publiés par la FIS
+            if code not in seen and (cp > 0 or int(rk) <= 30):
+                seen.add(code); res.append([code, int(rk), cp]); ath[code] = [name, nat]
         for k in range(1, len(parts) - 1, 2):
             st = 'DNS' if parts[k].startswith('Did not start') else 'DNQ' if 'qualify' in parts[k] else 'DSQ' if parts[k].startswith('Disq') else 'DNF'
             for m2 in re.finditer(r'(?:^|\|)(\d+)\|(\d+)\|([^|]+)\|-->\|-->\|(\d{4})\|([A-Z]{3})', parts[k + 1].split('|Did not')[0]):
