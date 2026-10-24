@@ -151,7 +151,8 @@
   const TH = { sapin: { t: '#2b5f4b', b: '#163629', chev: 'rgba(143,192,164,.18)', edge: '#e9f0f2', gold: '#f1d78a', head: '#fff', sub: '#d4e6ef', bg: '#fbf8ef', band: '#f3efe2', ink: '#1b2b44', soft: '#675e51', bad: '#a93a2c', foot: '#1f4a3a', footT: '#e9f0f2', ph: '#8faec0', track: '#e4e1d3', bar: '#2f8089' },
     glace: { t: '#f1f9fd', b: '#a8cfe4', chev: 'rgba(255,255,255,.4)', edge: '#ffffff', gold: '#1d6a9c', head: '#123a55', sub: '#2c5b78', bg: '#fbfdff', band: '#eaf3f9', ink: '#17364d', soft: '#566b79', bad: '#b83a2a', foot: '#1e5a80', footT: '#ffffff', ph: '#a8cfe4', track: '#d3e1eb', bar: '#1e5a80' },
     nuit: { t: '#1c2f55', b: '#0b1322', chev: 'rgba(120,160,230,.18)', edge: '#2f56d6', gold: '#8fb4ff', head: '#ffffff', sub: '#c9d9f5', bg: '#18222f', band: '#1e2b3b', ink: '#e4eaf2', soft: '#9aaabd', bad: '#ff9a8a', foot: '#0b1322', footT: '#cfe0ff', ph: '#3d527f', track: '#293648', bar: '#5b8cf0' },
-    noel: { t: '#b3261e', b: '#6e0f18', chev: 'rgba(255,220,150,.2)', edge: '#e6b94c', gold: '#ffd86b', head: '#fff', sub: '#ffe9c9', bg: '#fffaf1', band: '#f7ebdb', ink: '#2a1a17', soft: '#7a625a', bad: '#b3261e', foot: '#1f5a3a', footT: '#fff8e8', ph: '#e0a79c', track: '#ecdcc6', bar: '#1f5a3a' } };
+    noel: { t: '#b3261e', b: '#6e0f18', chev: 'rgba(255,220,150,.2)', edge: '#e6b94c', gold: '#ffd86b', head: '#fff', sub: '#ffe9c9', bg: '#fffaf1', band: '#f7ebdb', ink: '#2a1a17', soft: '#7a625a', bad: '#b3261e', foot: '#1f5a3a', footT: '#fff8e8', ph: '#e0a79c', track: '#ecdcc6', bar: '#1f5a3a' },
+    halloween: { t: '#3b1a5e', b: '#12081f', chev: 'rgba(255,150,40,.16)', edge: '#ff8a1f', gold: '#ff9d2e', head: '#ffffff', sub: '#e6d3ff', bg: '#231533', band: '#2d1c42', ink: '#f1e6ff', soft: '#b8a2d4', bad: '#ff8a7a', foot: '#12081f', footT: '#ffd9a8', ph: '#5b2a8c', track: '#3a2756', bar: '#ff8a1f' } };
   function loadImg(src) { return new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; }); }
   function wrap(ctx, text, maxW) {
     const words = text.split(' '), lines = []; let cur = '';
@@ -173,7 +174,7 @@
     const headH = all.podium.length ? 290 : 250, footH = 90;
     let bodyH = lay.reduce((s, l) => s + l.h, 0);
     const H = Math.min(Math.max(headH + bodyH + footH, 1080), 2400);
-    const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin;
+    const K = TH[document.documentElement.getAttribute('data-skin') || document.documentElement.getAttribute('data-theme')] || TH.sapin;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
     const gr = g.createLinearGradient(0, 0, 0, headH); gr.addColorStop(0, K.t); gr.addColorStop(1, K.b);
@@ -289,7 +290,7 @@
   async function sessionCanvas(session) {
     const { rows, per, races, all, partial } = sessionRows(session);
     const F = '"Instrument Sans","Helvetica Neue",Arial,sans-serif', FD = '"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif';
-    const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin;
+    const K = TH[document.documentElement.getAttribute('data-skin') || document.documentElement.getAttribute('data-theme')] || TH.sapin;
     const padX = 56, headH = 250, rowH = 70, rH = 58, bandH = 112, footH = 90;
     const H = headH + 60 + 20 + rows.length * rowH + per.reduce((s, b) => s + 40 + bandH + b.pl.length * rH, 0) + 30 + footH;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
@@ -409,7 +410,7 @@
   async function resultCanvas(race) {
     const { rows } = resultRows(race);
     const F = '"Instrument Sans","Helvetica Neue",Arial,sans-serif', FD = '"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif';
-    const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = 230, footH = 90;
+    const K = TH[document.documentElement.getAttribute('data-skin') || document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = 230, footH = 90;
     const ctx0 = document.createElement('canvas').getContext('2d'); ctx0.font = `600 27px ${F}`;
     const whoX = 56 + 70 + 330 + 20, whoW = W - 56 - whoX;
     const lay = rows.map((r) => { const t = r.who.map((x) => `${x.p.name} ${sg(x.pts)}${x.kind === 'remplaçant' ? ' (rempl.)' : x.kind === 'tiré au sort' ? ' (tirage)' : ''}`).join(' · '); const lines = t ? wrap(ctx0, t, whoW) : []; return { r, lines, h: Math.max(70, 26 + Math.max(1, lines.length) * 34) }; });
@@ -433,7 +434,7 @@
   async function generalCanvas(race) {
     const rows = generalRows(race);
     const F = '"Instrument Sans","Helvetica Neue",Arial,sans-serif', FD = '"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif';
-    const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = 230, footH = 90, rowH = 76;
+    const K = TH[document.documentElement.getAttribute('data-skin') || document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = 230, footH = 90, rowH = 76;
     const H = headH + 30 + rows.length * rowH + 30 + footH;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
@@ -495,7 +496,7 @@
   }
   function xpCanvas(sp) {
     const F = '"Instrument Sans","Helvetica Neue",Arial,sans-serif', FD = '"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif';
-    const K = TH[document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = 230, footH = 90, rowH = 70, colH = 70;
+    const K = TH[document.documentElement.getAttribute('data-skin') || document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = 230, footH = 90, rowH = 70, colH = 70;
     const vals = sp.head.slice(2), nv = vals.length, cw = nv > 12 ? 70 : nv > 6 ? 84 : nv > 3 ? 120 : nv > 1 ? 160 : 200;
     const Wc = Math.max(1080, padX * 2 + 90 + 380 + nv * cw), prev = W;
     try {
