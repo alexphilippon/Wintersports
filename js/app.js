@@ -376,12 +376,26 @@
     </article>`;
   }
 
+  /* ---------- Ordres d'affichage : joueurs = classement général, skieurs = classement actuel de la Coupe du monde ---------- */
+  const playersRanked = () => rankRows((pk) => G.generalScore(pk, state.results)).map((r) => r.p);
+  /** Points Coupe du monde de chaque skieur d'après les résultats saisis (barème de la CDM, sans bonus du jeu). */
+  function wcPoints() {
+    const pts = {};
+    Object.keys(state.results).forEach((rid) => {
+      const race = G.raceOf(rid), res = state.results[rid];
+      if (!race || race.cancelled || !res) return;
+      res.forEach((e) => { if (!e.status && e.rank) pts[e.ath] = (pts[e.ath] || 0) + G.pointsForRank(e.rank); });
+    });
+    return pts;
+  }
+
   /* ---------- Récap des joueurs ---------- */
   function recapTable(session) {
     const races = sortedRaces(session).filter(passF);
-    const head = state.players.map((p) => `<th scope="col" class="${p.id === state.me ? 'me' : ''}">${pname(p)}</th>`).join('');
+    const order = playersRanked();
+    const head = order.map((p) => `<th scope="col" class="${p.id === state.me ? 'me' : ''}">${pname(p)}</th>`).join('');
     const rows = races.map((r) => {
-      const cells = state.players.map((p) => {
+      const cells = order.map((p) => {
         const pk = (state.picks[p.id] || {})[r.id];
         const cls = p.id === state.me ? 'me' : '';
         if (r.cancelled) return `<td class="${cls}"><span class="none">Annulée</span></td>`;
@@ -393,7 +407,7 @@
       }).join('');
       return `<tr><th scope="row"><span class="rowhead__day">${dayOf(r.date)}</span> ${fl(placeLabel(r))}<br><span class="gender gender--${r.gender}">${genderLabel(r)}</span>${discBadge(r)}${r.cancelled || !lockedRace(r) ? '' : `<br><button type="button" class="linkbtn rcbtn" data-racecard="${r.id}">Détail et export</button>`}</th>${cells}</tr>`;
     }).join('');
-    const totals = state.players.map((p) => `<td class="${p.id === state.me ? 'me' : ''}"><strong>${G.sessionScore(session, state.picks[p.id], state.results)} pts</strong></td>`).join('');
+    const totals = order.map((p) => `<td class="${p.id === state.me ? 'me' : ''}"><strong>${G.sessionScore(session, state.picks[p.id], state.results)} pts</strong></td>`).join('');
     return `<div class="tablewrap"><table class="grid grid--fx grid--fxrecap" style="--n:${state.players.length}">
       <caption>${fl(session.name)}</caption>
       <thead><tr><th scope="col">Course</th>${head}</tr></thead>
@@ -475,11 +489,12 @@
     return filters + ['M', 'W'].map((g) => {
       // Majeurs d'abord, par cote croissante ; les autres ensuite, dans l'ordre habituel
       const order = Object.keys(MAJORS[g]), odd = (a) => { const k = order.indexOf(a.id); return k < 0 ? Infinity : k; };
-      const list = LIST[g].map((a, i) => [a, i]).sort((x, y) => (odd(x[0]) === odd(y[0]) ? 0 : odd(x[0]) - odd(y[0])) || x[1] - y[1]).map((x) => x[0]);
+      const wc = wcPoints();
+      const list = LIST[g].map((a, i) => [a, i]).sort((x, y) => ((wc[y[0].id] || 0) - (wc[x[0].id] || 0)) || (odd(x[0]) === odd(y[0]) ? 0 : odd(x[0]) - odd(y[0])) || x[1] - y[1]).map((x) => x[0]);
       const taken = list.filter((a) => takes[a.id]).length;
       const attrs = (a) => `data-a="${a.id}" data-name="${esc(norm(a.name + ' ' + (a.fis || '') + ' ' + (a.nat || '')))}" data-taken="${takes[a.id] ? 1 : 0}" data-major="${MAJORS[g][a.id] !== undefined || takes[a.id] ? 1 : 0}"`;
       const head = list.map((a) => `<th scope="col" class="sk ${takes[a.id] ? 'is-taken' : 'is-free'}" ${attrs(a)}>${avatar(ATH[a.id], !!takes[a.id])}<span class="sk__n">${esc(listName(a))}</span><em class="sub">${esc(a.nat || (a.pending ? 'à régulariser' : ''))}</em></th>`).join('');
-      const rows = state.players.map((p) => {
+      const rows = playersRanked().map((p) => {
         const cells = list.map((a) => {
           const l = takes[a.id] && takes[a.id][p.id];
           const inner = l ? l.map((x) => `<span class="mark" title="${esc(x.tag)}"><span class="mark__l">${esc(x.tag)}</span>${x.sc === null ? '' : `<b class="mark__p ${x.sc > 0 ? 'on' : 'off'}">${x.sc > 0 ? '+' : ''}${x.sc}</b>`}</span>`).join('') : '';
