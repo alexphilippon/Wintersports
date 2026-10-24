@@ -1371,3 +1371,10 @@ html[data-skin='arcade'] .masthead__title { font-size: 2.9rem; text-shadow: 4px 
 html[data-skin='arcade'] .demo { color: #0d0b2a; font-weight: 700; }
 html[data-skin='halloween'] .demo { color: #1a0b2c; font-weight: 700; }
 @media (max-width: 759px) { html[data-skin='arcade'] .masthead__title { font-size: 1.7rem; } }
+/* thèmes sombres : barres de jauge lumineuses sur piste sombre (lisibles) */
+html[data-theme='nuit'] .gauge__bar i, html[data-theme='nuit'] .rc__bar i { background: linear-gradient(90deg, #4f8cf0, #8fd0ff); }
+html[data-skin='halloween'] .gauge__bar i, html[data-skin='halloween'] .rc__bar i { background: linear-gradient(90deg, #ff7a1a, #ffc15a); }
+html[data-skin='arcade'] .gauge__bar i, html[data-skin='arcade'] .rc__bar i { background: linear-gradient(90deg, #ff3ea5, #29e6ff); }
+html[data-theme='nuit'] .gauge--mine .gauge__bar i { background: var(--ocre); }
+html[data-skin='halloween'] .gauge__bar, html[data-skin='halloween'] .rc__bar { background: #3a2756; }
+html[data-theme='nuit'] .gauge__bar, html[data-theme='nuit'] .rc__bar { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); }
