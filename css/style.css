@@ -1251,3 +1251,17 @@ button.sk__t { font: inherit; cursor: pointer; text-align: center; } button.sk__
 .gauge { grid-template-columns: minmax(0, 19rem) minmax(4rem, 1fr) 5.6rem; }
 @media (max-width: 900px) and (min-width: 561px) { .gauge { grid-template-columns: minmax(0, 15rem) minmax(3rem, 1fr) 5rem; } }
 @media (max-width: 560px) { .gauge { grid-template-columns: minmax(0, 1fr) 4.6rem; } }
+
+/* gros globe : Total en bleu nuit, chaque desk dans sa couleur (plus de tout-orange) */
+.grid--general thead th.th--tot { background: var(--nuit); color: var(--neige); }
+.grid--general td.total { background: color-mix(in srgb, var(--nuit) 12%, transparent) !important; border-left: 2px solid var(--nuit); border-right: 2px solid var(--nuit); }
+.grid--general td.total .numbtn { background: var(--nuit); border-color: var(--nuit); color: var(--neige); }
+.grid--general td.total .numbtn:hover { filter: brightness(1.25); }
+.grid--general td:nth-child(4) .numbtn { --nc: #2f7fb0; } .grid--general td:nth-child(5) .numbtn { --nc: #2f8a63; }
+.grid--general td:nth-child(6) .numbtn { --nc: #d27a2a; } .grid--general td:nth-child(7) .numbtn { --nc: #17565f; }
+.grid--general td:not(.total) .numbtn { background: color-mix(in srgb, var(--nc) 20%, transparent); border-color: var(--nc); }
+.grid--general td:not(.total) .numbtn:hover { background: var(--nc); color: #fff; }
+.cap--d1 .numbtn { --nc: #2f7fb0; } .cap--d2 .numbtn { --nc: #2f8a63; } .cap--d3 .numbtn { --nc: #d27a2a; } .cap--w .numbtn { --nc: #17565f; }
+.cap--DH .numbtn { --nc: #c0392b; } .cap--SG .numbtn { --nc: #d27a2a; } .cap--GS .numbtn { --nc: #1f8a99; } .cap--SL .numbtn { --nc: #2c56a5; }
+:is(.cap--d1, .cap--d2, .cap--d3, .cap--w, .cap--DH, .cap--SG, .cap--GS, .cap--SL) .numbtn { background: color-mix(in srgb, var(--nc) 20%, transparent); border-color: var(--nc); }
+:is(.cap--d1, .cap--d2, .cap--d3, .cap--w, .cap--DH, .cap--SG, .cap--GS, .cap--SL) .numbtn:hover { background: var(--nc); color: #fff; }
