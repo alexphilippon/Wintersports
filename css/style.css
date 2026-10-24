@@ -1147,3 +1147,7 @@ html[data-theme='nuit'] .fbars b.pos { color: #7fd6a6; } html[data-theme='nuit']
 .pk { margin: 0 0 .8rem; padding: .5rem .7rem; border: 1px solid var(--filet); border-radius: 10px; background: var(--neige); } .pk--cur { border-color: var(--ocre); border-width: 2px; }
 .pk .fh { margin: 0 0 .3rem; } .pk__l { margin: .2rem 0; font-size: .88rem; line-height: 1.6; } .pk__pt { font-weight: 800; color: #1f6b4a; font-size: .8rem; }
 html[data-theme='nuit'] .pk__pt { color: #7fd6a6; }
+
+.morebtn--sl { margin-top: .4rem; background: linear-gradient(135deg, #d27a2a, #b3541a); }
+.brand { cursor: pointer; }
+.plate__home { vertical-align: -2px; margin-right: .15rem; }

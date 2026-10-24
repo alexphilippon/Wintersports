@@ -754,12 +754,12 @@
     opts = opts || {};
     const done = !race.cancelled && !!resOf(race), start = G.raceStart(race);
     const wait = !opts.noWait && !done && start <= now() ? '<span class="rcard__st rcard__st--wait">Résultat en attente</span>' : '';
-    return `<div class="rcard rcard--${race.gender}">${done ? `<span class="ribbon" title="Course terminée">${CHECK_SVG}<span>Terminé</span></span>` : ''}
+    return `<div class="rcard rcard--${race.gender}">
       <span class="rcard__date">${esc(dayOf(race.date))}</span>
       <strong class="rcard__place">${fl(placeLabel(race))}</strong>
       <span class="rcard__race">${discBadge(race)} <span class="gender gender--${race.gender}">${genderLabel(race)}</span></span>
       <span class="rcard__time">Départ ${esc(hourText(start))}</span>${wait}${opts.extra ? `<span class="rcard__x">${opts.extra}</span>` : ''}
-      ${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="morebtn" data-racecard="${race.id}">Voir plus…</button>`}</div>`;
+      ${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="morebtn" data-racecard="${race.id}">${done ? 'Résultat détaillé' : 'Stats'}</button>`}${!done && !race.cancelled && startListOf(race) ? `<button type="button" class="morebtn morebtn--sl" data-startlist="${race.id}">Start list</button>` : ''}</div>`;
   }
   function liveRaceRow(race) {
     return `<li class="race race--live race--${race.gender}${race.cancelled ? ' race--off' : ''}${doneCls(race)}">
@@ -781,9 +781,9 @@
     }).join('');
     const todo = races.filter((r) => !resOf(r)), done = races.filter((r) => resOf(r));
     return `<section>
-      <div class="lockbar"><div class="lockbar__t"><span class="state state--en-cours">Session en cours</span><strong>${fl(s.name)}</strong><span class="lock" role="img" aria-label="Choix verrouillés" title="Choix verrouillés">${LOCK_SVG}</span></div>
+      <div class="lockbar"><div class="lockbar__t"><strong>${fl(s.name)}</strong><span class="lock" role="img" aria-label="Choix verrouillés" title="Choix verrouillés">${LOCK_SVG}</span></div>
         <ul class="lockbar__mine" aria-label="Mes choix">${mine}</ul></div>
-      <h3 class="subtitle">${done.length ? 'Courses à venir ou en attente' : 'Qui a pris qui'}</h3>
+      <h3 class="subtitle">${done.length ? 'À venir' : 'Qui a pris qui'}</h3>
       ${todo.length ? `<div class="session"><ul class="races">${todo.map((r) => liveRaceRow(r)).join('')}</ul></div>` : '<p class="hint">Toutes les courses sont terminées.</p>'}
       ${done.length ? `<h3 class="subtitle">Courses passées</h3><div class="session"><ul class="races">${done.map((r) => liveRaceRow(r)).join('')}</ul></div>` : ''}
     </section>`;
@@ -948,7 +948,7 @@
   /* ---------- Navigation & rendu ---------- */
   function tabs() {
     const hk = homeMode().kind;
-    const label = hk === 'cours' ? 'Session en cours' : hk === 'fin' ? 'Dernière session' : 'Session à venir';
+    const label = hk === 'cours' ? 'En cours' : hk === 'fin' ? 'Dernière session' : 'Session à venir';
     return [
       { id: 'next', label, note: '' },
       { id: '1', label: 'Desk 1', note: `${dmOf(D.DESKS[0].from)} au ${dmOf(D.DESKS[0].to)}` },
@@ -961,6 +961,7 @@
   const TAB_IDS = ['next', '1', '2', 'w', '3', 'gen', 'data', 'adm'];
   /** Pictos des onglets (affichés sur mobile à la place des libellés longs). */
   const TAB_ICO = {
+    home: '<path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>',
     next: '<path d="M6 21V4"/><path d="M6 5h11l-2.5 3.5L17 12H6"/>',
     1: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><text x="12" y="16.6" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor" stroke="none">1</text>',
     2: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><text x="12" y="16.6" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor" stroke="none">2</text>',
@@ -973,9 +974,9 @@
   function renderTabs() {
     $('#tabs').innerHTML = tabs().map((t) => {
       const short = t.id === 'next' && /en cours/.test(t.label) ? 'En cours' : t.id === 'next' && /Dernière/.test(t.label) ? 'Terminée' : TAB_SHORT[t.id];
-      return `<button type="button" role="tab" class="plate plate--${t.id}" id="tab-${t.id}" data-tab="${t.id}" aria-selected="${state.tab === t.id}" aria-label="${esc(t.label + (t.note ? ', ' + t.note : ''))}">
-      <svg class="plate__ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TAB_ICO[t.id]}</svg><span class="plate__short">${short}</span>
-      <span class="plate__label">${t.label}</span>${t.note ? `<span class="plate__note">${t.note}</span>` : ''}</button>`;
+      return `<button type="button" role="tab" class="plate plate--${t.id}" id="tab-${t.id}" data-tab="${t.id}" aria-selected="${state.tab === t.id}" aria-label="${esc((t.id === 'next' && t.label === 'En cours' ? 'Session en cours' : t.label) + (t.note ? ', ' + t.note : ''))}">
+      <svg class="plate__ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TAB_ICO[t.id === 'next' && /En cours/.test(t.label) ? 'home' : t.id]}</svg><span class="plate__short">${short}</span>
+      <span class="plate__label">${t.id === 'next' && /En cours/.test(t.label) ? `<svg class="plate__home" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TAB_ICO.home}</svg> ` : ''}${t.label}</span>${t.note ? `<span class="plate__note">${t.note}</span>` : ''}</button>`;
     }).join('');
   }
 
@@ -1592,6 +1593,7 @@
     const rgj = e.target.closest('[data-rc-gjpg]'); if (rgj) { SHARE.jpgGeneral(rgj.dataset.rcGjpg); return; }
     const rcc = e.target.closest('[data-rc-copy]'); if (rcc) { SHARE.copy(rcc.dataset.rcCopy); return; }
     const rcj = e.target.closest('[data-rc-jpg]'); if (rcj) { SHARE.jpg(rcj.dataset.rcJpg); return; }
+    if (e.target.closest('.brand')) { setTab('next'); return; }
     const tab = e.target.closest('[data-tab]');
     if (tab) { setTab(tab.dataset.tab); return; }
     const go = e.target.closest('[data-goto]');
