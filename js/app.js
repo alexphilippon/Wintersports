@@ -532,7 +532,7 @@
       const isDr = (a) => !!takes[a.id] && Object.values(takes[a.id]).every((l) => l.every((x) => x.dft));   // pris seulement en brouillon
       const taken = list.filter((a) => takes[a.id] && !isDr(a)).length, drafted = list.filter((a) => isDr(a)).length;
       const attrs = (a) => `data-a="${a.id}" data-name="${esc(norm(a.name + ' ' + (a.fis || '') + ' ' + (a.nat || '')))}" data-taken="${takes[a.id] ? (isDr(a) ? 'd' : 1) : 0}" data-major="${MAJORS[g][a.id] !== undefined || takes[a.id] ? 1 : 0}"`;
-      const head = list.map((a) => `<th scope="col" class="sk ${takes[a.id] ? (isDr(a) ? 'is-draft' : 'is-taken') : 'is-free'}" ${attrs(a)}>${avatar(ATH[a.id], !!takes[a.id] && !isDr(a))}<span class="sk__n">${esc(listName(a))}</span><em class="sub">${esc(a.nat || (a.pending ? 'à régulariser' : ''))}</em></th>`).join('');
+      const head = list.map((a) => `<th scope="col" class="sk ${takes[a.id] ? (isDr(a) ? 'is-draft' : 'is-taken') : 'is-free'}" ${attrs(a)}>${avatar(ATH[a.id], !!takes[a.id] && !isDr(a))}<span class="sk__n">${skn(a.id, listName(a))}</span><em class="sub">${esc(a.nat || (a.pending ? 'à régulariser' : ''))}</em></th>`).join('');
       const rows = playersRanked().map((p) => {
         const cells = list.map((a) => {
           const l = takes[a.id] && takes[a.id][p.id];
@@ -783,7 +783,7 @@
     return `<section>
       <div class="lockbar"><div class="lockbar__t"><strong>${fl(s.name)}</strong><span class="lock" role="img" aria-label="Choix verrouillés" title="Choix verrouillés">${LOCK_SVG}</span></div>
         <ul class="lockbar__mine" aria-label="Mes choix">${mine}</ul></div>
-      <h3 class="subtitle">${done.length ? 'À venir' : 'Qui a pris qui'}</h3>
+      <h3 class="subtitle">${done.length ? 'Courses à venir' : 'Qui a pris qui'}</h3>
       ${todo.length ? `<div class="session"><ul class="races">${todo.map((r) => liveRaceRow(r)).join('')}</ul></div>` : '<p class="hint">Toutes les courses sont terminées.</p>'}
       ${done.length ? `<h3 class="subtitle">Courses passées</h3><div class="session"><ul class="races">${done.map((r) => liveRaceRow(r)).join('')}</ul></div>` : ''}
     </section>`;
@@ -912,7 +912,18 @@
   function countRanking(title, rows, unit, cls, note) {
     return `<div class="tablewrap"><table class="grid grid--rank ${cls || ''}"><caption>${esc(title)}${note ? ' ' + info(note) : ''}</caption>
       <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col" class="num">${esc(unit)}</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${pln(r.p)}${r.sub ? `<span class="sub"> ${esc(r.sub)}</span>` : ''}</th><td class="num total">${r.v}</td></tr>`).join('')}</tbody></table></div>`;
+      <tbody>${rows.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rnkCell(r.rank)}</td><th scope="row">${pln(r.p)}${r.sub ? `<span class="sub"> ${esc(r.sub)}</span>` : ''}</th><td class="num total">${r.v && r.bd ? `<button type="button" class="numbtn" data-bd="${esc(r.bd)}" title="Voir le détail">${r.v}</button>` : r.v}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  /** Fenêtre de détail d'un compteur : bulles, victoires ou plus longue série d'un joueur. */
+  function detailModal(spec) {
+    const [kind, pid, sid] = spec.split('|'), p = state.players.find((x) => x.id === pid); if (!p) return;
+    const evs = SKI_STATS.events(state, G, state.results), mine = evs.filter((e) => e.p.id === pid);
+    let list, title;
+    if (kind === 'bub') { list = mine.filter((e) => e.bubble); title = `Bulles de ${p.name}`; }
+    else if (kind === 'win') { list = mine.filter((e) => e.win); title = `Victoires de ${p.name}`; }
+    else { const sd = SKI_STATS.STREAKS.find((x) => x.id === sid); list = SKI_STATS.longestRun(mine, sd.f); title = `${sd.label} : meilleure série de ${p.name}`; }
+    const li = list.map((e) => `<li class="dtl"><span class="dtl__r"><strong>${fl(placeLabel(e.race))}</strong> <span class="sub">${esc(raceName(e.race))} · ${esc(dayOf(e.race.date))}</span></span><span class="dtl__a">${skn(e.eff)}${e.eff !== e.pk.a ? ' <em class="sub">(remplaçant)</em>' : ''}</span><span class="dtl__k ${e.bubble ? 'bad' : ''}">${e.status ? esc(e.status) : e.rank ? esc(ordinal(e.rank)) : '–'} <b>${e.pts > 0 ? '+' : ''}${e.pts}</b></span></li>`).join('');
+    openModal(`<h2>${esc(title)}</h2><ul class="dtls">${li || '<li class="none">Aucun.</li>'}</ul>`);
   }
   function generalPanel() {
     const R = state.results, sub = state.gsub || 'globes';
@@ -932,13 +943,13 @@
     } else {
       const evs = SKI_STATS.events(state, G, R), tot = SKI_STATS.totals(state, evs);
       if (sub === 'bonus') {
-        const bub = SKI_STATS.rank(tot.map((t) => ({ p: t.p, v: t.bubbles, sub: `sur ${t.n}` })), (r) => r.v, true);
-        const win = SKI_STATS.rank(tot.map((t) => ({ p: t.p, v: t.wins, sub: `sur ${t.n}` })), (r) => r.v);
+        const bub = SKI_STATS.rank(tot.map((t) => ({ p: t.p, v: t.bubbles, sub: `sur ${t.n}`, bd: `bub|${t.p.id}` })), (r) => r.v, true);
+        const win = SKI_STATS.rank(tot.map((t) => ({ p: t.p, v: t.wins, sub: `sur ${t.n}`, bd: `win|${t.p.id}` })), (r) => r.v);
         body = `<div class="grid2">${countRanking('Classement des bulles', bub, 'Bulles', 'cap--bub', 'Une bulle : ton skieur fait 0 point (DNF, DNQ, disqualifié ou hors des 30 premiers). Un DNS n’en est pas une. Le premier est le joueur qui en a subi le moins.')}
           ${countRanking('Classement des victoires', win, 'Victoires', 'cap--vic', 'Nombre de fois où le skieur que tu avais choisi a gagné la course.')}</div>`;
       } else {
         const st = SKI_STATS.streaks(evs);
-        body = `<p class="hint">Plus longue série de courses consécutives de l’hiver. Une course sans choix, ou un échec, interrompt la série.</p><div class="grid2">${SKI_STATS.STREAKS.map((sd) => countRanking(sd.label, SKI_STATS.rank(state.players.map((p) => ({ p, v: (st[p.id] || {})[sd.id] ? st[p.id][sd.id].best : 0, sub: (st[p.id] && st[p.id][sd.id] && st[p.id][sd.id].now) ? `(en cours : ${st[p.id][sd.id].now})` : '' })), (r) => r.v), 'Série', 'cap--st')).join('')}</div>`;
+        body = `<p class="hint">Plus longue série de courses consécutives de l’hiver. Une course sans choix, ou un échec, interrompt la série.</p><div class="grid2">${SKI_STATS.STREAKS.map((sd) => countRanking(sd.label, SKI_STATS.rank(state.players.map((p) => ({ p, v: (st[p.id] || {})[sd.id] ? st[p.id][sd.id].best : 0, bd: `st|${p.id}|${sd.id}`, sub: (st[p.id] && st[p.id][sd.id] && st[p.id][sd.id].now) ? `(en cours : ${st[p.id][sd.id].now})` : '' })), (r) => r.v), 'Série', 'cap--st')).join('')}</div>`;
       }
     }
     return `<section class="genpanel"><header class="deskhead"><div><h2>Classements</h2>
@@ -1347,6 +1358,8 @@
     const pts = vals.map((v, i) => `${(i / (vals.length - 1) * (W - 8) + 4).toFixed(1)},${(H - 6 - v / max * (H - 14)).toFixed(1)}`).join(' ');
     return `<svg class="fsp" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Points cumulés course après course"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
   }
+  /** Le Desk 2 est terminé : toutes ses courses ont leur résultat (ou sont annulées). */
+  const desk2Done = () => D.SESSIONS.filter((x) => x.desk === 2).every((x) => G.sessionRaces(x).every((r) => r.cancelled || !!resOf(r)));
   function ficheModal(pid) {
     const p = state.players.find((x) => x.id === pid) || (pid === state.me && state.user ? { id: pid, name: state.user.name || '', photo: '' } : null);
     if (!p) return;
@@ -1381,9 +1394,9 @@
         ${stile(`${tt.bubbles} <small>sur ${tt.n}</small>`, tt.bubbles > 1 ? 'bulles' : 'bulle', 'bub')}${stile(tt.tas, 'TAS subis', 'c')}${stile(tt.tas ? Math.round(tt.tasPts / tt.tas * 10) / 10 : '–', 'pts moyens sur TAS', 'c')}</div>
       <h3 class="fh">Évolution</h3><div class="fchart">${sparkline(rows) || '<span class="hint">Pas encore assez de courses.</span>'}</div>
       <div class="fcols"><div><h3 class="fh">Par desk</h3>${bars(desks)}</div><div><h3 class="fh">Par discipline</h3>${bars(discs)}</div></div>
-      <div class="fcols"><div><h3 class="fh">Top 5 des coureurs mieux rentabilisés que les autres ${info('Écart entre les points que le skieur t’a rapportés et la moyenne de tous les joueurs sur les mêmes courses, cumulé sur tous les desks.')}</h3>${wl(bestW)}</div>
+      <div class="fcols"><div><h3 class="fh">Top 5 des coureurs mieux rentabilisés que les autres ${info('Points que le skieur t’a rapportés, comparés à la moyenne des autres joueurs qui l’ont pris eux aussi, cumulé sur tous les desks. Les skieurs que personne d’autre n’a pris sont ignorés.')}</h3>${wl(bestW)}</div>
         <div><h3 class="fh">Top 5 des moins bien rentabilisés</h3>${wl(worstW)}</div></div>
-      <div class="fcols"><div><h3 class="fh">Toujours gagnants quand ils sont joués</h3>${chips(allWin)}</div><div><h3 class="fh">Toujours à zéro quand ils sont joués</h3>${chips(allZero)}</div></div>
+      ${desk2Done() ? `<div class="fcols"><div><h3 class="fh">Toujours gagnants quand ils sont joués</h3>${chips(allWin)}</div><div><h3 class="fh">Toujours à zéro quand ils sont joués</h3>${chips(allZero)}</div></div>` : ''}
       <h3 class="fh">Skieurs les plus pourvoyeurs de points</h3>${prov.length ? `<ul class="fbars fbars--w">${provShown.map((x) => `<li><span class="fbars__l">${skn(x.ath)}</span><span class="sub">${x.n} fois</span><b>${x.pts}</b></li>`).join('')}</ul>${prov.length > 10 ? `<p><button type="button" class="linkbtn" data-fmore="${esc(pid)}">${state.ficheMore === pid ? 'Réduire' : `Voir plus… (${prov.length})`}</button></p>` : ''}` : '<p class="hint">Pas encore de points.</p>'}
       <h3 class="fh">Séries les plus longues</h3>${strk}`;
     openModal(`<div class="fiche"><header class="fiche__head">${pav(Object.assign({}, p), 'lg')}<div><h2 class="fiche__name">${esc(p.name)}${pid === state.me ? ' <em>(toi)</em>' : ''}</h2>
@@ -1612,6 +1625,7 @@
       renderPanel(); return;
     }
     const fmo = e.target.closest('[data-fmore]'); if (fmo) { state.ficheMore = state.ficheMore === fmo.dataset.fmore ? null : fmo.dataset.fmore; ficheModal(fmo.dataset.fmore); return; }
+    const bdb = e.target.closest('[data-bd]'); if (bdb) { detailModal(bdb.dataset.bd); return; }
     const gsb = e.target.closest('[data-gsub]'); if (gsb) { state.gsub = gsb.dataset.gsub; renderPanel(); return; }
     const sub = e.target.closest('[data-sub]');
     if (sub) { state.sub[Number(sub.dataset.key)] = sub.dataset.sub; renderPanel(); return; }
@@ -1787,8 +1801,8 @@
   }, 30000);
 
   /* ---------- Démarrage ---------- */
-  window.SKI_DR.init({ state, G, D, isDraft, STATS: window.SKI_STATS, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
-  SHARE.init({ state, G, D, esc, nameOf, surname, skn, pln, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
+  window.SKI_DR.init({ state, G, D, isDraft, locked: (r) => lockedRace(r), pav, STATS: window.SKI_STATS, LIST: () => LIST, ATH: () => ATH, esc, avatarOf, nameOf, placeLabel, discLabel, sessionOf, openModal, rerender: renderPanel });
+  SHARE.init({ state, G, D, esc, nameOf, surname, skn, pln, pname, avatarOf, placeLabel, genderLabel, discLabel, dayOf, lockedRace, ordinal, openModal });
   /** Résultats officiels (data/results.json) : relus chaque minute ; dès qu'une course est officialisée, tout bascule de « en attente » à « officiel ». */
   function loadResults(manual) {
     const btns = manual ? Array.from(document.querySelectorAll('[data-refresh-results]')) : [];

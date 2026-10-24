@@ -215,25 +215,27 @@
     const cur = (Object.values(C.D.RACES).filter((r) => !r.cancelled && r.kind !== 'mondial' && C.G.raceStart(r) > (C.state.sim ? +C.state.sim : now)).sort((a, b) => C.G.raceStart(a) - C.G.raceStart(b))[0]);
     const curK = cur ? keyOf(cur) : null;
     const order = desks.slice().sort((a, b) => (a[0] === curK ? -1 : b[0] === curK ? 1 : 0));
+    const av = (pl) => (C.pav ? C.pav(pl, 'xs') : '');
     const out = order.map(([k, label]) => {
       const took = [], not = [];
       C.state.players.forEach((pl) => {
         let pts = 0, n = 0;
         Object.entries(C.state.picks[pl.id] || {}).forEach(([rid, pk]) => {
           const r = C.G.raceOf(rid); if (!r || r.cancelled || !pk || !pk.a || keyOf(r) !== k) return;
-          if (C.isDraft && C.isDraft(pk, r) && pl.id !== C.state.me) return;
+          if (C.isDraft && C.isDraft(pk, r)) return;
+          if (pl.id !== C.state.me && !C.locked(r)) return;   // choix des autres : seulement une fois révélés (deadline passée)
           const eff = R[rid] ? C.G.effectiveAthlete(pk, R, rid) : pk.a;
           if (eff === id) { n++; pts += C.G.scoreRace(r, pk, R) || 0; }
         });
         (n ? took : not).push({ pl, pts, n });
       });
       took.sort((a, b) => b.pts - a.pts);
-      const pl = (x) => `<button type="button" class="dr__lnk" data-player="${C.esc(x.pl.id)}">${C.esc(x.pl.name)}</button>`;
+      const pl = (x) => `<button type="button" class="pkchip${x.n ? ' is-took' : ''}${x.pl.id === C.state.me ? ' me' : ''}" data-player="${C.esc(x.pl.id)}">${av(x.pl)}<span>${C.esc(x.pl.name)}</span>${x.n ? `<b class="${x.pts > 0 ? 'on' : 'off'}">${x.pts > 0 ? '+' : ''}${x.pts}</b>` : ''}</button>`;
       return `<section class="pk${k === curK ? ' pk--cur' : ''}"><h3 class="fh">${label}${k === curK ? ' <small class="sub">desk en cours</small>' : ''}</h3>
-        <p class="pk__l"><b>Déjà pris par :</b> ${took.length ? took.map((x) => `${pl(x)} <span class="pk__pt">${x.pts ? '+' + x.pts : '0'}</span>`).join(' · ') : '<span class="none">personne</span>'}</p>
-        <p class="pk__l"><b>Pas encore pris par :</b> ${not.length ? not.map(pl).join(' · ') : '<span class="none">personne</span>'}</p></section>`;
+        <div class="pk__l"><span class="pk__t">Déjà pris</span><div class="pk__chips">${took.length ? took.map(pl).join('') : '<span class="none">personne</span>'}</div></div>
+        <div class="pk__l"><span class="pk__t">Pas encore révélé</span><div class="pk__chips">${not.length ? not.map(pl).join('') : '<span class="none">personne</span>'}</div></div></section>`;
     }).join('');
-    return `<div class="sk__picks">${out}<p class="hint">Les choix des autres joueurs ne sont visibles qu’une fois la deadline passée. Points rapportés : ceux de la course du skieur (remplaçant ou tirage au sort compris).</p></div>`;
+    return `<div class="sk__picks">${out}<p class="hint">Seuls les choix déjà révélés (deadline passée) sont affichés ; les tiens le sont toujours. Points rapportés : ceux de la course du skieur (remplaçant ou tirage au sort compris).</p></div>`;
   }
   /** « n° X en 2026-27 » ; « n° Y en 2025-26 » tant que moins de 10 courses de ce genre ont eu lieu cette saison. */
   function rankTags(id, a) {

@@ -67,11 +67,11 @@
     const body = shares.length ? `<ol class="rc__list">${shares.map((r) => {
       const chips = r.pickers.map((x) => `<span class="rc__chip${x.p.id === C.state.me ? ' me' : ''}${x.out ? ' is-out' : ''}${res && !x.out && !x.pts ? ' is-zero' : ''}" title="${esc(x.kind)}">${C.pln(x.p)}${x.kind === 'remplaçant' ? ' <i>rempl.</i>' : x.kind === 'tiré au sort' ? ' <i>tirage</i>' : x.out ? ' <i>non-partant</i>' : ''}${res && !x.out && x.pts != null ? `<b>${x.pts > 0 ? '+' : ''}${x.pts}</b>` : ''}</span>`).join('');
       const mine = r.pickers.some((x) => x.p.id === C.state.me && !x.out);
-      return `<li class="rc__row${mine ? ' is-mine' : ''}"><span class="rc__rk">${res ? (r.status ? esc(r.status) : r.rank ? r.rank : '–') : ''}</span>${C.avatarOf(r.ath, 'sm')}<span class="rc__sk">${C.skn(r.ath)} <b class="rc__pct">${r.pct} %</b> <span class="sub">${r.n}/${N}</span></span><span class="rc__bar"><i style="width:${Math.max(r.pct, 3)}%"></i></span><span class="rc__who">${chips}</span></li>`;
+      return `<li class="rc__row${mine ? ' is-mine' : ''}"><span class="rc__rk">${res ? (r.status ? esc(r.status) : r.rank ? r.rank : '–') : ''}</span>${C.avatarOf(r.ath, 'sm')}<span class="rc__sk">${C.skn(r.ath)} <b class="rc__pct">${r.n}/${N}</b></span><span class="rc__bar"><i style="width:${Math.max(r.pct, 3)}%"></i></span><span class="rc__who">${chips}</span></li>`;
     }).join('')}</ol>` : '<p class="hint">Aucun choix pour cette course.</p>';
     const pod = podium.length ? `<p class="rc__pod"><b>Podium</b> ${podium.map((e) => `${e.rank}. ${esc(C.nameOf(e.ath))}`).join(' · ')}</p>` : '';
     const note = res ? '' : '<p class="hint">Résultat pas encore saisi.</p>';
-    return `${head}${note}${res ? fullHtml(race) : ''}${res ? '' : pod}${res ? '' : body}${res ? `<p class="rf__sub">Résultat de la course</p>` : ''}<div class="rc__act"><button type="button" class="btn" data-rc-copy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-jpg="${race.id}">Image JPG</button></div>${res ? `<p class="rf__sub">Classement général des joueurs (mise à jour)</p><div class="rc__act"><button type="button" class="btn" data-rc-gcopy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-gjpg="${race.id}">Image JPG</button></div>` : ''}<p class="auth__err" id="rc-msg" role="status"></p>`;
+    return `${head}${note}${res ? fullHtml(race) : ''}${res ? '' : pod}${res ? '' : body}<div class="rc__act"><button type="button" class="btn" data-rc-copy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-jpg="${race.id}">Image JPG</button></div>${res ? `<p class="rf__sub">Classement général des joueurs (mise à jour)</p><div class="rc__act"><button type="button" class="btn" data-rc-gcopy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-gjpg="${race.id}">Image JPG</button></div>` : ''}<p class="auth__err" id="rc-msg" role="status"></p>`;
   }
 
   /* ---------- Résultat complet : classement des joueurs + classement des skieurs (temps) ---------- */
@@ -89,19 +89,35 @@
     pl.sort((a, b) => b.pts - a.pts || C.nameOf(a.eff).localeCompare(C.nameOf(b.eff), 'fr'));
     let last = null, rk = 0; pl.forEach((r, i) => { if (r.pts !== last) { rk = i + 1; last = r.pts; } r.rk = rk; });
     const how = (e) => (e ? (e.status || (e.rank ? C.ordinal(e.rank) : '–')) : 'non classé');
-    const plHtml = pl.length ? `<ol class="rf__pl">${pl.map((r) => `<li class="${r.p.id === state.me ? 'is-mine' : ''}"><span class="rf__rk">${r.rk}</span><span class="rf__who">${C.pln(r.p)}</span><span class="rf__sk">${C.skn(r.eff)} <em>${esc(how(r.e))}</em>${r.sub ? ` <span class="sub">(remp. de ${esc(C.nameOf(r.sub))})</span>` : ''}</span><b class="rf__pts ${r.pts > 0 ? 'on' : 'off'}">${r.pts > 0 ? '+' : ''}${r.pts}</b></li>`).join('')}</ol>` : '<p class="hint">Aucun choix.</p>';
+    const rkc = (n) => `<span class="rnk rnk--${n <= 3 ? n : n <= 10 ? 'c' : 'n'}">${n}</span>`;
     const picked = {}; pl.forEach((r) => { (picked[r.eff] = picked[r.eff] || []).push(r.p); });
     const ranked = res.filter((e) => !e.status && e.rank).sort((a, b) => a.rank - b.rank), t0 = ranked[0] && ranked[0].time;
+    const hasT = ranked.some((e) => e.time);
+    const plRows = pl.map((r) => `<tr class="${r.p.id === state.me ? 'me' : ''}"><td class="num">${rkc(r.rk)}</td><th scope="row">${C.pname ? C.pname(r.p) : C.pln(r.p)}</th>
+      <td><span class="rf__ath">${C.avatarOf(r.eff, 'sm')}<span>${C.skn(r.eff)}<em class="rf__how${r.e && (r.e.status || r.e.rank > 30) ? ' bad' : ''}">${esc(how(r.e))}</em>${r.sub ? `<span class="sub">remp. de ${C.skn(r.sub)}</span>` : ''}</span></span></td>
+      <td class="num total">${r.pts > 0 ? '+' : ''}${r.pts}</td></tr>`).join('');
+    const plTable = pl.length ? `<div class="tablewrap"><table class="grid grid--rank rf__tb cap--gen"><caption>Classement des joueurs</caption>
+      <thead><tr><th scope="col" class="num">Rang</th><th scope="col">Joueur</th><th scope="col">Skieur choisi</th><th scope="col" class="num th--tot">Points</th></tr></thead><tbody>${plRows}</tbody></table></div>` : '<p class="hint">Aucun choix pour cette course.</p>';
     const chips = (a) => (picked[a] || []).map((p) => `<span class="rc__chip${p.id === state.me ? ' me' : ''}">${C.pln(p)}</span>`).join(' ');
-    const rows = ranked.map((e) => `<tr class="${(picked[e.ath] || []).some((p) => p.id === state.me) ? 'is-mine' : ''}"><td>${e.rank}</td><td>${C.skn(e.ath)}</td><td class="num">${esc(e.time || '')}${e.time && e.rank > 1 ? `<br><span class="sub">${esc(diffOf(e.time, t0))}</span>` : ''}</td><td>${chips(e.ath)}</td></tr>`);
+    const mineRow = (a) => (picked[a] || []).some((p) => p.id === state.me) ? 'me' : '';
+    const rows = ranked.map((e) => `<tr class="${mineRow(e.ath)}"><td class="num">${rkc(e.rank)}</td><th scope="row"><span class="rf__ath">${C.avatarOf(e.ath, 'sm')}<span>${C.skn(e.ath)}</span></span></th>${hasT ? `<td class="num">${esc(e.time || '')}${e.time && e.rank > 1 ? `<br><span class="sub">${esc(diffOf(e.time, t0))}</span>` : ''}</td>` : ''}<td>${chips(e.ath)}</td></tr>`);
     const out = res.filter((e) => e.status && e.status !== 'DNQ' && e.status !== 'DNS' || (e.status && picked[e.ath]));
-    out.forEach((e) => rows.push(`<tr class="is-st"><td>${esc(e.status)}</td><td>${C.skn(e.ath)}</td><td></td><td>${chips(e.ath)}</td></tr>`));
+    out.forEach((e) => rows.push(`<tr class="is-st ${mineRow(e.ath)}"><td class="num"><span class="rnk rnk--n rnk--st">${esc(e.status)}</span></td><th scope="row"><span class="rf__ath">${C.avatarOf(e.ath, 'sm')}<span>${C.skn(e.ath)}</span></span></th>${hasT ? '<td></td>' : ''}<td>${chips(e.ath)}</td></tr>`));
     const nq = res.filter((e) => e.status === 'DNQ' && !picked[e.ath]).length, ns = res.filter((e) => e.status === 'DNS' && !picked[e.ath]).length;
     const foot = [nq ? `${nq} non qualifié${nq > 1 ? 's' : ''} (DNQ)` : '', ns ? `${ns} non-partant${ns > 1 ? 's' : ''} (DNS)` : ''].filter(Boolean).join(' · ');
-    const hasT = ranked.some((e) => e.time);
-    return `<h4 class="rf__h">Classement des joueurs</h4>${plHtml}
-      <h4 class="rf__h">Classement de la course</h4><div class="tablewrap"><table class="grid rf__t"><thead><tr><th>Rang</th><th>Skieur</th><th>${hasT ? 'Temps' : ''}</th><th>Joueurs</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${foot ? `<p class="sub">${foot}</p>` : ''}`;
+    const skTable = `<div class="tablewrap"><table class="grid grid--rank rf__tb cap--gen"><caption>Classement de la course</caption><thead><tr><th scope="col" class="num">Rang</th><th scope="col">Skieur</th>${hasT ? '<th scope="col" class="num">Temps</th>' : ''}<th scope="col">Joueurs</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${foot ? `<p class="sub">${foot}</p>` : ''}`;
+    const tab = rfTab === 'sk' ? 'sk' : 'pl';
+    return `<div class="seg rf__seg" role="tablist" aria-label="Résultat détaillé"><button type="button" role="tab" class="seg__btn" aria-selected="${tab === 'pl'}" data-rf="pl">Classement des joueurs</button><button type="button" role="tab" class="seg__btn" aria-selected="${tab === 'sk'}" data-rf="sk">Classement de la course</button></div>
+      <div class="rf__p" data-rfp="pl"${tab === 'pl' ? '' : ' hidden'}>${plTable}</div><div class="rf__p" data-rfp="sk"${tab === 'sk' ? '' : ' hidden'}>${skTable}</div>`;
   }
+  let rfTab = 'pl';
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rf]'); if (!b) return;
+    rfTab = b.dataset.rf;
+    const root = b.closest('.rc') || document;
+    root.querySelectorAll('[data-rf]').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    root.querySelectorAll('[data-rfp]').forEach((x) => { x.hidden = x.dataset.rfp !== rfTab; });
+  });
   function open(raceId) {
     const race = C.G.raceOf(raceId); if (!race) return;
     C.openModal(`<div class="rc">${cardHtml(race)}</div>`);

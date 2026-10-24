@@ -41,6 +41,12 @@
     list.forEach((e) => { if (!e.nopick && f(e)) { cur++; if (cur > best) best = cur; } else cur = 0; });
     return best;
   }
+  /** Événements de la plus longue série (la plus récente en cas d'égalité). */
+  function longestRun(list, f) {
+    let best = [], cur = [];
+    list.forEach((e) => { if (!e.nopick && f(e)) { cur.push(e); if (cur.length >= best.length) best = cur.slice(); } else cur = []; });
+    return best;
+  }
   /** Série en cours à la dernière course. */
   function current(list, f) {
     let cur = 0; list.forEach((e) => { if (!e.nopick && f(e)) cur++; else cur = 0; }); return cur;
@@ -78,17 +84,20 @@
     });
   }
 
-  /** Rentabilité des skieurs choisis : écart entre les points rapportés au joueur et la moyenne de tous les joueurs sur la même course. */
+  /** Rentabilité des skieurs choisis : points rapportés au joueur moins la moyenne des AUTRES joueurs ayant pris le même skieur
+      (toutes courses confondues), cumulé sur le nombre de fois où il l'a pris. Les skieurs que personne d'autre n'a pris sont ignorés. */
   function worth(evs, pid) {
-    const per = {};                // race.id -> points moyens de tous les joueurs qui ont joué la course
-    const byRace = {}; evs.filter((e) => !e.nopick).forEach((e) => { (byRace[e.race.id] = byRace[e.race.id] || []).push(e); });
-    Object.keys(byRace).forEach((id) => { per[id] = byRace[id].reduce((s, e) => s + e.pts, 0) / byRace[id].length; });
-    const m = {};
-    evs.filter((e) => !e.nopick && e.p.id === pid).forEach((e) => {
-      const o = (m[e.eff] = m[e.eff] || { ath: e.eff, n: 0, diff: 0, pts: 0, wins: 0, zeros: 0 });
-      o.n++; o.diff += e.pts - per[e.race.id]; o.pts += e.pts; if (e.pts > 0) o.wins++; else o.zeros++;
+    const all = {};
+    evs.filter((e) => !e.nopick).forEach((e) => { (all[e.eff] = all[e.eff] || []).push(e); });
+    const out = [];
+    Object.keys(all).forEach((ath) => {
+      const mine = all[ath].filter((e) => e.p.id === pid), others = all[ath].filter((e) => e.p.id !== pid);
+      if (!mine.length || !others.length) return;
+      const avg = others.reduce((s, e) => s + e.pts, 0) / others.length;
+      const pts = mine.reduce((s, e) => s + e.pts, 0);
+      out.push({ ath, n: mine.length, pts, avg, diff: pts - avg * mine.length });
     });
-    return Object.values(m);
+    return out;
   }
 
   /** Skieurs qui rapportent le plus de points au joueur, tous desks confondus. */
@@ -98,6 +107,6 @@
     return Object.values(m).sort((a, b) => b.pts - a.pts || b.n - a.n);
   }
 
-  const api = { events, byPlayer, longest, current, STREAKS, streaks, rank, totals, worth, providers };
+  const api = { events, byPlayer, longest, longestRun, current, STREAKS, streaks, rank, totals, worth, providers };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SKI_STATS = api;
 })(typeof window !== 'undefined' ? window : globalThis);

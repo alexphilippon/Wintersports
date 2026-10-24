@@ -1129,7 +1129,10 @@ html[data-theme='nuit'] .rkpts--on { color: #7fd6a6; }
 .draftbtn { width: fit-content; } .session__draft { padding: .1rem .5rem; }
 
 /* Classements : colonne Total qui ressort, nom plus étroit, rang cerclé de 4 à 10 */
-.grid--general tbody th { min-width: 0; width: 9.5rem; max-width: 11rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grid--general { table-layout: fixed; width: 100%; }
+.grid--general th:nth-child(1) { width: 4.2rem; } .grid--general th:nth-child(2) { width: 13rem; } .grid--general th:nth-child(3) { width: 6.5rem; }
+.grid--general tbody th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) { .grid--general th:nth-child(1) { width: 3rem; } .grid--general th:nth-child(2) { width: 8.5rem; } .grid--general th:nth-child(3) { width: 4.4rem; } }
 .grid--general td.total { background: color-mix(in srgb, var(--ocre) 22%, transparent) !important; font-size: 1.3rem; border-left: 2px solid var(--ocre); border-right: 2px solid var(--ocre); }
 .grid--general thead th.th--tot { background: var(--ocre); color: #1b2b44; font-weight: 800; }
 .rnk--c { border: 2px solid var(--encre-douce); background: transparent; color: var(--encre); }
@@ -1151,3 +1154,28 @@ html[data-theme='nuit'] .pk__pt { color: #7fd6a6; }
 .morebtn--sl { margin-top: .4rem; background: linear-gradient(135deg, #d27a2a, #b3541a); }
 .brand { cursor: pointer; }
 .plate__home { vertical-align: -2px; margin-right: .15rem; }
+
+/* Data room « par course » : colonne Skieur ajustée au nom, colonne Pts détachée */
+.dr__sticky { min-width: 0; max-width: none; white-space: nowrap; }
+.dr__sticky .dr__nm { max-width: none; overflow: visible; text-overflow: clip; }
+.dr__grid .dr__pts { border-left: 2px solid var(--ocre); border-right: 2px solid var(--ocre); background: color-mix(in srgb, var(--ocre) 18%, var(--neige)); font-size: .95rem; min-width: 3.2rem; }
+.dr__grid thead .dr__pts { background: var(--ocre); color: #1b2b44; }
+@media (max-width: 640px) { .dr__sticky { min-width: 0; max-width: none; } .dr__sticky .dr__nm { max-width: 8.5rem; overflow: hidden; text-overflow: ellipsis; } }
+/* Nombres cliquables et fenêtre de détail */
+.numbtn { font: inherit; font-weight: 800; color: inherit; background: color-mix(in srgb, var(--ocre) 25%, transparent); border: 1.5px solid var(--ocre); border-radius: 8px; padding: .05rem .55rem; cursor: pointer; }
+.numbtn:hover { background: var(--ocre); color: #1b2b44; }
+.dtls { list-style: none; margin: .6rem 0 0; padding: 0; } .dtl { display: grid; grid-template-columns: 1fr auto; gap: .1rem .6rem; padding: .5rem 0; border-bottom: 1px solid var(--filet); }
+.dtl__a { grid-column: 1; font-weight: 700; } .dtl__k { grid-column: 2; grid-row: 1 / 3; align-self: center; text-align: right; } .dtl__k.bad { color: #b3281f; }
+/* Choix des joueurs (fiche skieur) */
+.pk__t { display: block; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--encre-douce); margin-bottom: .25rem; }
+.pk__chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.pkchip { display: inline-flex; align-items: center; gap: .35rem; padding: .18rem .6rem .18rem .25rem; border: 1.5px solid var(--filet); border-radius: 99px; background: var(--neige); font: 600 .85rem var(--sans, inherit); color: inherit; cursor: pointer; }
+.pkchip.is-took { background: color-mix(in srgb, #2f8a63 16%, var(--neige)); border-color: #2f8a63; }
+.pkchip.me { box-shadow: 0 0 0 2px var(--ocre); }
+.pkchip b { font-size: .78rem; padding: .02rem .4rem; border-radius: 99px; background: #1f6b4a; color: #fff; } .pkchip b.off { background: #b3281f; }
+/* Résultat détaillé */
+.rf__seg { margin: .6rem 0 .8rem; } .rf__ath { display: inline-flex; align-items: center; gap: .5rem; } .rf__ath > span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.25; }
+.rf__how { font-style: normal; font-size: .78rem; color: var(--encre-douce); } .rf__how.bad { color: #b3281f; }
+.rf__tb tr.me td, .rf__tb tr.me th { background: color-mix(in srgb, var(--ocre) 22%, transparent); }
+.rf__tb td.total { font-weight: 800; font-size: 1.1rem; } .rnk--st { width: auto; min-width: 2rem; padding: 0 .4rem; border-radius: 99px; font-size: .7rem; border: 1.5px solid #b3281f; color: #b3281f; background: transparent; }
+.rf__tb .rc__chip { display: inline-block; margin: .1rem .1rem; }
