@@ -232,7 +232,7 @@
     const curK = cur ? keyOf(cur) : null;
     const order = desks.slice().sort((a, b) => (a[0] === curK ? -1 : b[0] === curK ? 1 : 0));
     const av = (pl) => (C.pav ? C.pav(pl, 'xs') : '');
-    const xrows = [], xnotes = [];
+    const skn = C.nameOf(id);
     const out = order.map(([k, label]) => {
       const took = [], not = [];
       C.state.players.forEach((pl) => {
@@ -247,15 +247,13 @@
         (n ? took : not).push({ pl, pts, n });
       });
       took.sort((a, b) => b.pts - a.pts);
-      if (took.length) { xrows.push({ c: ['', label, ''], me: true }); took.forEach((x, i) => xrows.push({ c: [String(i + 1), x.pl.name, (x.pts > 0 ? '+' : '') + x.pts] })); }
-      if (not.length) xnotes.push(label + ' — pas encore révélé : ' + not.map((x) => x.pl.name).join(', '));
+      const xb = took.length || not.length ? root.SKI_SHARE.xbar({ key: 'dr:picks:' + id + ':' + k, title: 'Choix des joueurs · ' + label, sub: skn + ' · Coupe du monde 2026-27', unit: ' pts', head: ['Rang', 'Joueur', 'Pts'], rows: took.map((x, i) => ({ c: [String(i + 1), x.pl.name, (x.pts > 0 ? '+' : '') + x.pts] })), note: not.length ? 'Pas encore révélé : ' + not.map((x) => x.pl.name).join(', ') : '', right: 'Choix' }) : '';
       const pl = (x) => `<button type="button" class="pkchip${x.n ? ' is-took' : ''}${x.pl.id === C.state.me ? ' me' : ''}" data-player="${C.esc(x.pl.id)}">${av(x.pl)}<span>${C.esc(x.pl.name)}</span>${x.n ? `<b class="${x.pts > 0 ? 'on' : 'off'}">${x.pts > 0 ? '+' : ''}${x.pts}</b>` : ''}</button>`;
-      return `<section class="pk${k === curK ? ' pk--cur' : ''}"><h3 class="fh">${label}${k === curK ? ' <small class="sub">desk en cours</small>' : ''}</h3>
+      return `<section class="pk${k === curK ? ' pk--cur' : ''}"><h3 class="fh">${label}${k === curK ? ' <small class="sub">desk en cours</small>' : ''}${xb}</h3>
         <div class="pk__l"><span class="pk__t">Déjà pris</span><div class="pk__chips">${took.length ? took.map(pl).join('') : '<span class="none">personne</span>'}</div></div>
         <div class="pk__l"><span class="pk__t">Pas encore révélé</span><div class="pk__chips">${not.length ? not.map(pl).join('') : '<span class="none">personne</span>'}</div></div></section>`;
     }).join('');
-    const skn = C.nameOf(id), xb = xrows.length ? root.SKI_SHARE.xbar({ key: 'dr:picks:' + id, title: 'Choix des joueurs', sub: skn + ' · Coupe du monde 2026-27', unit: ' pts', head: ['Rang', 'Joueur', 'Pts'], rows: xrows, note: xnotes.join('\n'), right: 'Choix' }) : '';
-    return `<div class="sk__picks">${xb ? `<div class="sk__xp">${xb}</div>` : ''}${out}<p class="hint">Seuls les choix déjà révélés (deadline passée) sont affichés ; les tiens le sont toujours. Points rapportés : ceux de la course du skieur (remplaçant ou tirage au sort compris).</p></div>`;
+    return `<div class="sk__picks">${out}<p class="hint">Seuls les choix déjà révélés (deadline passée) sont affichés ; les tiens le sont toujours. Points rapportés : ceux de la course du skieur (remplaçant ou tirage au sort compris).</p></div>`;
   }
   /** « n° X en 2026-27 » ; « n° Y en 2025-26 » tant que moins de 10 courses de ce genre ont eu lieu cette saison. */
   function rankTags(id, a) {
