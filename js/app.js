@@ -1117,7 +1117,16 @@
     };
     const rows = sl.rows.map((r) => `<li class="sl__row${r.ath ? '' : ' is-out'}${r.ath && (picks.a === r.ath || picks.b === r.ath) ? ' is-mine' : ''}${r.ath && canPick && used.has(r.ath) && picks.a !== r.ath && picks.b !== r.ath ? ' is-used' : ''}"><b class="sl__bib">${r.bib}</b>${r.ath ? avatarOf(r.ath, 'sm') : '<span class="avatar avatar--empty avatar--sm" aria-hidden="true"></span>'}<span class="sl__n">${esc(r.name)}<em class="sub">${esc(r.nat)}</em></span><span class="sl__act">${act(r)}</span></li>`).join('');
     const mo = $('#modal'), prevM = keep && !mo.hidden ? mo.scrollTop : 0, prevL = keep && $('.sl') ? $('.sl').scrollTop : 0;
-    openModal(`<h2 class="rc__title">Start list</h2>
+    let xb = '';
+    if (lockedRace(race) && !race.cancelled) {
+      const { cnt } = racePeople(race), byAth = {}; sl.rows.forEach((r) => { if (r.ath) byAth[r.ath] = r; });
+      const rowsX = Object.keys(cnt).map((a) => ({ bib: byAth[a] ? byAth[a].bib : null, a, n: cnt[a] })).sort((x, y) => (x.bib == null) - (y.bib == null) || x.bib - y.bib || nameOf(x.a).localeCompare(nameOf(y.a)))
+        .map((x) => ({ c: [x.bib == null ? '–' : String(x.bib), nameOf(x.a) + (x.bib == null ? ' (absent de la start list)' : ''), `${x.n} joueur${x.n > 1 ? 's' : ''}`] }));
+      const lvr = state.live && state.live.races && state.live.races[race.id], tech = race.disc === 'GS' || race.disc === 'SL';
+      const times = `1re manche ${hourText(G.raceStart(race))}${tech ? ` · 2e manche ${lvr && lvr.run2 ? hm(lvr.run2) : 'horaire à confirmer'}` : ''}`;
+      if (rowsX.length) xb = ` ${SHARE.xbar({ key: 'sl:' + race.id, title: 'Dossards des ' + (race.gender === 'W' ? 'skieuses' : 'skieurs') + ' choisis', sub: `${placeLabel(race)} · ${raceName(race)} · ${dayOf(race.date)}\n${times}`, right: 'Start list', head: ['N°', race.gender === 'W' ? 'Skieuse' : 'Skieur', 'Joueurs'], rows: rowsX, nomedal: true })}`;
+    }
+    openModal(`<h2 class="rc__title">Start list${xb}</h2>
       <p class="hint">${esc(placeLabel(race))}, ${esc(raceName(race))} · manche 1 · ${sl.rows.length} partants<br>Source : page FIS « Start List »${when ? `, relevée le ${esc(when)}` : ''}. Elle peut encore évoluer avant le départ.${canPick ? '' : lockedRace(race) ? ' Les choix sont verrouillés.' : ''}</p>
       ${box}
       ${out.length ? `<p class="hint"><strong>${out.length} ${race.gender === 'W' ? 'skieuses' : 'skieurs'} ne sont pas dans la liste du jeu</strong> : ${esc(out.map((r) => r.name).join(', '))}.</p>` : ''}

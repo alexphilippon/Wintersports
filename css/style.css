@@ -1587,3 +1587,7 @@ html[data-theme='nuit'] .sh__me { color: #ffb4a3; } html[data-skin='arcade'] .sh
 html[data-theme='glace'] .plate[aria-selected='true'] :is(.plate__note, .plate__label) { color: #3a6784; }
 html[data-skin='arcade'] .plate[aria-selected='true'] :is(.plate__note, .plate__label, .plate__name) { color: #0b0a24; }
 @media (max-width: 1139px) { body::before { -webkit-mask-image: none; mask-image: none; opacity: .22; } }   /* petits écrans : flocons très discrets */
+
+.rc__title .xicons { display: inline-flex; gap: .35rem; margin-left: .7rem; vertical-align: middle; }
+.rc__title .xic { border-color: var(--encre); background: transparent; color: var(--encre); }
+.rc__title .xic:hover { background: var(--chip); }

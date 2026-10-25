@@ -401,8 +401,9 @@
     for (let y = 18; y < H0; y += 30) for (let x = ((y / 30) % 2) * 20; x < W; x += 40) { g.beginPath(); g.moveTo(x, y + 8); g.lineTo(x + 8, y); g.lineTo(x + 16, y + 8); g.stroke(); }
     g.fillStyle = K.edge; g.fillRect(0, H0 - 6, W, 6); g.textBaseline = 'alphabetic';
     g.fillStyle = K.gold; g.font = `800 30px ${FD}`; g.fillText('SKI GAME · COUPE DU MONDE 2026-27', 56, 70);
-    g.fillStyle = K.head; g.font = `800 62px ${FD}`; g.fillText(t, 56, 150);
-    g.font = `600 34px ${F}`; g.fillStyle = K.sub; g.fillText(sub, 56, 200);
+    const sl = String(sub).split('\n'), two = sl.length > 1;
+    g.fillStyle = K.head; g.font = `800 ${two ? 58 : 62}px ${FD}`; g.fillText(t, 56, two ? 140 : 150);
+    g.font = `600 ${two ? 30 : 34}px ${F}`; g.fillStyle = K.sub; sl.forEach((l, i) => g.fillText(l, 56, two ? 186 + i * 40 : 200));
     g.font = `700 26px ${F}`; g.fillStyle = K.gold; g.textAlign = 'right'; g.fillText(right, W - 56, 70); g.textAlign = 'left';
   }
   function footCanvas(g, K, H, footH, F) {
@@ -487,7 +488,7 @@
     const L = [`🎿 *${sp.title}*`]; if (sp.sub) L.push(sp.sub); L.push('');
     const ex = sp.head.slice(3).map((h) => String(h).replace(/\n/g, ' '));
     sp.rows.forEach((r) => {
-      const c = r.c, n = /^\d+$/.test(c[0]) ? +c[0] : 0, rk = n && n <= 3 ? MEDAL[n - 1] : (c[0] ? c[0] + '.' : '•');
+      const c = r.c, n = /^\d+$/.test(c[0]) ? +c[0] : 0, rk = sp.nomedal ? (c[0] === '–' ? '–' : 'n°' + c[0]) : n && n <= 3 ? MEDAL[n - 1] : (c[0] ? c[0] + '.' : '•');
       let line = `${rk} ${c[1]}`; if (c.length > 2 && c[2] !== '') line += ` — ${c[2]}${sp.unit || ''}`;
       const parts = ex.map((h, i) => (c[3 + i] !== '' && c[3 + i] != null ? `${h} ${c[3 + i]}` : '')).filter(Boolean);
       if (parts.length) line += ` (${parts.join(' · ')})`;
@@ -498,7 +499,7 @@
   }
   function xpCanvas(sp) {
     const F = '"Instrument Sans","Helvetica Neue",Arial,sans-serif', FD = '"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif';
-    const K = TH[document.documentElement.getAttribute('data-skin') || document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = 230, footH = 90, rowH = 70, colH = 70;
+    const K = TH[document.documentElement.getAttribute('data-skin') || document.documentElement.getAttribute('data-theme')] || TH.sapin, padX = 56, headH = String(sp.sub || '').includes('\n') ? 276 : 230, footH = 90, rowH = 70, colH = 70;
     const vals = sp.head.slice(2), nv = vals.length, cw = nv > 12 ? 70 : nv > 6 ? 84 : nv > 3 ? 120 : nv > 1 ? 160 : 200;
     const Wc = Math.max(1080, padX * 2 + 90 + 380 + nv * cw), prev = W;
     try {
