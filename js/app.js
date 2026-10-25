@@ -1119,12 +1119,12 @@
     const mo = $('#modal'), prevM = keep && !mo.hidden ? mo.scrollTop : 0, prevL = keep && $('.sl') ? $('.sl').scrollTop : 0;
     let xb = '';
     if (lockedRace(race) && !race.cancelled) {
-      const { cnt } = racePeople(race), byAth = {}; sl.rows.forEach((r) => { if (r.ath) byAth[r.ath] = r; });
+      const { cnt, picks: pks } = racePeople(race), byAth = {}, pickersOf = {}; pks.forEach((x) => { (pickersOf[x.ath] = pickersOf[x.ath] || []).push(x.p.name); }); sl.rows.forEach((r) => { if (r.ath) byAth[r.ath] = r; });
       const rowsX = Object.keys(cnt).map((a) => ({ bib: byAth[a] ? byAth[a].bib : null, a, n: cnt[a] })).sort((x, y) => (x.bib == null) - (y.bib == null) || x.bib - y.bib || nameOf(x.a).localeCompare(nameOf(y.a)))
-        .map((x) => ({ c: [x.bib == null ? '–' : String(x.bib), nameOf(x.a) + (x.bib == null ? ' (absent de la start list)' : ''), `${x.n} joueur${x.n > 1 ? 's' : ''}`] }));
+        .map((x) => ({ c: [x.bib == null ? '–' : String(x.bib), nameOf(x.a) + (x.bib == null ? ' (absent de la start list)' : '')], under: pickersOf[x.a].join(', ') }));
       const lvr = state.live && state.live.races && state.live.races[race.id], tech = race.disc === 'GS' || race.disc === 'SL';
       const times = `1re manche ${hourText(G.raceStart(race))}${tech ? ` · 2e manche ${lvr && lvr.run2 ? hm(lvr.run2) : 'horaire à confirmer'}` : ''}`;
-      if (rowsX.length) xb = ` ${SHARE.xbar({ key: 'sl:' + race.id, title: 'Dossards des ' + (race.gender === 'W' ? 'skieuses' : 'skieurs') + ' choisis', sub: `${placeLabel(race)} · ${raceName(race)} · ${dayOf(race.date)}\n${times}`, right: 'Start list', head: ['N°', race.gender === 'W' ? 'Skieuse' : 'Skieur', 'Joueurs'], rows: rowsX, nomedal: true })}`;
+      if (rowsX.length) xb = ` ${SHARE.xbar({ key: 'sl:' + race.id, title: 'Dossards des ' + (race.gender === 'W' ? 'skieuses' : 'skieurs') + ' choisis', sub: `${placeLabel(race)} · ${raceName(race)} · ${dayOf(race.date)}\n${times}`, right: 'Start list', head: ['N°', (race.gender === 'W' ? 'Skieuse' : 'Skieur') + ' · choisi par'], rows: rowsX, nomedal: true })}`;
     }
     openModal(`<h2 class="rc__title">Start list${xb}</h2>
       <p class="hint">${esc(placeLabel(race))}, ${esc(raceName(race))} · manche 1 · ${sl.rows.length} partants<br>Source : page FIS « Start List »${when ? `, relevée le ${esc(when)}` : ''}. Elle peut encore évoluer avant le départ.${canPick ? '' : lockedRace(race) ? ' Les choix sont verrouillés.' : ''}</p>
