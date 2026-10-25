@@ -1591,3 +1591,6 @@ html[data-skin='arcade'] .plate[aria-selected='true'] :is(.plate__note, .plate__
 .rc__title .xicons { display: inline-flex; gap: .35rem; margin-left: .7rem; vertical-align: middle; }
 .rc__title .xic { border-color: var(--encre); background: transparent; color: var(--encre); }
 .rc__title .xic:hover { background: var(--chip); }
+/* Mobile : le tableau du gros globe défile horizontalement au lieu d'écraser les colonnes Desk / Mondiaux */
+@media (max-width: 640px) { .grid--general { min-width: 31rem; } .grid--general th:nth-child(2) { width: 9.5rem; } }
+@media (max-width: 640px) { caption .xicons { float: none; margin-left: .7rem; vertical-align: middle; } }   /* mobile : pictos message/image à côté du titre, visibles sans défiler */
