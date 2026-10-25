@@ -501,7 +501,7 @@
   /* ---------- Tendances : jauges indicatives, une fois la deadline passée ---------- */
   function trendsAny(key) { return scopeSessions(key).some((s) => sortedRaces(s).some((r) => !r.cancelled && lockedRace(r))); }
   function gauge(ath, pct, extra, cls, valTxt) {
-    return `<li class="gauge${cls ? ' ' + cls : ''}"><span class="gauge__who">${avatarOf(ath, 'sm')}<span class="gauge__t"><span class="gauge__n">${skn(ath)}</span>${extra ? `<span class="gauge__x">${extra}</span>` : ''}</span></span><span class="gauge__bar" role="img" aria-label="${valTxt || pct + ' %'}"><i style="width:${Math.max(pct, 3)}%"></i></span><b class="gauge__v${valTxt ? ' gauge__v--n' : ''}">${valTxt || pct + ' %'}</b></li>`;
+    return `<li class="gauge${cls ? ' ' + cls : ''}"><span class="gauge__who">${avatarOf(ath, 'sm')}<span class="gauge__t"><span class="gauge__n">${skn(ath)}</span>${extra ? `<span class="gauge__x">${extra}</span>` : ''}</span></span><span class="gauge__bar" role="img" aria-label="${esc(String(valTxt || pct + ' %').replace(/<[^>]*>/g, ''))}"><i style="width:${Math.max(pct, 3)}%"></i></span><b class="gauge__v${valTxt ? ' gauge__v--n' : ''}">${valTxt || pct + ' %'}</b></li>`;
   }
   /** Part des joueurs ayant pris chaque skieur, sur un ensemble de courses verrouillées : { ath: part } triée, et le nombre de joueurs pris en compte. */
   function shareOf(races, perRace) {
@@ -784,6 +784,34 @@
     return `<ul class="gauges sh">${rows.map((a) => gauge(a, Math.round(100 * cnt[a] / max), (mine && mine.ath === a ? ' <em class="sh__me">ton choix</em>' : '') + how(a), mine && mine.ath === a ? 'gauge--mine' : '', `${cnt[a]} joueur${cnt[a] > 1 ? 's' : ''}`)).join('')}</ul>
       <p class="sub sh__foot">${N} joueur${N > 1 ? 's ont validé leur choix' : ' a validé son choix'}${mine ? '' : ' (pas toi : aucun choix)'}${pts ? ` · tes points ${pts}` : ''}</p>`;
   }
+  /** Course terminée : le résultat (podium + tous les skieurs choisis), même présentation que les jauges. Noms des joueurs si peu nombreux, sinon « N joueurs » cliquable. */
+  function resultTable(race) {
+    const { picks, cnt } = racePeople(race), N = picks.length, res = resOf(race);
+    if (!N || !res) return shareTable(race);
+    const mine = picks.find((x) => x.p.id === state.me);
+    const rk = (a) => { const e = res.find((x) => x.ath === a); return e && !e.status ? e.rank : e ? 1e4 : 2e4; };
+    const ids = Array.from(new Set(res.filter((e) => !e.status && e.rank <= 3).map((e) => e.ath).concat(Object.keys(cnt))));
+    ids.sort((a, b) => rk(a) - rk(b) || (cnt[b] || 0) - (cnt[a] || 0) || nameOf(a).localeCompare(nameOf(b)));
+    const max = Math.max(...Object.values(cnt));
+    const who = (a) => picks.filter((x) => x.ath === a).map((x) => x.p);
+    const row = (a) => {
+      const ps = who(a), n = ps.length, isMine = !!mine && mine.ath === a;
+      const names = n && n <= 3 ? ` <span class="gauge__ps">${ps.map(pln).join(', ')}</span>` : '';
+      const val = !n ? '<span class="gauge__none">personne</span>' : n <= 3 ? `${n} joueur${n > 1 ? 's' : ''}` : `<button type="button" class="linkbtn gauge__btn" data-whopick="${race.id}|${esc(a)}" title="Voir qui">${n} joueurs</button>`;
+      const g = gauge(a, Math.round(100 * n / max), (isMine ? ' <em class="sh__me">ton choix</em>' : '') + skierResult(race, a, res) + names, isMine ? 'gauge--mine' : '', val);
+      return n ? g : g.replace('<li class="gauge', '<li class="gauge gauge--nop');
+    };
+    const pts = mine ? ptsChip(state.me, race) : '';
+    return `<ul class="gauges sh">${ids.map(row).join('')}</ul>
+      <p class="sub sh__foot">${N} joueur${N > 1 ? 's ont validé leur choix' : ' a validé son choix'}${mine ? '' : ' (pas toi : aucun choix)'}${pts ? ` · tes points ${pts}` : ''}</p>`;
+  }
+  function whoPickModal(raceId, a) {
+    const race = G.raceOf(raceId); if (!race) return;
+    const ps = racePeople(race).picks.filter((x) => x.ath === a).map((x) => x.p);
+    openModal(`<div class="rc"><h3 class="rc__title">${skn(a)}</h3><p class="rc__date">${esc(placeLabel(race))} · ${esc(raceName(race))}</p>
+      <p class="hint">${ps.length} joueur${ps.length > 1 ? 's ont' : ' a'} pris ce skieur :</p>
+      <ul class="whopick">${ps.map((p) => `<li>${pname(p)}</li>`).join('')}</ul></div>`);
+  }
   const LOCK_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.2" fill="currentColor" fill-opacity=".18"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/></svg>';
   const FLAG_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-2.5 4 2.5 4H5" fill="currentColor" fill-opacity=".2"/></svg>';
   const CHECK_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
@@ -802,7 +830,7 @@
   function liveRaceRow(race) {
     return `<li class="race race--live race--${race.gender}${race.cancelled ? ' race--off' : ''}${doneCls(race)}">
       ${raceCard(race)}
-      <div class="race__pick">${race.cancelled ? '<span class="none">Course annulée</span>' : lockedRace(race) ? liveNote(race) + shareTable(race) : ''}</div></li>`;
+      <div class="race__pick">${race.cancelled ? '<span class="none">Course annulée</span>' : lockedRace(race) ? liveNote(race) + (resOf(race) ? resultTable(race) : shareTable(race)) : ''}</div></li>`;
   }
   function coursPanel(s) {
     const races = sortedRaces(s);
@@ -1739,6 +1767,8 @@
     if (slp) { const [rid, slot, ath] = slp.dataset.slpick.split('|'); onPick({ dataset: { race: rid, slot }, value: ath, id: 'sl' }).then(() => startListModal(rid, true)); return; }
     const slc = e.target.closest('[data-slclear]');
     if (slc) { const [rid, slot] = slc.dataset.slclear.split('|'); onPick({ dataset: { race: rid, slot }, value: '', id: 'sl' }).then(() => startListModal(rid, true)); return; }
+    const wp = e.target.closest('[data-whopick]');
+    if (wp) { const [rid, ath] = wp.dataset.whopick.split('|'); whoPickModal(rid, ath); return; }
     const r1b = e.target.closest('[data-run1]'); if (r1b) { run1Modal(r1b.dataset.run1); return; }
     const slb = e.target.closest('[data-startlist]');
     if (slb) { startListModal(slb.dataset.startlist); return; }

@@ -1604,3 +1604,11 @@ html[data-skin='arcade'] .plate[aria-selected='true'] :is(.plate__note, .plate__
 .r1__row.is-out .r1__rk { font-size: .75rem; color: var(--encre-douce); }
 .rc__row.is-nop .rc__sk { font-weight: 500; opacity: .85; }
 .rc__row .rc__who .lnk { color: inherit; font-weight: 700; }
+
+/* Résultat d'une course : noms des joueurs, « N joueurs » cliquable, skieurs sans joueur */
+.gauge__ps { font-weight: 600; } .gauge__ps .lnk { font-weight: 700; }
+.gauge__btn { font: 800 .85rem var(--display); text-decoration: underline; cursor: pointer; padding: 0; white-space: nowrap; }
+.gauge__none { font-weight: 500; font-size: .8rem; opacity: .7; }
+.gauge--nop .gauge__n { font-weight: 500; }
+.gauge--nop .gauge__bar i { width: 0 !important; }
+.whopick { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .4rem; }
