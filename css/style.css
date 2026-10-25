@@ -1605,10 +1605,14 @@ html[data-skin='arcade'] .plate[aria-selected='true'] :is(.plate__note, .plate__
 .rc__row.is-nop .rc__sk { font-weight: 500; opacity: .85; }
 .rc__row .rc__who .lnk { color: inherit; font-weight: 700; }
 
-/* Résultat d'une course : noms des joueurs, « N joueurs » cliquable, skieurs sans joueur */
-.gauge__ps { font-weight: 600; } .gauge__ps .lnk { font-weight: 700; }
-.gauge__btn { font: 800 .85rem var(--display); text-decoration: underline; cursor: pointer; padding: 0; white-space: nowrap; }
-.gauge__none { font-weight: 500; font-size: .8rem; opacity: .7; }
-.gauge--nop .gauge__n { font-weight: 500; }
-.gauge--nop .gauge__bar i { width: 0 !important; }
-.whopick { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .4rem; }
+/* Résultat d'une course : skieur à gauche, « N joueurs » + noms à droite */
+.rs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .3rem .8rem; align-items: center; padding: .25rem .4rem; margin: 0 -.4rem; border-radius: 8px; }
+.rs__who { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.rs__d { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: .05rem; font-size: .82rem; line-height: 1.3; }
+.rs__n { font: 800 .95rem var(--display); color: var(--nuit); }
+.rs__ps { font-weight: 600; } .rs__ps .lnk { font-weight: 700; }
+.rs__none { font-weight: 500; opacity: .7; }
+.rs--nop .gauge__n { font-weight: 500; }
+.rs--mine { background: color-mix(in srgb, var(--ocre) 22%, transparent); } .rs--mine .gauge__n { font-weight: 800; }
+html[data-theme='minimal'] .rs--mine { background: #f0f0f0; }
+@media (max-width: 560px) { .rs { grid-template-columns: minmax(0, 1fr); } .rs__d { align-items: flex-start; text-align: left; padding-left: 2.6rem; } }

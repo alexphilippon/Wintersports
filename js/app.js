@@ -792,25 +792,15 @@
     const rk = (a) => { const e = res.find((x) => x.ath === a); return e && !e.status ? e.rank : e ? 1e4 : 2e4; };
     const ids = Array.from(new Set(res.filter((e) => !e.status && e.rank <= 3).map((e) => e.ath).concat(Object.keys(cnt))));
     ids.sort((a, b) => rk(a) - rk(b) || (cnt[b] || 0) - (cnt[a] || 0) || nameOf(a).localeCompare(nameOf(b)));
-    const max = Math.max(...Object.values(cnt));
     const who = (a) => picks.filter((x) => x.ath === a).map((x) => x.p);
     const row = (a) => {
       const ps = who(a), n = ps.length, isMine = !!mine && mine.ath === a;
-      const names = n && n <= 3 ? ` <span class="gauge__ps">${ps.map(pln).join(', ')}</span>` : '';
-      const val = !n ? '<span class="gauge__none">personne</span>' : n <= 3 ? `${n} joueur${n > 1 ? 's' : ''}` : `<button type="button" class="linkbtn gauge__btn" data-whopick="${race.id}|${esc(a)}" title="Voir qui">${n} joueurs</button>`;
-      const g = gauge(a, Math.round(100 * n / max), (isMine ? ' <em class="sh__me">ton choix</em>' : '') + skierResult(race, a, res) + names, isMine ? 'gauge--mine' : '', val);
-      return n ? g : g.replace('<li class="gauge', '<li class="gauge gauge--nop');
+      const det = n ? `<span class="rs__n">${n} joueur${n > 1 ? 's' : ''}</span><span class="rs__ps">${ps.map(pln).join(', ')}</span>` : '<span class="rs__none">personne</span>';
+      return `<li class="rs${isMine ? ' rs--mine' : ''}${n ? '' : ' rs--nop'}"><span class="rs__who">${avatarOf(a, 'sm')}<span class="gauge__t"><span class="gauge__n">${skn(a)}</span><span class="gauge__x">${isMine ? '<em class="sh__me">ton choix</em>' : ''}${skierResult(race, a, res)}</span></span></span><span class="rs__d">${det}</span></li>`;
     };
     const pts = mine ? ptsChip(state.me, race) : '';
-    return `<ul class="gauges sh">${ids.map(row).join('')}</ul>
+    return `<ul class="gauges sh rs__l">${ids.map(row).join('')}</ul>
       <p class="sub sh__foot">${N} joueur${N > 1 ? 's ont validé leur choix' : ' a validé son choix'}${mine ? '' : ' (pas toi : aucun choix)'}${pts ? ` · tes points ${pts}` : ''}</p>`;
-  }
-  function whoPickModal(raceId, a) {
-    const race = G.raceOf(raceId); if (!race) return;
-    const ps = racePeople(race).picks.filter((x) => x.ath === a).map((x) => x.p);
-    openModal(`<div class="rc"><h3 class="rc__title">${skn(a)}</h3><p class="rc__date">${esc(placeLabel(race))} · ${esc(raceName(race))}</p>
-      <p class="hint">${ps.length} joueur${ps.length > 1 ? 's ont' : ' a'} pris ce skieur :</p>
-      <ul class="whopick">${ps.map((p) => `<li>${pname(p)}</li>`).join('')}</ul></div>`);
   }
   const LOCK_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.2" fill="currentColor" fill-opacity=".18"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/></svg>';
   const FLAG_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-2.5 4 2.5 4H5" fill="currentColor" fill-opacity=".2"/></svg>';
@@ -1767,8 +1757,6 @@
     if (slp) { const [rid, slot, ath] = slp.dataset.slpick.split('|'); onPick({ dataset: { race: rid, slot }, value: ath, id: 'sl' }).then(() => startListModal(rid, true)); return; }
     const slc = e.target.closest('[data-slclear]');
     if (slc) { const [rid, slot] = slc.dataset.slclear.split('|'); onPick({ dataset: { race: rid, slot }, value: '', id: 'sl' }).then(() => startListModal(rid, true)); return; }
-    const wp = e.target.closest('[data-whopick]');
-    if (wp) { const [rid, ath] = wp.dataset.whopick.split('|'); whoPickModal(rid, ath); return; }
     const r1b = e.target.closest('[data-run1]'); if (r1b) { run1Modal(r1b.dataset.run1); return; }
     const slb = e.target.closest('[data-startlist]');
     if (slb) { startListModal(slb.dataset.startlist); return; }
