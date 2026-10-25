@@ -405,7 +405,8 @@
     g.fillStyle = K.edge; g.fillRect(0, H0 - 6, W, 6); g.textBaseline = 'alphabetic';
     g.fillStyle = K.gold; g.font = `800 30px ${FD}`; g.fillText('SKI GAME · COUPE DU MONDE 2026-27', 56, 70);
     const sl = String(sub).split('\n'), two = sl.length > 1;
-    g.fillStyle = K.head; g.font = `800 ${two ? 58 : 62}px ${FD}`; g.fillText(t, 56, two ? 140 : 150);
+    let tfs = two ? 58 : 62; g.font = `800 ${tfs}px ${FD}`; while (g.measureText(t).width > W - 112 && tfs > 30) { tfs -= 2; g.font = `800 ${tfs}px ${FD}`; }
+    g.fillStyle = K.head; g.fillText(t, 56, two ? 140 : 150);
     g.font = `600 ${two ? 30 : 34}px ${F}`; g.fillStyle = K.sub; sl.forEach((l, i) => g.fillText(l, 56, two ? 186 + i * 40 : 200));
     g.font = `700 26px ${F}`; g.fillStyle = K.gold; g.textAlign = 'right'; g.fillText(right, W - 56, 70); g.textAlign = 'left';
   }

@@ -1100,16 +1100,16 @@
     Object.keys(who).forEach((a) => { if (!seen.has(a)) items.push({ lead: lv.dns(a) ? 'DNS' : '–', name: nameOf(a), time: '', ath: a, out: true }); });
     const mineIds = new Set(); const pk = (myPicks()[race.id] || {}); [pk.a, pk.b].forEach((a) => a && mineIds.add(a));
     const li = items.map((x) => {
-      const ps = x.ath && who[x.ath] || [];
-      return `<li class="r1__row${ps.length ? ' is-picked' : ''}${x.out ? ' is-out' : ''}"><b class="r1__rk">${esc(x.lead)}</b><span class="r1__n">${x.ath ? skn(x.ath) : esc(x.name)}${x.time ? ` <em class="sub">${esc(x.time)}</em>` : ''}</span>${ps.length ? `<span class="r1__who">${ps.map((p) => `<span class="rc__chip${p.id === state.me ? ' me' : ''}">${esc(p.name)}</span>`).join(' ')}</span>` : ''}</li>`;
+      const ps = x.ath && who[x.ath] || [], mine = ps.some((p) => p.id === state.me), isNum = /^\d+$/.test(x.lead);
+      return `<li class="rc__row${mine ? ' is-mine' : ''}${isNum ? '' : ' is-st'}${ps.length ? '' : ' is-nop'}"><span class="rc__rk">${esc(x.lead)}</span>${x.ath ? avatarOf(x.ath, 'sm') : '<span class="avatar avatar--empty avatar--sm" aria-hidden="true"></span>'}<span class="rc__sk">${x.ath ? skn(x.ath) : esc(x.name)}${x.time ? ` <b class="rc__pct">${esc(x.time)}</b>` : ''}</span>${ps.length ? `<span class="rc__who">${ps.map((p) => `<span class="rc__chip${p.id === state.me ? ' me' : ''}">${pln(p)}</span>`).join('')}</span>` : ''}</li>`;
     }).join('');
     const rowsX = items.filter((x) => x.ath && who[x.ath]).map((x) => ({ c: [x.lead, nameOf(x.ath), x.time], under: who[x.ath].map((p) => p.name).join(', ') }));
     const tech = race.disc === 'GS' || race.disc === 'SL';
     const xb = rowsX.length ? ` ${SHARE.xbar({ key: 'r1:' + race.id, title: 'Résultats 1re manche : skieurs choisis', sub: `${placeLabel(race)} · ${raceName(race)} · ${dayOf(race.date)}\n1re manche terminée${tech && L.run2 ? ` · 2e manche à ${hm(L.run2)}` : ''}`, right: '1re manche', head: ['Rang', (race.gender === 'W' ? 'Skieuse' : 'Skieur') + ' · choisi par', 'Temps'], rows: rowsX })}` : '';
     const upd = L.fetched ? `${F_DAY.format(new Date(L.fetched))}, ${F_HOUR.format(new Date(L.fetched))}` : '';
-    openModal(`<h2 class="rc__title">1re manche${xb}</h2>
-      <p class="hint">${esc(placeLabel(race))}, ${esc(raceName(race))}${L.run2 ? ` · 2e manche à <strong>${esc(hm(L.run2))}</strong>` : ''}${upd ? `<br>Classement provisoire, relevé le ${esc(upd)}.` : ''} Les skieurs choisis par au moins un joueur sont surlignés. L’export ne contient qu’eux.</p>
-      <ol class="r1">${li}</ol>`, 'modal__card--wide');
+    openModal(`<div class="rc"><h3 class="rc__title">1re manche${xb}</h3><p class="rc__date">${esc(placeLabel(race))} · ${esc(raceName(race))}${L.run2 ? ` · 2e manche à ${esc(hm(L.run2))}` : ''}</p>
+      <p class="hint">${upd ? `Classement provisoire, relevé le ${esc(upd)}. ` : ''}Les skieurs choisis par au moins un joueur sont suivis de leurs joueurs ; l’export ne contient qu’eux.</p>
+      <ol class="rc__list">${li}</ol></div>`, 'modal__card--wide');
   }
   function startListModal(raceId, keep) {
     const race = G.raceOf(raceId), sl = race && startListOf(race);
