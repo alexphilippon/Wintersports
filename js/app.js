@@ -817,7 +817,7 @@
       } else if (eff) tail = liveChip(liveOf(r), eff);
       return `<li class="lb lb--${r.gender}"><span class="lb__tag">${discBadge(r)} <span class="gender gender--${r.gender}">${genderLabel(r)}</span></span>${eff ? `<strong>${skn(eff)}</strong>${tail}` : '<span class="none">aucun choix</span>'}</li>`;
     }).join('');
-    const todo = races.filter((r) => !resOf(r)), done = races.filter((r) => resOf(r));
+    const todo = races.filter((r) => !resOf(r)), done = races.filter((r) => resOf(r)).sort((a, b) => G.raceStart(b) - G.raceStart(a));
     return `<section>
       <div class="lockbar"><div class="lockbar__t"><strong>${fl(s.name)}</strong><span class="lock" role="img" aria-label="Choix verrouillés" title="Choix verrouillés">${LOCK_SVG}</span></div>
         <ul class="lockbar__mine" aria-label="Mes choix">${mine}</ul></div>
@@ -875,7 +875,7 @@
         ${bcHtml}
       </div>
       <h3 class="subtitle">Course par course</h3>
-      <div class="session"><ul class="races">${races.map((r) => raceRow(r, s)).join('')}</ul></div>
+      <div class="session"><ul class="races">${races.slice().sort((a, b) => (resOf(b) ? 1 : 0) - (resOf(a) ? 1 : 0) || G.raceStart(b) - G.raceStart(a)).map((r) => raceRow(r, s)).join('')}</ul></div>
       ${nxHtml}
     </section>`;
   }
