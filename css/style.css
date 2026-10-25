@@ -1594,3 +1594,11 @@ html[data-skin='arcade'] .plate[aria-selected='true'] :is(.plate__note, .plate__
 /* Mobile : le tableau du gros globe défile horizontalement au lieu d'écraser les colonnes Desk / Mondiaux */
 @media (max-width: 640px) { .grid--general { min-width: 31rem; } .grid--general th:nth-child(2) { width: 9.5rem; } }
 @media (max-width: 640px) { caption .xicons { float: none; margin-left: .7rem; vertical-align: middle; } }   /* mobile : pictos message/image à côté du titre, visibles sans défiler */
+
+/* Résultats de la 1re manche (fenêtre) */
+.r1 { list-style: none; margin: .6rem 0 0; padding: 0; max-height: 60vh; overflow: auto; }
+.r1__row { border-left: 3px solid transparent; display: grid; grid-template-columns: 2.8rem minmax(0, 1fr); gap: .1rem .6rem; padding: .45rem .3rem; border-top: 1px solid var(--filet); align-items: center; }
+.r1__rk { text-align: center; font-variant-numeric: tabular-nums; }
+.r1__who { grid-column: 2; display: flex; flex-wrap: wrap; gap: .25rem; }
+.r1__row.is-picked { background: var(--chip); border-left: 3px solid var(--ocre); }
+.r1__row.is-out .r1__rk { font-size: .75rem; color: var(--encre-douce); }

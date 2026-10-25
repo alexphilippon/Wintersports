@@ -497,11 +497,11 @@
     const L = [`🎿 *${sp.title}*`]; if (sp.sub) String(sp.sub).split('\n').forEach((l) => L.push(`_${l}_`)); L.push('');
     const ex = sp.head.slice(3).map((h) => String(h).replace(/\n/g, ' '));
     sp.rows.forEach((r) => {
-      const c = r.c, n = /^\d+$/.test(c[0]) ? +c[0] : 0, rk = n && n <= 3 ? MEDAL[n - 1] : (c[0] ? c[0] + '.' : '▫️');
+      const c = r.c, n = /^\d+$/.test(c[0]) ? +c[0] : 0, rk = n && n <= 3 ? MEDAL[n - 1] : /^[A-Z]{3}$/.test(c[0]) ? '🚫 ' + c[0] : (c[0] && c[0] !== '–' ? c[0] + '.' : '▫️');
       let line = `${rk} ${n && n <= 3 ? '*' + c[1] + '*' : c[1]}`; if (c.length > 2 && c[2] !== '') line += ` — *${c[2]}${sp.unit || ''}*`;
       const parts = ex.map((h, i) => (c[3 + i] !== '' && c[3 + i] != null ? `${h} ${c[3 + i]}` : '')).filter(Boolean);
       if (parts.length) line += ` (${parts.join(' · ')})`;
-      L.push(line);
+      L.push(line); if (r.under) L.push(`      👥 ${r.under}`);
     });
     if (sp.note) L.push('', `ℹ️ ${sp.note}`);
     L.push('', '🔗 skigame-2627.vercel.app'); return L.join('\n');

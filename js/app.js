@@ -797,7 +797,7 @@
       <strong class="rcard__place">${fl(placeLabel(race))}</strong>
       <span class="rcard__race">${discBadge(race)} <span class="gender gender--${race.gender}">${genderLabel(race)}</span></span>
       <span class="rcard__time">Départ ${esc(hourText(start))}</span>${wait}${opts.extra ? `<span class="rcard__x">${opts.extra}</span>` : ''}
-      ${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="morebtn" data-racecard="${race.id}">${done ? 'Résultat détaillé' : 'Stats'}</button>`}${!done && !race.cancelled && startListOf(race) ? `<button type="button" class="morebtn morebtn--sl" data-startlist="${race.id}">Start list</button>` : ''}</div>`;
+      ${race.cancelled || !lockedRace(race) ? '' : `<button type="button" class="morebtn" data-racecard="${race.id}">${done ? 'Résultat détaillé' : 'Stats'}</button>`}${!done && !race.cancelled && liveOf(race) ? `<button type="button" class="morebtn morebtn--sl" data-run1="${race.id}">Résultats 1re manche</button>` : !done && !race.cancelled && startListOf(race) ? `<button type="button" class="morebtn morebtn--sl" data-startlist="${race.id}">Start list</button>` : ''}</div>`;
   }
   function liveRaceRow(race) {
     return `<li class="race race--live race--${race.gender}${race.cancelled ? ' race--off' : ''}${doneCls(race)}">
@@ -1085,9 +1085,32 @@
     m.hidden = false; document.body.classList.add('noscroll');
     const f = m.querySelector('textarea, button:not(.modal__x)'); if (f) f.focus({ preventScroll: true });
   }
-  const slLink = (race) => (startListOf(race) && !resOf(race) ? `<button type="button" class="linkbtn slbtn" data-startlist="${race.id}">Consulter la start list</button>` : '');
+  const slLink = (race) => (liveOf(race) && !resOf(race) ? `<button type="button" class="linkbtn slbtn" data-run1="${race.id}">Résultats de la 1re manche</button>` : startListOf(race) && !resOf(race) ? `<button type="button" class="linkbtn slbtn" data-startlist="${race.id}">Consulter la start list</button>` : '');
   /** Fenêtre « start list » : dossards, noms et nations lus sur la page FIS. On peut y choisir son skieur (et son remplaçant) tant que la session est ouverte ;
       le choix déjà fait est mis en évidence et peut être retiré puis changé. */
+  /** Fenêtre « résultats de la 1re manche » : classement provisoire (qualifiés, DNQ, DNF) avec les joueurs qui ont pris chaque skieur ; export des seuls skieurs choisis. */
+  function run1Modal(raceId) {
+    const race = G.raceOf(raceId), lv = race && liveOf(race), sl = race && startListOf(race);
+    if (!lv || !sl) return;
+    const L = lv.L, bibAth = {}; sl.rows.forEach((r) => { if (r.ath) bibAth[r.bib] = r.ath; });
+    const { picks } = racePeople(race), who = {}; picks.forEach((x) => { (who[x.ath] = who[x.ath] || []).push(x.p); });
+    const items = (L.rows || []).map((r) => ({ lead: String(r.rank), name: r.name, time: r.time, ath: bibAth[r.bib], out: false }))
+      .concat((L.out || []).filter((r) => r.status !== 'DNS').map((r) => ({ lead: r.status, name: r.name, time: r.time || '', ath: bibAth[r.bib], out: true })));
+    const seen = new Set(items.map((x) => x.ath).filter(Boolean));
+    Object.keys(who).forEach((a) => { if (!seen.has(a)) items.push({ lead: lv.dns(a) ? 'DNS' : '–', name: nameOf(a), time: '', ath: a, out: true }); });
+    const mineIds = new Set(); const pk = (myPicks()[race.id] || {}); [pk.a, pk.b].forEach((a) => a && mineIds.add(a));
+    const li = items.map((x) => {
+      const ps = x.ath && who[x.ath] || [];
+      return `<li class="r1__row${ps.length ? ' is-picked' : ''}${x.out ? ' is-out' : ''}"><b class="r1__rk">${esc(x.lead)}</b><span class="r1__n">${x.ath ? skn(x.ath) : esc(x.name)}${x.time ? ` <em class="sub">${esc(x.time)}</em>` : ''}</span>${ps.length ? `<span class="r1__who">${ps.map((p) => `<span class="rc__chip${p.id === state.me ? ' me' : ''}">${esc(p.name)}</span>`).join(' ')}</span>` : ''}</li>`;
+    }).join('');
+    const rowsX = items.filter((x) => x.ath && who[x.ath]).map((x) => ({ c: [x.lead, nameOf(x.ath), x.time], under: who[x.ath].map((p) => p.name).join(', ') }));
+    const tech = race.disc === 'GS' || race.disc === 'SL';
+    const xb = rowsX.length ? ` ${SHARE.xbar({ key: 'r1:' + race.id, title: 'Résultats 1re manche : skieurs choisis', sub: `${placeLabel(race)} · ${raceName(race)} · ${dayOf(race.date)}\n1re manche terminée${tech && L.run2 ? ` · 2e manche à ${hm(L.run2)}` : ''}`, right: '1re manche', head: ['Rang', (race.gender === 'W' ? 'Skieuse' : 'Skieur') + ' · choisi par', 'Temps'], rows: rowsX })}` : '';
+    const upd = L.fetched ? `${F_DAY.format(new Date(L.fetched))}, ${F_HOUR.format(new Date(L.fetched))}` : '';
+    openModal(`<h2 class="rc__title">1re manche${xb}</h2>
+      <p class="hint">${esc(placeLabel(race))}, ${esc(raceName(race))}${L.run2 ? ` · 2e manche à <strong>${esc(hm(L.run2))}</strong>` : ''}${upd ? `<br>Classement provisoire, relevé le ${esc(upd)}.` : ''} Les skieurs choisis par au moins un joueur sont surlignés. L’export ne contient qu’eux.</p>
+      <ol class="r1">${li}</ol>`, 'modal__card--wide');
+  }
   function startListModal(raceId, keep) {
     const race = G.raceOf(raceId), sl = race && startListOf(race);
     if (!sl) return;
@@ -1716,6 +1739,7 @@
     if (slp) { const [rid, slot, ath] = slp.dataset.slpick.split('|'); onPick({ dataset: { race: rid, slot }, value: ath, id: 'sl' }).then(() => startListModal(rid, true)); return; }
     const slc = e.target.closest('[data-slclear]');
     if (slc) { const [rid, slot] = slc.dataset.slclear.split('|'); onPick({ dataset: { race: rid, slot }, value: '', id: 'sl' }).then(() => startListModal(rid, true)); return; }
+    const r1b = e.target.closest('[data-run1]'); if (r1b) { run1Modal(r1b.dataset.run1); return; }
     const slb = e.target.closest('[data-startlist]');
     if (slb) { startListModal(slb.dataset.startlist); return; }
     const sxo = e.target.closest('[data-sx-open]'); if (sxo) { SHARE.sessionOpen(sxo.dataset.sxOpen); return; }
