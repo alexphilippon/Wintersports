@@ -800,7 +800,7 @@
     };
     const pts = mine ? ptsChip(state.me, race) : '';
     return `<ul class="gauges sh rs__l">${ids.map(row).join('')}</ul>
-      <p class="sub sh__foot">${N} joueur${N > 1 ? 's ont validé leur choix' : ' a validé son choix'}${mine ? '' : ' (pas toi : aucun choix)'}${pts ? ` · tes points ${pts}` : ''}</p>`;
+      <p class="sub sh__foot">${N} joueur${N > 1 ? 's ont validé leur choix' : ' a validé son choix'}${mine ? '' : ' (pas toi : aucun choix)'}</p>`;
   }
   const LOCK_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.2" fill="currentColor" fill-opacity=".18"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/></svg>';
   const FLAG_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-2.5 4 2.5 4H5" fill="currentColor" fill-opacity=".2"/></svg>';
@@ -819,7 +819,7 @@
   }
   function liveRaceRow(race) {
     return `<li class="race race--live race--${race.gender}${race.cancelled ? ' race--off' : ''}${doneCls(race)}">
-      ${raceCard(race)}
+      <div class="race__left">${raceCard(race)}${resOf(race) && !race.cancelled && ptsChip(state.me, race) ? `<p class="race__pts">Tes points ${ptsChip(state.me, race)}</p>` : ''}</div>
       <div class="race__pick">${race.cancelled ? '<span class="none">Course annulée</span>' : lockedRace(race) ? liveNote(race) + (resOf(race) ? resultTable(race) : shareTable(race)) : ''}</div></li>`;
   }
   function coursPanel(s) {

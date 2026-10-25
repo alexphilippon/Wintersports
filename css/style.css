@@ -1616,3 +1616,5 @@ html[data-skin='arcade'] .plate[aria-selected='true'] :is(.plate__note, .plate__
 .rs--mine { background: color-mix(in srgb, var(--ocre) 22%, transparent); } .rs--mine .gauge__n { font-weight: 800; }
 html[data-theme='minimal'] .rs--mine { background: #f0f0f0; }
 @media (max-width: 560px) { .rs { grid-template-columns: minmax(0, 1fr); } .rs__d { align-items: flex-start; text-align: left; padding-left: 2.6rem; } }
+
+.race__left { min-width: 0; } .race__pts { margin: .6rem 0 0; display: flex; align-items: center; gap: .5rem; font-size: .85rem; font-weight: 600; }
