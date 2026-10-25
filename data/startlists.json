@@ -81,7 +81,7 @@
    "run": 1,
    "source": "https://www.fis-ski.com/DB/general/results.html?sectorcode=AL&raceid=131578",
    "title": "FIS | Audi FIS Ski World Cup Start List - Soelden (AUT) 2026/2027",
-   "fetched": "2026-10-24T18:01:01.044Z",
+   "fetched": "2026-10-25T08:00:50.617Z",
    "start": [
     { "bib": 1, "code": "422732", "name": "MCGRATH Atle Lie", "nat": "NOR" },
     { "bib": 2, "code": "54027", "name": "BRENNSTEINER Stefan", "nat": "AUT" },
