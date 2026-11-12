@@ -15,7 +15,7 @@
   const entryText = (e) => e.status ? `${e.status} ${C.ATH[e.ath] ? C.ATH[e.ath].name : e.ath}` : `${e.rank} ${C.ATH[e.ath] ? C.ATH[e.ath].name : e.ath}`;
 
   /* ---------- Lecture d'un classement collé ---------- */
-  const THEME_NAMES = { sapin: 'Sapin', glace: 'Grand froid', nuit: 'Aurore boréale', noel: 'Noël', halloween: 'Halloween', arcade: 'Arcade', minimal: 'Minimal' };
+  const THEME_NAMES = { sapin: 'Sapin', glace: 'Grand froid', nuit: 'Aurore boréale', noel: 'Noël', halloween: 'Halloween', arcade: 'Arcade', minimal: 'Minimal', sombre: 'Sombre' };
   function matchLine(text, gender, list) {
     const toks = new Set(tokens(text));
     let best = [], bestN = 0;
