@@ -67,7 +67,8 @@
     const ready = (async () => {
       if (!root.firebase) for (const f of FB_FILES) await loadScript(`https://www.gstatic.com/firebasejs/${FB_VERSION}/firebase-${f}-compat.js`);
       fb = root.firebase; fb.initializeApp(cfg); auth = fb.auth(); db = fb.firestore();
-      try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) { /* déjà initialisé */ }   // réseaux, extensions ou navigateurs qui bloquent le flux temps réel : repli automatique FV = fb.firestore.FieldValue;
+      try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) { /* déjà initialisé */ }   // réseaux, extensions ou navigateurs qui bloquent le flux temps réel : repli automatique
+      FV = fb.firestore.FieldValue;
       auth.onAuthStateChanged(async (u) => {
         if (!u) { current = null; resolved = true; authCbs.forEach((cb) => cb(null)); return; }
         let name = u.email;
