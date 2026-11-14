@@ -143,9 +143,7 @@
     scheduleRender();
   }
   function startStore() {
-    store.onAuth((u) => { state.authReady = true; state.user = u; state.me = u ? u.uid : null; introRules(); if (isAdmin() && !state.contactsOn) { state.contactsOn = true; store.listenContacts((m) => { state.contacts = m; scheduleRender(); }); } if (!state.demo) { state.authError = ''; scheduleRender(); } });
-    setTimeout(() => { if (!state.picksReady) { state.picksLate = true; scheduleRender(); } }, 12000);   // les choix n'arrivent pas : on prévient
-    store.listen({
+    const handlers = {
       players: (list) => { state.players = list.map((x) => ({ id: x.id, name: x.name || x.email || x.id, photo: x.photo || '', blocked: !!x.photoBlocked, lastSeen: Number(x.lastSeen) || 0, theme: x.theme || "" })).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
         // un simple « vu à l'instant » n'oblige pas à redessiner la page : seulement l'onglet Admin
         const sig = JSON.stringify(state.players.map((p) => [p.id, p.name, p.photo, p.blocked]));
@@ -157,7 +155,17 @@
       overrides: (m) => { state.overrides = m; recompute(); },
       aliases: (m) => { state.aliases = m; recompute(); },
       athletes: (list) => { state.extra = list.filter((x) => x.gender === 'M' || x.gender === 'W'); recompute(); },
-    });
+    };
+    // Les écoutes ne démarrent qu'une fois connecté (les règles Firestore exigent une session) et repartent à chaque connexion :
+    // avant, elles étaient lancées dès l'ouverture de la page, refusées sans session, puis jamais relancées après la connexion.
+    let sub = null, subUid = null, lateT = 0;
+    const stopSync = () => { clearTimeout(lateT); if (sub && sub.stop) sub.stop(); sub = null; subUid = null; };
+    const startSync = (uid) => {
+      stopSync(); subUid = uid; state.picksReady = false; state.picksLate = false; state.syncErr = false;
+      sub = store.listen(handlers);
+      lateT = setTimeout(() => { if (!state.picksReady) { state.picksLate = true; scheduleRender(); } }, 20000);   // les choix n'arrivent pas : on prévient
+    };
+    store.onAuth((u) => { state.authReady = true; state.user = u; state.me = u ? u.uid : null; introRules(); if (u && subUid !== u.uid) startSync(u.uid); else if (!u) stopSync(); if (isAdmin() && !state.contactsOn) { state.contactsOn = true; store.listenContacts((m) => { state.contacts = m; scheduleRender(); }); } if (!state.demo) { state.authError = ''; scheduleRender(); } });
   }
   const fail = (e) => { alert('Enregistrement impossible : ' + (e && e.message ? e.message : e) + '\nVérifie ta connexion et réessaie.'); };
 

@@ -38,7 +38,7 @@
       },
       async signOut() { uid = null; db.session = null; persist(); emitAuth(); },
       async resetPassword() { throw new Error('Non disponible en mode local.'); },
-      listen(h) { Object.assign(handlers, h); Object.keys(h).forEach(emit); },
+      listen(h) { Object.assign(handlers, h); Object.keys(h).forEach(emit); return { stop() {} }; },
       async setPick(u, raceId, pick) { const p = db.picks[u] || (db.picks[u] = {}); if (pick) p[raceId] = Object.assign({}, pick, { ts: Date.now() }); else delete p[raceId]; persist(); emit('picks'); },
       async setResult(raceId, entries) { if (entries && entries.length) db.results[raceId] = entries; else delete db.results[raceId]; persist(); emit('results'); },
       async setOverride(raceId, o) { if (o) db.overrides[raceId] = o; else delete db.overrides[raceId]; persist(); emit('overrides'); },
@@ -103,16 +103,32 @@
       async signIn(email, pw) { await ready; try { await auth.signInWithEmailAndPassword(email.trim(), pw); } catch (e) { throw msg(e); } },
       async signOut() { await ready; await auth.signOut(); },
       async resetPassword(email) { await ready; try { await auth.sendPasswordResetEmail(email.trim()); } catch (e) { throw msg(e); } },
+      /** Démarre les écoutes temps réel ; renvoie { stop }. Une écoute en erreur (réseau, bloqueur, session pas encore prête) est relancée
+       *  toute seule avec un délai croissant (2 s, 4 s… 30 s max) au lieu de rester morte jusqu'au rechargement de la page. */
       listen(h) {
+        let stopped = false; const unsubs = new Set(), timers = new Set();
+        const sub = (target, cb) => {
+          let n = 0, un = null;
+          const go = () => {
+            if (stopped) return;
+            un = target.onSnapshot((s) => { n = 0; cb(s); }, (e) => {
+              console.error('Firestore :', e); if (h.error) h.error(e);
+              try { un && un(); } catch (x) { /* déjà arrêtée */ } unsubs.delete(un);
+              const t = setTimeout(() => { timers.delete(t); go(); }, Math.min(30000, 2000 * Math.pow(2, n++))); timers.add(t);
+            });
+            unsubs.add(un);
+          };
+          go();
+        };
         ready.then(() => {
-          const fail = (e) => { console.error('Firestore :', e); if (h.error) h.error(e); };
-          if (h.players) db.collection('players').onSnapshot((s) => h.players(s.docs.map((d) => Object.assign({ id: d.id }, d.data()))), fail);
-          if (h.picks) db.collection('picks').onSnapshot((s) => { const o = {}; s.docs.forEach((d) => { const m = d.data(); Object.keys(m).forEach((k) => { if (m[k] && m[k].ts) m[k] = Object.assign({}, m[k], { ts: ms(m[k].ts) }); }); o[d.id] = m; }); h.picks(o); }, fail);
-          if (h.results) db.collection('results').onSnapshot((s) => { const o = {}; s.docs.forEach((d) => { o[d.id] = d.data().entries || []; }); h.results(o); }, fail);
-          if (h.overrides) db.doc('config/overrides').onSnapshot((d) => h.overrides(d.exists ? d.data() : {}), fail);
-          if (h.aliases) db.doc('config/aliases').onSnapshot((d) => h.aliases(d.exists ? d.data() : {}), fail);
-          if (h.athletes) db.collection('athletes').onSnapshot((s) => h.athletes(s.docs.map((d) => Object.assign({ id: d.id }, d.data()))), fail);
+          if (h.players) sub(db.collection('players'), (s) => h.players(s.docs.map((d) => Object.assign({ id: d.id }, d.data()))));
+          if (h.picks) sub(db.collection('picks'), (s) => { const o = {}; s.docs.forEach((d) => { const m = d.data(); Object.keys(m).forEach((k) => { if (m[k] && m[k].ts) m[k] = Object.assign({}, m[k], { ts: ms(m[k].ts) }); }); o[d.id] = m; }); h.picks(o); });
+          if (h.results) sub(db.collection('results'), (s) => { const o = {}; s.docs.forEach((d) => { o[d.id] = d.data().entries || []; }); h.results(o); });
+          if (h.overrides) sub(db.doc('config/overrides'), (d) => h.overrides(d.exists ? d.data() : {}));
+          if (h.aliases) sub(db.doc('config/aliases'), (d) => h.aliases(d.exists ? d.data() : {}));
+          if (h.athletes) sub(db.collection('athletes'), (s) => h.athletes(s.docs.map((d) => Object.assign({ id: d.id }, d.data()))));
         });
+        return { stop() { stopped = true; unsubs.forEach((u) => { try { u(); } catch (e) { /* ignoré */ } }); unsubs.clear(); timers.forEach(clearTimeout); timers.clear(); } };
       },
       async setPick(uid, raceId, pick) { await ready; await setField('picks/' + uid, raceId, pick ? Object.assign({}, pick, { ts: FV.serverTimestamp() }) : null); },
       async setResult(raceId, entries) { await ready; if (entries && entries.length) await db.doc('results/' + raceId).set({ entries }); else await db.doc('results/' + raceId).delete(); },
