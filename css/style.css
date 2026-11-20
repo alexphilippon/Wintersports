@@ -1675,3 +1675,8 @@ html[data-skin='sombre'] .forfait__label, html[data-skin='sombre'] .forfait__dl 
 html[data-skin='sombre'] .forfait__stub { color: #eef1f4; }
 html[data-skin='sombre'] .db.is-on { background: color-mix(in srgb, var(--c) 85%, #000); border-color: color-mix(in srgb, var(--c) 85%, #000); }
 html[data-skin='sombre'] :is(.session__head, .forfait__stub, .grid caption, .deskhead__stats) .info { color: #e6e9ed; }   /* icône « i » sinon sombre sur sombre */
+
+/* Start list : l'étiquette « déjà pris : course » passe à la ligne au lieu de recouvrir le nom */
+.sl__act { flex: 0 1 auto; min-width: 0; max-width: 52%; justify-content: flex-end; }
+.sl__tag--used { white-space: normal; text-align: right; line-height: 1.2; border-radius: .6rem; padding: .1rem .5rem; }
+.sl__row.is-used .sl__n { flex: 1 1 8rem; }
