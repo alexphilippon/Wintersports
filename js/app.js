@@ -240,9 +240,23 @@
     return `<button type="button" class="freelink" data-free="${race.id}" data-slot="${slot}">${race.gender === 'W' ? 'Skieuse absente de la liste ? Saisir son nom' : 'Skieur absent de la liste ? Saisir son nom'}</button>`;
   }
   /** Liste déroulante avec recherche : on tape quelques lettres, la liste ne garde que les noms qui les contiennent. */
+  /** Où un skieur est déjà « grillé » dans le desk (nom de la session) : { athId: 'Levi, slalom dames' }. */
+  function usedWhere(deskId, gender, picks, exceptRaceId) {
+    const m = {};
+    const scope = deskId === 0 ? [D.WORLDS] : D.SESSIONS.filter((x) => x.desk === deskId);
+    scope.forEach((x) => G.sessionRaces(x).forEach((r) => {
+      if (r.gender !== gender || r.id === exceptRaceId || r.cancelled) return;
+      const p = picks && picks[r.id]; if (!p || !p.a) return;
+      const w = `${placeLabel(r)}, ${raceName(r).toLowerCase()}`;
+      m[p.a] = w;
+      const eff = G.effectiveAthlete(p, state.results, r.id); if (eff && eff !== p.a) m[eff] = w;
+    }));
+    return m;
+  }
   function combo(race, session, slot) {
     const picks = myPicks();
     const used = G.usedInDesk(session.desk, race.gender, picks, race.id, state.results);
+    const where = usedWhere(session.desk, race.gender, picks, race.id);
     const cur = picks[race.id] || {};
     // Start list disponible : les partants d'abord, par ordre de dossard ; sinon ordre alphabétique, sans numéro.
     const sl = startListOf(race);
@@ -254,7 +268,7 @@
       const taken = used.has(a.id);
       const out = sl && bibOf[a.id] === undefined; // hors start list : grisé (sauf si déjà choisi)
       const dis = !isCur && (taken || out || (slot === 'b' && cur.a === a.id));
-      const meta = [a.nat, a.pending ? 'à régulariser' : '', out ? 'hors start list' : '', taken && slot === 'a' ? 'déjà pris' : ''].filter(Boolean).join(', ');
+      const meta = [a.nat, a.pending ? 'à régulariser' : '', out ? 'hors start list' : '', taken && slot === 'a' ? 'déjà pris' + (where[a.id] ? ' : ' + where[a.id] : '') : ''].filter(Boolean).join(', ');
       return { a, isCur, dis, out, label: (sl && !out ? bibOf[a.id] + ' · ' : '') + listName(a) + (meta ? ` (${meta})` : '') };
     });
     const curItem = items.find((x) => x.isCur);
@@ -1144,6 +1158,7 @@
     const canPick = !race.cancelled && !lockedRace(race) && !!state.me;
     const picks = myPicks()[race.id] || {};
     const used = canPick ? G.usedInDesk(session.desk, race.gender, myPicks(), race.id, state.results) : new Set();
+    const where = canPick ? usedWhere(session.desk, race.gender, myPicks(), race.id) : {};
     const out = sl.rows.filter((r) => !r.ath);
     const when = sl.fetched ? `${F_DAY.format(new Date(sl.fetched))}, ${F_HOUR.format(new Date(sl.fetched))}` : '';
     const rowOf = (id) => sl.rows.find((r) => r.ath === id);
@@ -1159,7 +1174,7 @@
       if (picks.a === r.ath) return `<span class="sl__me">Ton choix</span>${canPick ? `<button type="button" class="sl__btn sl__btn--off" data-slclear="${race.id}|a">Retirer</button>` : ''}`;
       if (picks.b === r.ath) return `<span class="sl__me">Remplaçant</span>${canPick ? `<button type="button" class="sl__btn sl__btn--off" data-slclear="${race.id}|b">Retirer</button>` : ''}`;
       if (!canPick) return '';
-      if (used.has(r.ath)) return '<span class="sl__tag sl__tag--used">déjà pris</span>';
+      if (used.has(r.ath)) return `<span class="sl__tag sl__tag--used">déjà pris${where[r.ath] ? ' : ' + esc(where[r.ath]) : ''}</span>`;
       if (!picks.a) return `<button type="button" class="sl__btn" data-slpick="${race.id}|a|${r.ath}">Choisir</button>`;
       if (!picks.b) return `<button type="button" class="sl__btn sl__btn--sub" data-slpick="${race.id}|b|${r.ath}">Remplaçant</button>`;
       return '';
