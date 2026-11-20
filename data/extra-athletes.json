@@ -84,6 +84,9 @@
   { "id": "kia-suni", "name": "Kia Suni", "fis": "SUNI Kia", "nat": "FIN", "rank": null, "code": "185518", "from": "W02" },
   { "id": "maria-sakai", "name": "Maria Sakai", "fis": "SAKAI Maria", "nat": "JPN", "rank": null, "code": "308647", "from": "W02" },
   { "id": "amelie-bjorksten", "name": "Amelie Björksten", "fis": "BJORKSTEN Amelie", "nat": "FIN", "rank": null, "code": "185516", "from": "W02" },
-  { "id": "nikolina-dragoljevic", "name": "Nikolina Dragoljevic", "fis": "DRAGOLJEVIC Nikolina", "nat": "BIH", "rank": null, "code": "715185", "from": "W02" }
+  { "id": "nikolina-dragoljevic", "name": "Nikolina Dragoljevic", "fis": "DRAGOLJEVIC Nikolina", "nat": "BIH", "rank": null, "code": "715185", "from": "W02" },
+  { "id": "viktoria-zaytseva", "name": "Viktoria Zaytseva", "fis": "ZAYTSEVA Viktoria", "nat": "USA", "rank": null, "code": "6537917", "from": "W03" },
+  { "id": "sophie-mahon", "name": "Sophie Mahon", "fis": "MAHON Sophie", "nat": "AUS", "rank": null, "code": "45439", "from": "W03" },
+  { "id": "sofia-maria-moldovan", "name": "Sofia Maria Moldovan", "fis": "MOLDOVAN Sofia Maria", "nat": "ROU", "rank": null, "code": "465171", "from": "W03" }
  ]
 }
