@@ -134,7 +134,7 @@ button, select, input { font: inherit; color: inherit; }
 .mini__when b { display: block; font-family: var(--display); font-size: 1.4rem; color: var(--nuit); }
 .mini__what .gender { margin-left: .4rem; }
 .mini__pick { grid-column: 2; }
-@media (min-width: 640px) { .mini { grid-template-columns: 3.4rem 1fr minmax(11rem, 14rem); } .mini__pick { grid-column: auto; } }
+@media (min-width: 640px) { .mini { grid-template-columns: 3.4rem 1fr minmax(16rem, 24rem); } .mini__pick { grid-column: auto; } }
 .todo { color: var(--brique); font-weight: 600; }
 
 /* ---------- Desk ---------- */
