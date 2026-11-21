@@ -1680,3 +1680,8 @@ html[data-skin='sombre'] :is(.session__head, .forfait__stub, .grid caption, .des
 .sl__act { flex: 0 1 auto; min-width: 0; max-width: 52%; justify-content: flex-end; }
 .sl__tag--used { white-space: normal; text-align: right; line-height: 1.2; border-radius: .6rem; padding: .1rem .5rem; }
 .sl__row.is-used .sl__n { flex: 1 1 8rem; }
+
+/* Tirage au sort : choix non volontaire (🎲) ou en attente de start list (⏳) */
+.draw { display: inline-block; font-size: .72rem; font-weight: 700; color: var(--nuit); background: rgba(212, 160, 23, .22); border-radius: 999px; padding: .05rem .5rem; }
+.draw--wait { background: rgba(27, 43, 68, .1); }
+p.draw { display: block; background: none; padding: 0; border-radius: 0; font-weight: 600; }

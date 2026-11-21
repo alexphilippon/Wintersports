@@ -17,7 +17,7 @@
       if (!pk || !pk.a || !C.lockedRace(race)) return;
       const eff = G.effectiveAthlete(pk, state.results, race.id);
       const sc = G.scoreRace(race, pk, state.results);
-      const kind = eff === pk.a ? 'titulaire' : eff === pk.b ? 'remplaçant' : 'tiré au sort';
+      const kind = pk.tas ? 'tiré au sort' : eff === pk.a ? 'titulaire' : eff === pk.b ? 'remplaçant' : 'tiré au sort';
       row(eff).pickers.push({ p, kind, pts: sc });
       if (eff !== pk.a) row(pk.a).pickers.push({ p, kind: 'non-partant', pts: 0, out: true });
     });

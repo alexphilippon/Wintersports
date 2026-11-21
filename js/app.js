@@ -379,9 +379,12 @@
       </div>
     </div>`;
   }
+  /** Course verrouillée où le joueur n'a rien validé et dont le tirage au sort n'a pas encore eu lieu (start list pas publiée). */
+  const waitingDraw = (playerId, race) => !race.cancelled && lockedRace(race) && !((state.picks[playerId] || {})[race.id] || {}).a;
+  const WAIT_HTML = '<span class="draw draw--wait">⏳ En attente de tirage au sort</span><span class="sub">Aucun choix à la clôture : tirage dès la start list publiée</span>';
   function pickSummary(playerId, race) {
     const p = (state.picks[playerId] || {})[race.id];
-    if (!p || !p.a) return '<span class="none">Aucun choix</span>';
+    if (!p || !p.a) return waitingDraw(playerId, race) ? WAIT_HTML : '<span class="none">Aucun choix</span>';
     const eff = G.effectiveAthlete(p, state.results, race.id);
     const swapped = p.b && eff === p.b;
     const drawn = p.d && eff === p.d;
@@ -390,7 +393,7 @@
       ? `<span class="who"><s class="who--out">${skn(p.a)}</s>${p.b ? ` <s class="who--out">${skn(p.b)}</s>` : ''} ${skn(p.d)}</span><span class="sub">Tiré au sort</span>`
       : swapped
       ? `<span class="who"><s class="who--out">${skn(p.a)}</s> ${skn(p.b)}</span><span class="sub">Remplaçant en piste</span>`
-      : `<span class="who">${skn(p.a)}</span>${p.tas ? '<span class="sub">Tiré au sort (aucun choix à la clôture)</span>' : ''}${p.b && !fin ? `<span class="sub">Remplaçant : ${skn(p.b)}</span>` : ''}`;
+      : `<span class="who">${skn(p.a)}</span>${p.tas ? '<span class="draw">🎲 Tirage au sort</span><span class="sub">Aucun choix à la clôture : pas un choix volontaire</span>' : ''}${p.b && !fin ? `<span class="sub">Remplaçant : ${skn(p.b)}</span>` : ''}`;
     return `<div class="pickline">${avatarOf(eff)}<div class="pickline__txt">${text}</div></div>`;
   }
   function outcome(race, playerId) {
@@ -514,10 +517,10 @@
         const cls = p.id === state.me ? 'me' : '';
         if (r.cancelled) return `<td class="${cls}"><span class="none">Annulée</span></td>`;
         if (!visible(p.id, r)) return `<td class="${cls}"><span class="none">Révélé au départ</span></td>`;
-        if (!pk || !pk.a) return `<td class="${cls}"><span class="none">Aucun choix</span></td>`;
+        if (!pk || !pk.a) return `<td class="${cls}">${waitingDraw(p.id, r) ? '<span class="draw draw--wait">⏳ Tirage à venir</span>' : '<span class="none">Aucun choix</span>'}</td>`;
         const eff = G.effectiveAthlete(pk, state.results, r.id);
         const sc = G.scoreRace(r, pk, state.results);
-        return `<td class="${cls}"><div class="cell">${avatarOf(eff, 'sm')}<div class="cell__txt"><span class="who" title="${esc(nameOf(eff))}">${skn(eff, surname(nameOf(eff)))}</span>${eff !== pk.a ? '<span class="sub">Remplaçant</span>' : ''}${sc === null ? '' : `<span class="cellpts ${sc > 0 ? 'on' : 'off'}">${sc > 0 ? '+' : ''}${sc}</span>`}</div></div></td>`;
+        return `<td class="${cls}"><div class="cell">${avatarOf(eff, 'sm')}<div class="cell__txt"><span class="who" title="${esc(nameOf(eff))}">${skn(eff, surname(nameOf(eff)))}</span>${pk.tas ? '<span class="draw">🎲 Tirage au sort</span>' : ''}${eff !== pk.a ? '<span class="sub">Remplaçant</span>' : ''}${sc === null ? '' : `<span class="cellpts ${sc > 0 ? 'on' : 'off'}">${sc > 0 ? '+' : ''}${sc}</span>`}</div></div></td>`;
       }).join('');
       return `<tr><th scope="row"><span class="rowhead__day">${dayOf(r.date)}</span> ${fl(placeLabel(r))}<br>${discBadge(r)}<span class="gender gender--${r.gender}">${genderLabel(r)}</span>${r.cancelled || !lockedRace(r) ? '' : `<br><button type="button" class="linkbtn rcbtn" data-racecard="${r.id}">Voir plus…</button>`}</th>${cells}</tr>`;
     }).join('');
@@ -721,11 +724,12 @@
   }
   /** Skieurs effectivement alignés par les joueurs sur une course, et le (ou les) plus choisi(s). */
   function racePeople(race) {
-    const picks = state.players.map((p) => { const pk = (state.picks[p.id] || {})[race.id]; return pk && pk.a ? { p, ath: G.effectiveAthlete(pk, state.results, race.id) } : null; }).filter(Boolean);
+    const picks = state.players.map((p) => { const pk = (state.picks[p.id] || {})[race.id]; return pk && pk.a ? { p, ath: G.effectiveAthlete(pk, state.results, race.id), tas: !!pk.tas } : null; }).filter(Boolean);
+    const waiting = lockedRace(race) ? state.players.filter((p) => waitingDraw(p.id, race)) : [];
     const cnt = {};
     picks.forEach((x) => { cnt[x.ath] = (cnt[x.ath] || 0) + 1; });
     const max = Math.max(0, ...Object.values(cnt));
-    return { picks, cnt, max, top: Object.keys(cnt).filter((a) => cnt[a] === max) };
+    return { picks, cnt, max, waiting, top: Object.keys(cnt).filter((a) => cnt[a] === max) };
   }
   /* ---------- Suivi en direct (après la 1re manche) : data/live.json, écrit par tools/live.js ---------- */
   const hm = (t) => (t ? t.replace(':', 'h') : '');
@@ -761,7 +765,7 @@
     return ` <button type="button" class="rank rank--final" data-racecard="${race.id}" title="Voir le résultat complet">${eff !== pk.a ? `remp. de ${esc(nameOf(pk.a))} · ` : ''}<b>${esc(how)}</b> · ${sc > 0 ? '+' : ''}${sc} pt${Math.abs(sc) > 1 ? 's' : ''} · <u>résultat</u></button>`;
   }
   /** Titulaires qui ne prennent pas le départ : remplaçant du joueur, ou tirage au sort s'il n'en a pas (ou s'il est lui aussi absent). */
-  /** Tirages au sort possibles dès la fin de la 1re manche : graine = temps du vainqueur de la 1re manche (publié avant la 2e), 30 premiers dossards. */
+  /** Tirages au sort possibles dès la fin de la 1re manche : graine = temps du vainqueur de la 1re manche (publié avant la 2e), 20 premiers dossards. */
   function liveDraws(race, lv) {
     const sl = startListOf(race); if (!sl) return {};
     const fake = [];
@@ -803,9 +807,14 @@
     const pts = G.racePoints(race, e.rank) * race.mult, out = e.rank > 30;
     return ` <span class="rk ${out ? 'rk--bad' : e.rank <= 3 ? 'rk--top' : e.rank <= 10 ? 'rk--good' : ''}">${out ? 'hors top 30 · ' : ''}${esc(ordinal(e.rank))}</span><span class="rkpts ${pts > 0 ? 'rkpts--on' : 'rkpts--0'}">${pts > 0 ? '+' : ''}${pts} pt${Math.abs(pts) > 1 ? 's' : ''}</span>`;
   }
+  /** Mention sous la liste des choix : joueurs tirés au sort (choix non volontaire) et joueurs en attente de tirage. */
+  function drawNote(picks, waiting) {
+    const t = picks.filter((x) => x.tas).map((x) => pln(x.p)), w = (waiting || []).map(pln);
+    return `${t.length ? `<p class="sub sh__foot draw">🎲 Tirage au sort (aucun choix à la clôture) : ${t.join(', ')}</p>` : ''}${w.length ? `<p class="sub sh__foot draw draw--wait">⏳ En attente de tirage au sort, start list pas encore publiée : ${w.join(', ')}</p>` : ''}`;
+  }
   function shareTable(race) {
-    const { picks, cnt } = racePeople(race), N = picks.length;
-    if (!N) return '<span class="none">Aucun choix</span>';
+    const { picks, cnt, waiting } = racePeople(race), N = picks.length, volN = picks.filter((x) => !x.tas).length;
+    if (!N) return waiting.length ? drawNote(picks, waiting) : '<span class="none">Aucun choix</span>';
     const mine = picks.find((x) => x.p.id === state.me), res = resOf(race);
     const rows = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || nameOf(a).localeCompare(nameOf(b)));
     const max = Math.max(...Object.values(cnt));
@@ -813,11 +822,11 @@
     const how = (a) => { if (res) return skierResult(race, a, res); if (lv) return liveChip(lv, a, race); return ''; };
     const pts = mine ? ptsChip(state.me, race) : '';
     return `<ul class="gauges sh">${rows.map((a) => gauge(a, Math.round(100 * cnt[a] / max), (mine && mine.ath === a ? ' <em class="sh__me">ton choix</em>' : '') + how(a), mine && mine.ath === a ? 'gauge--mine' : '', `${cnt[a]} joueur${cnt[a] > 1 ? 's' : ''}`)).join('')}</ul>
-      <p class="sub sh__foot">${N} joueur${N > 1 ? 's ont validé leur choix' : ' a validé son choix'}${mine ? '' : ' (pas toi : aucun choix)'}${pts ? ` · tes points ${pts}` : ''}</p>`;
+      <p class="sub sh__foot">${volN} joueur${volN > 1 ? 's ont validé leur choix' : ' a validé son choix'}${mine ? '' : ' (pas toi : aucun choix)'}${pts ? ` · tes points ${pts}` : ''}</p>${drawNote(picks, waiting)}`;
   }
   /** Course terminée : le résultat (podium + tous les skieurs choisis), même présentation que les jauges. Noms des joueurs si peu nombreux, sinon « N joueurs » cliquable. */
   function resultTable(race) {
-    const { picks, cnt } = racePeople(race), N = picks.length, res = resOf(race);
+    const { picks, cnt, waiting } = racePeople(race), N = picks.length, volN = picks.filter((x) => !x.tas).length, res = resOf(race);
     if (!N || !res) return shareTable(race);
     const mine = picks.find((x) => x.p.id === state.me);
     const rk = (a) => { const e = res.find((x) => x.ath === a); return e && !e.status ? e.rank : e ? 1e4 : 2e4; };
@@ -831,7 +840,7 @@
     };
     const pts = mine ? ptsChip(state.me, race) : '';
     return `<ul class="gauges sh rs__l">${ids.map(row).join('')}</ul>
-      <p class="sub sh__foot">${N} joueur${N > 1 ? 's ont validé leur choix' : ' a validé son choix'}${mine ? '' : ' (pas toi : aucun choix)'}</p>`;
+      <p class="sub sh__foot">${volN} joueur${volN > 1 ? 's ont validé leur choix' : ' a validé son choix'}${mine ? '' : ' (pas toi : aucun choix)'}</p>${drawNote(picks, waiting)}`;
   }
   const LOCK_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.2" fill="currentColor" fill-opacity=".18"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/></svg>';
   const FLAG_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-2.5 4 2.5 4H5" fill="currentColor" fill-opacity=".2"/></svg>';
@@ -1120,7 +1129,8 @@
       <h3>Quand ça ne se passe pas comme prévu</h3>
       <ul>
         <li><strong>Chute ou abandon</strong> : 0 point, et le skieur reste « grillé » dans ce desk.</li>
-        <li><strong>Non-partant</strong> : ton remplaçant prend la place, et lui seul est grillé. Sans remplaçant, l’organisateur fait un tirage au sort.</li>
+        <li><strong>Non-partant</strong> : ton remplaçant prend la place, et lui seul est grillé. Sans remplaçant valable, tirage au sort après coup (résultat de la 1re manche, ou de la course en DH et SG).</li>
+        <li><strong>Oubli de pronostic</strong> : si tu n’as rien validé à la clôture, tu es tiré au sort parmi les <b>20 premiers dossards</b> de la start list (un tirage propre à chaque joueur, hors skieurs déjà pris ou présélectionnés dans ton desk). Sans start list publiée, le tirage attend sa sortie ; le choix est alors signalé « 🎲 Tirage au sort » dans les listes et les stats.</li>
         <li><strong>Course annulée</strong> : personne ne marque, ton skieur est libéré.</li>
         <li><strong>Course reportée</strong> : ton choix est gardé, modifiable jusqu’au nouveau départ.</li>
       </ul>
@@ -1979,7 +1989,7 @@
       const d = (state.draws[r.id] || {})[state.me];
       openModal(`<div class="gate"><p class="gate__kicker">Tirage au sort</p>
         <h2 class="gate__title">Tu n’avais pas de choix à la clôture</h2>
-        <p class="gate__lead"><strong>${fl(placeLabel(r))}</strong> ${discBadge(r)} <span class="gender gender--${r.gender}">${genderLabel(r)}</span> : le tirage au sort te donne <strong>${esc(nameOf(pk.a))}</strong>${d ? ` (1 sur ${d.n}, parmi les 30 premiers dossards)` : ''}.</p>
+        <p class="gate__lead"><strong>${fl(placeLabel(r))}</strong> ${discBadge(r)} <span class="gender gender--${r.gender}">${genderLabel(r)}</span> : le tirage au sort te donne <strong>${esc(nameOf(pk.a))}</strong>${d ? ` (1 sur ${d.n}, parmi les 20 premiers dossards)` : ''}.</p>
         <button type="button" class="btn btn--brique gate__go" data-gate-go="${sessionOf(r).id}">Voir la course</button></div>`);
       return;
     }

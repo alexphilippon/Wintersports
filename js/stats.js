@@ -25,7 +25,7 @@
           p, race, pk, eff, entry, rank, status: entry ? entry.status || '' : '', pts, dns, nopick: false,
           bubble: !dns && !(rank && G.racePoints(race, rank) > 0),
           win: rank === 1, podium: !!rank && rank <= 3, top10: !!rank && rank <= 10,
-          tas: !!pk.d && eff === pk.d && eff !== pk.a && eff !== pk.b,
+          tas: !!pk.tas || (!!pk.d && eff === pk.d && eff !== pk.a && eff !== pk.b),
         });
       });
     });

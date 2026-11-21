@@ -102,13 +102,13 @@
     return { ath: candidates[index], index, n: candidates.length };
   }
   const deskIdOf = (raceId) => { const s = sessionOfRace(raceId); return s === D.WORLDS ? 0 : s.desk; };
-  /** Tirages à faire : titulaire ET remplaçant absents (DNS confirmés). Un tirage par joueur concerné, parmi les 30 premiers dossards
+  /** Tirages à faire : titulaire ET remplaçant absents (DNS confirmés). Un tirage par joueur concerné, parmi les 20 premiers dossards
       du départ (manche 1 en GS/SL), hors skieurs déjà grillés par ce joueur dans le desk et hors non-partants.
       meta : { start:[{bib,ath}], seed } par course. Retourne { raceId: { playerId: {ath, index, n, seed, candidates} } }. */
   function autoDraws(results, meta, picksByPlayer, opts) {
     const out = {};
     const o = opts || {};
-    const ids = (m) => m.start.slice().sort((x, y) => x.bib - y.bib).slice(0, 30);
+    const ids = (m) => m.start.slice().sort((x, y) => x.bib - y.bib).slice(0, 20);
     // Joueurs sans choix : copie de travail, pour qu'un skieur tiré une 1re fois soit grillé pour les courses suivantes du desk
     const work = {};
     Object.keys(picksByPlayer).forEach((pid) => { work[pid] = Object.assign({}, picksByPlayer[pid]); });
@@ -141,7 +141,7 @@
         const burnt = usedInDesk(deskIdOf(raceId), race.gender, picksByPlayer[pid], raceId, results);
         const cands = ids(m).map((x) => x.ath)
           .filter((id) => !burnt.has(id) && !isDNS(results, raceId, id));
-        // graine : la liste de départ elle-même (30 premiers dossards, par ordre de dossard) : connue dès la start list, avant la 1re manche
+        // graine : la liste de départ elle-même (20 premiers dossards, par ordre de dossard) : connue dès la start list, avant la 1re manche
         const sig = ids(m).map((x) => x.ath || '?').join(',');
         const seed = `${raceId}|${pid}|${sig}`;
         const d = drawSkier(seed, cands);
