@@ -73,7 +73,15 @@
       auth.onAuthStateChanged(async (u) => {
         if (!u) { current = null; resolved = true; authCbs.forEach((cb) => cb(null)); return; }
         let name = u.email;
-        try { const d = await db.doc('players/' + u.uid).get(); if (d.exists) name = d.data().name || name; } catch (e) { /* pas encore créé */ }
+        let hasProfile = null;
+        try { const d = await db.doc('players/' + u.uid).get(); hasProfile = d.exists; if (d.exists) name = d.data().name || name; } catch (e) { /* lecture impossible : on ne touche à rien */ }
+        // Inscription interrompue (la fiche joueur n'a pas été créée alors que le compte existe) : le joueur jouait mais n'apparaissait dans aucun classement. On la recrée.
+        if (hasProfile === false) {
+          let nm = u.displayName || '';
+          if (!nm) { try { const c = await db.doc('contacts/' + u.uid).get(); if (c.exists && c.data().name && c.data().name !== u.email) nm = c.data().name; } catch (e) { /* ignoré */ } }
+          name = nm || String(u.email || '').split('@')[0] || u.uid;
+          try { await db.doc('players/' + u.uid).set({ name }); } catch (e) { /* réessayé à la prochaine connexion */ }
+        }
         try { await db.doc('contacts/' + u.uid).set({ email: u.email, name }, { merge: true }); await db.doc('players/' + u.uid).update({ email: FV.delete() }); } catch (e) { /* ignoré */ }
         current = { uid: u.uid, email: u.email, name }; resolved = true; authCbs.forEach((cb) => cb(current));
       });
