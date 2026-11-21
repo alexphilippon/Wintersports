@@ -105,20 +105,44 @@
   /** Tirages à faire : titulaire ET remplaçant absents (DNS confirmés). Un tirage par joueur concerné, parmi les 30 premiers dossards
       du départ (manche 1 en GS/SL), hors skieurs déjà grillés par ce joueur dans le desk et hors non-partants.
       meta : { start:[{bib,ath}], seed } par course. Retourne { raceId: { playerId: {ath, index, n, seed, candidates} } }. */
-  function autoDraws(results, meta, picksByPlayer) {
+  function autoDraws(results, meta, picksByPlayer, opts) {
     const out = {};
-    Object.keys(meta || {}).forEach((raceId) => {
+    const o = opts || {};
+    const ids = (m) => m.start.slice().sort((x, y) => x.bib - y.bib).slice(0, 30);
+    // Joueurs sans choix : copie de travail, pour qu'un skieur tiré une 1re fois soit grillé pour les courses suivantes du desk
+    const work = {};
+    Object.keys(picksByPlayer).forEach((pid) => { work[pid] = Object.assign({}, picksByPlayer[pid]); });
+    (o.players || []).forEach((pid) => { if (!work[pid]) work[pid] = {}; });
+    Object.keys(meta || {}).sort((x, y) => {
+      const rx = raceOf(x), ry = raceOf(y);
+      return rx && ry ? raceStart(rx) - raceStart(ry) : 0;
+    }).forEach((raceId) => {
       const m = meta[raceId], race = raceOf(raceId);
-      if (!race || race.cancelled || !results[raceId] || !m.start) return;
+      if (!race || race.cancelled || !m.start) return;
+      // 1) Aucun choix à la clôture : tirage au sort dès que la course est verrouillée (liste de départ publiée)
+      if (o.locked && o.locked(raceId)) {
+        (o.players || []).forEach((pid) => {
+          const pk = (work[pid] || {})[raceId];
+          if (pk && pk.a) return;
+          const burnt = usedInDesk(deskIdOf(raceId), race.gender, work[pid], raceId, results);
+          const cands = ids(m).map((x) => x.ath).filter((id) => id && !burnt.has(id) && !(results && results[raceId] && isDNS(results, raceId, id)));
+          const sig = ids(m).map((x) => x.ath || '?').join(',');
+          const seed = `${raceId}|${pid}|sans-choix|${sig}`;
+          const d = drawSkier(seed, cands);
+          if (d) { (out[raceId] = out[raceId] || {})[pid] = Object.assign({ seed, candidates: cands, kind: 'nopick' }, d); work[pid][raceId] = { a: d.ath, auto: true }; }
+        });
+      }
+      // 2) Titulaire ET remplaçant non-partants (DNS confirmés)
+      if (m.pre || !results[raceId]) return;
       Object.keys(picksByPlayer).forEach((pid) => {
         const pk = (picksByPlayer[pid] || {})[raceId];
         if (!pk || !pk.a || pk.d || !isDNS(results, raceId, pk.a)) return;
         if (pk.b && !isDNS(results, raceId, pk.b)) return;
         const burnt = usedInDesk(deskIdOf(raceId), race.gender, picksByPlayer[pid], raceId, results);
-        const cands = m.start.slice().sort((x, y) => x.bib - y.bib).slice(0, 30).map((x) => x.ath)
+        const cands = ids(m).map((x) => x.ath)
           .filter((id) => !burnt.has(id) && !isDNS(results, raceId, id));
         // graine : la liste de départ elle-même (30 premiers dossards, par ordre de dossard) : connue dès la start list, avant la 1re manche
-        const sig = m.start.slice().sort((x, y) => x.bib - y.bib).slice(0, 30).map((x) => x.ath || '?').join(',');
+        const sig = ids(m).map((x) => x.ath || '?').join(',');
         const seed = `${raceId}|${pid}|${sig}`;
         const d = drawSkier(seed, cands);
         if (d) (out[raceId] = out[raceId] || {})[pid] = Object.assign({ seed, candidates: cands }, d);

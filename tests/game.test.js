@@ -161,3 +161,16 @@ console.log('Tous les tests passent.');
   assert.strictEqual(G.pickAnalysis(race, 'me', { me: pk('x1'), a: pk('x4'), b: pk('x5') }, res, ids).flakes, 5, 'victoire face au peloton = 5 flocons');
   assert.strictEqual(G.pickAnalysis(race, 'me', { a: pk('x1') }, res, ids), null);
 }
+
+/* Tirage au sort d'un joueur sans choix à la clôture : dès le verrouillage, sans attendre de résultat */
+{
+  const start = [1, 2, 3, 4, 5].map((i) => ({ bib: i, ath: 'w-a' + i }));
+  const picks = { u1: { W01: { a: 'w-a1' } }, u2: { W03: { a: 'w-a2' } } };
+  const meta = { W03: { pre: true, start } };
+  const open = G.autoDraws({}, meta, picks, { players: ['u1', 'u2', 'u3'], locked: () => false });
+  assert.deepStrictEqual(open, {}, 'avant la clôture : aucun tirage');
+  const d = G.autoDraws({}, meta, picks, { players: ['u1', 'u2', 'u3'], locked: () => true }).W03;
+  assert.ok(d.u1 && d.u3 && !d.u2, 'seuls les joueurs sans choix sont tirés');
+  assert.strictEqual(d.u1.n, 4, 'le skieur déjà grillé dans le desk est exclu');
+  assert.strictEqual(d.u1.ath, G.autoDraws({}, meta, picks, { players: ['u1'], locked: () => true }).W03.u1.ath, 'reproductible');
+}

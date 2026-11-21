@@ -137,8 +137,17 @@
     Object.entries(state.raw.results).forEach(([rid, entries]) => { res[rid] = (entries || []).map((e) => Object.assign({}, e, { ath: canon(e.ath) })); delete meta[rid]; });
     state.results = res;
     Object.values(res).forEach((l) => l.forEach((e) => { if (e.name && !ATH[e.ath]) RESNAMES[e.ath] = prettyFis(e.name); }));
-    state.draws = G.autoDraws(res, meta, picks); // tirages au sort : fonction pure des données publiques, donc vérifiables
-    Object.entries(state.draws).forEach(([rid, byPlayer]) => Object.entries(byPlayer).forEach(([pid, d]) => { picks[pid][rid] = Object.assign({}, picks[pid][rid], { d: d.ath, auto: true }); }));
+    // Courses verrouillées dont la liste de départ est publiée : permet le tirage au sort des joueurs sans choix (sans attendre les résultats)
+    Object.values(D.RACES).forEach((r) => {
+      if (meta[r.id] || r.cancelled || !lockedRace(r)) return;
+      const sl = startListOf(r); if (!sl) return;
+      meta[r.id] = { pre: true, start: sl.rows.filter((x) => x.ath).map((x) => ({ bib: x.bib, ath: x.ath })) };
+    });
+    state.draws = G.autoDraws(res, meta, picks, { players: state.players.map((p) => p.id), locked: (rid) => state.picksReady && lockedRace(G.raceOf(rid)) }); // tirages au sort : fonction pure des données publiques, donc vérifiables
+    Object.entries(state.draws).forEach(([rid, byPlayer]) => Object.entries(byPlayer).forEach(([pid, d]) => {
+      picks[pid] = picks[pid] || {};
+      picks[pid][rid] = d.kind === 'nopick' ? { a: d.ath, auto: true, tas: true } : Object.assign({}, picks[pid][rid], { d: d.ath, auto: true });
+    }));
     state.picks = picks;
     scheduleRender();
   }
@@ -148,7 +157,7 @@
         // un simple « vu à l'instant » n'oblige pas à redessiner la page : seulement l'onglet Admin
         const sig = JSON.stringify(state.players.map((p) => [p.id, p.name, p.photo, p.blocked]));
         const same = sig === state.playersSig; state.playersSig = sig;
-        if (!same || state.tab === 'adm') scheduleRender(); },
+        if (!same) recompute(); else if (state.tab === 'adm') scheduleRender(); },
       picks: (m) => { state.raw.picks = m; state.picksReady = true; state.syncErr = false; recompute(); },
       error: () => { state.syncErr = true; scheduleRender(); },
       results: (m) => { state.raw.results = m; recompute(); },
@@ -381,7 +390,7 @@
       ? `<span class="who"><s class="who--out">${skn(p.a)}</s>${p.b ? ` <s class="who--out">${skn(p.b)}</s>` : ''} ${skn(p.d)}</span><span class="sub">Tiré au sort</span>`
       : swapped
       ? `<span class="who"><s class="who--out">${skn(p.a)}</s> ${skn(p.b)}</span><span class="sub">Remplaçant en piste</span>`
-      : `<span class="who">${skn(p.a)}</span>${p.b && !fin ? `<span class="sub">Remplaçant : ${skn(p.b)}</span>` : ''}`;
+      : `<span class="who">${skn(p.a)}</span>${p.tas ? '<span class="sub">Tiré au sort (aucun choix à la clôture)</span>' : ''}${p.b && !fin ? `<span class="sub">Remplaçant : ${skn(p.b)}</span>` : ''}`;
     return `<div class="pickline">${avatarOf(eff)}<div class="pickline__txt">${text}</div></div>`;
   }
   function outcome(race, playerId) {
@@ -1957,6 +1966,24 @@
       return;
     }
   }
+  /* ---------- Alerte au joueur sans choix à la clôture : tirage au sort, une fois par course ---------- */
+  const NP_KEY = 'skigame.nopickalert';
+  function noPickAlertCheck() {
+    if (!state.user || !state.me) return;
+    const m = $('#modal'); if (!m || !m.hidden) return;
+    let seen = {}; try { seen = JSON.parse(localStorage.getItem(NP_KEY) || '{}') || {}; } catch (e) { /* ignoré */ }
+    for (const r of Object.values(D.RACES)) {
+      const pk = (state.picks[state.me] || {})[r.id];
+      if (!pk || !pk.tas || seen[r.id]) continue;
+      seen[r.id] = 1; try { localStorage.setItem(NP_KEY, JSON.stringify(seen)); } catch (e) { /* ignoré */ }
+      const d = (state.draws[r.id] || {})[state.me];
+      openModal(`<div class="gate"><p class="gate__kicker">Tirage au sort</p>
+        <h2 class="gate__title">Tu n’avais pas de choix à la clôture</h2>
+        <p class="gate__lead"><strong>${fl(placeLabel(r))}</strong> ${discBadge(r)} <span class="gender gender--${r.gender}">${genderLabel(r)}</span> : le tirage au sort te donne <strong>${esc(nameOf(pk.a))}</strong>${d ? ` (1 sur ${d.n}, parmi les 30 premiers dossards)` : ''}.</p>
+        <button type="button" class="btn btn--brique gate__go" data-gate-go="${sessionOf(r).id}">Voir la course</button></div>`);
+      return;
+    }
+  }
   const MV_KEY = 'skigame.moved';
   const mvGet = () => { try { return JSON.parse(localStorage.getItem(MV_KEY) || '{}') || {}; } catch (e) { return {}; } };
   function movedCheck() {
@@ -1983,7 +2010,9 @@
   setInterval(() => {
     const c = $('#countdown');
     if (c) c.innerHTML = countdownText(new Date(c.dataset.dl));
-    if (!document.hidden) { movedCheck(); dnsAlertCheck(); }
+    const lk = Object.values(D.RACES).filter((r) => lockedRace(r)).length;
+    if (lk !== state.lockN) { state.lockN = lk; recompute(); }   // une clôture vient de passer : les tirages au sort des joueurs sans choix se déclenchent
+    if (!document.hidden) { movedCheck(); dnsAlertCheck(); noPickAlertCheck(); }
     gateCheck();
   }, 30000);
 
@@ -2019,7 +2048,7 @@
   loadTimes(); setInterval(() => { if (document.visibilityState === 'visible') loadTimes(); }, 60000);
   const loadLive = () => fetch('data/live.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { const sg = JSON.stringify(j); if (sg !== state.liveSig) { state.liveSig = sg; state.live = j; scheduleRender(); setTimeout(dnsAlertCheck, 600); } } }).catch(() => {});
   loadLive(); setInterval(() => { if (document.visibilityState === 'visible') loadLive(); }, 60000);
-  fetch('data/startlists.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.startlists = j; scheduleRender(); setTimeout(dnsAlertCheck, 800); } }).catch(() => {});
+  fetch('data/startlists.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.races) { state.startlists = j; recompute(); scheduleRender(); setTimeout(dnsAlertCheck, 800); setTimeout(noPickAlertCheck, 1200); } }).catch(() => {});
 
   render();
   window.SKI_APP = { state, render, store };
