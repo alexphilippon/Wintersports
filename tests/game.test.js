@@ -174,10 +174,3 @@ console.log('Tous les tests passent.');
   assert.strictEqual(d.u1.n, 4, 'le skieur déjà grillé dans le desk est exclu');
   assert.strictEqual(d.u1.ath, G.autoDraws({}, meta, picks, { players: ['u1'], locked: () => true }).W03.u1.ath, 'reproductible');
 }
-
-/* Course du lendemain sans start list à la clôture : tirage sur la liste figée de la course précédente (pool), sans attendre */
-{
-  const pool = { M03: [1, 2, 3, 4, 5].map((i) => ({ bib: i, ath: 'm-a' + i })) };
-  const d = G.autoDraws({}, {}, { u1: {} }, { pool, players: ['u1', 'u2'], locked: () => true }).M03;
-  assert.ok(d && d.u1 && d.u2, 'tirage pour chaque joueur sans choix, sans start list ni résultat');
-}

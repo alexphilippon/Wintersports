@@ -113,23 +113,20 @@
     const work = {};
     Object.keys(picksByPlayer).forEach((pid) => { work[pid] = Object.assign({}, picksByPlayer[pid]); });
     (o.players || []).forEach((pid) => { if (!work[pid]) work[pid] = {}; });
-    // o.pool : { raceId: [{bib, ath}] } liste figée servant au seul tirage des joueurs sans choix (voir app.js)
-    const keys = Array.from(new Set(Object.keys(meta || {}).concat(Object.keys(o.pool || {}))));
-    keys.sort((x, y) => {
+    Object.keys(meta || {}).sort((x, y) => {
       const rx = raceOf(x), ry = raceOf(y);
       return rx && ry ? raceStart(rx) - raceStart(ry) : 0;
     }).forEach((raceId) => {
-      const m = (meta || {})[raceId] || { pre: true, start: o.pool[raceId] }, race = raceOf(raceId);
+      const m = meta[raceId], race = raceOf(raceId);
       if (!race || race.cancelled || !m.start) return;
-      const base = (o.pool && o.pool[raceId]) || m.start;
       // 1) Aucun choix à la clôture : tirage au sort dès que la course est verrouillée (liste de départ publiée)
       if (o.locked && o.locked(raceId)) {
         (o.players || []).forEach((pid) => {
           const pk = (work[pid] || {})[raceId];
           if (pk && pk.a) return;
           const burnt = usedInDesk(deskIdOf(raceId), race.gender, work[pid], raceId, results);
-          const cands = ids({ start: base }).map((x) => x.ath).filter((id) => id && !burnt.has(id) && !(results && results[raceId] && isDNS(results, raceId, id)));
-          const sig = ids({ start: base }).map((x) => x.ath || '?').join(',');
+          const cands = ids(m).map((x) => x.ath).filter((id) => id && !burnt.has(id) && !(results && results[raceId] && isDNS(results, raceId, id)));
+          const sig = ids(m).map((x) => x.ath || '?').join(',');
           const seed = `${raceId}|${pid}|sans-choix|${sig}`;
           const d = drawSkier(seed, cands);
           if (d) { (out[raceId] = out[raceId] || {})[pid] = Object.assign({ seed, candidates: cands, kind: 'nopick' }, d); work[pid][raceId] = { a: d.ath, auto: true }; }
