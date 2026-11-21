@@ -34,7 +34,17 @@
     const shares = rows.filter(picked).map((r) => { const n = r.pickers.filter((x) => !x.out).length; return Object.assign(r, { n, N, pct: N ? Math.round(100 * n / N) : 0 }); })
       .filter((r) => r.n > 0).sort((a, b) => b.n - a.n || (a.rank || 99) - (b.rank || 99) || C.nameOf(a.ath).localeCompare(C.nameOf(b.ath), 'fr'));
     const podium = res ? res.filter((e) => !e.status && e.rank && e.rank <= 3).sort((a, b) => a.rank - b.rank) : [];
-    return { res, rows, shares, podium, N, show: C.lockedRace(race) };
+    const waiting = C.lockedRace(race) && !race.cancelled && C.waitingDraw ? state.players.filter((p) => C.waitingDraw(p.id, race)) : [];
+    const drawn = [];
+    rows.forEach((r) => r.pickers.forEach((x) => { if (x.kind === 'tiré au sort' && !drawn.includes(x.p)) drawn.push(x.p); }));
+    return { res, rows, shares, podium, N, waiting, drawn, show: C.lockedRace(race) };
+  }
+  /** Mentions « choix non volontaire » : joueurs tirés au sort / en attente de tirage (start list pas encore publiée). */
+  function drawNotes(all, emoji) {
+    const L = [];
+    if (all.drawn.length) L.push(`${emoji ? '🎲 ' : ''}Tirage au sort (aucun choix à la clôture) : ${all.drawn.map((p) => p.name).join(', ')}`);
+    if (all.waiting.length) L.push(`${emoji ? '⏳ ' : ''}En attente de tirage au sort (start list pas encore publiée) : ${all.waiting.map((p) => p.name).join(', ')}`);
+    return L;
   }
   const gname = (r) => `${C.discLabel(r)} ${C.genderLabel(r).toLowerCase()}`;   // « Géant messieurs »
   const titleOf = (race) => `${C.placeLabel(race)} · ${gname(race)}`;
@@ -43,17 +53,18 @@
 
   /** Message à coller (WhatsApp) : choix seuls avant le résultat, résultat + choix ensuite. */
   function raceTextPre(race) {
-    const { shares, res, podium, N } = raceRows(race);
+    const all0 = raceRows(race), { shares, res, podium, N } = all0;
     const L = [`🎿 *${titleOf(race)}*`, `📅 ${C.dayOf(race.date)}`];
-    if (!shares.length) { L.push('', '🤷 Aucun choix pour l’instant.'); return L.join('\n'); }
+    if (!shares.length) { L.push('', '🤷 Aucun choix pour l’instant.'); drawNotes(all0, true).forEach((n) => L.push('', n)); return L.join('\n'); }
     L.push('', res ? '🏁 *Qui avait pris qui*' : '👀 *Qui a pris qui*', '');
     const MD = ['🥇', '🥈', '🥉'];
     shares.forEach((r) => {
-      const who = r.pickers.map((x) => x.p.name + (x.kind === 'remplaçant' ? ' (remplaçant)' : x.kind === 'tiré au sort' ? ' (tirage au sort)' : x.out ? ' (non-partant)' : '')).join(', ');
+      const who = r.pickers.map((x) => x.p.name + (x.kind === 'remplaçant' ? ' (remplaçant)' : x.kind === 'tiré au sort' ? ' (🎲 tirage au sort)' : x.out ? ' (non-partant)' : '')).join(', ');
       const lead = res && r.rank && !r.status && r.rank <= 3 ? MD[r.rank - 1] : res && r.status ? '🚫' : '⛷️';
       const sc = res ? ` · ${how(r)}${r.rank && !r.status ? ` · *${C.G.racePoints(race, r.rank) * race.mult} pts*` : ''}` : '';
       L.push(`${lead} *${C.nameOf(r.ath)}* — ${r.n}/${N}${sc}`, `      👥 ${who}`);
     });
+    drawNotes(all0, true).forEach((n) => L.push('', n));
     if (podium.length) L.push('', '🏆 *Podium* : ' + podium.map((e) => `${MD[e.rank - 1] || e.rank + '.'} ${C.nameOf(e.ath)}`).join(' · '));
     L.push('', '🔗 skigame-2627.vercel.app');
     return L.join('\n');
@@ -68,13 +79,14 @@
     if (!show) return head + '<p class="hint">Les choix de chacun seront visibles au départ de la première course de la session.</p>';
     const { shares, podium, N } = all;
     const body = shares.length ? `<ol class="rc__list">${shares.map((r) => {
-      const chips = r.pickers.map((x) => `<span class="rc__chip${x.p.id === C.state.me ? ' me' : ''}${x.out ? ' is-out' : ''}${res && !x.out && !x.pts ? ' is-zero' : ''}" title="${esc(x.kind)}">${C.pln(x.p)}${x.kind === 'remplaçant' ? ' <i>rempl.</i>' : x.kind === 'tiré au sort' ? ' <i>tirage</i>' : x.out ? ' <i>non-partant</i>' : ''}${res && !x.out && x.pts != null ? `<b>${x.pts > 0 ? '+' : ''}${x.pts}</b>` : ''}</span>`).join('');
+      const chips = r.pickers.map((x) => `<span class="rc__chip${x.p.id === C.state.me ? ' me' : ''}${x.out ? ' is-out' : ''}${res && !x.out && !x.pts ? ' is-zero' : ''}" title="${esc(x.kind)}">${C.pln(x.p)}${x.kind === 'remplaçant' ? ' <i>rempl.</i>' : x.kind === 'tiré au sort' ? ' <i>🎲 tirage</i>' : x.out ? ' <i>non-partant</i>' : ''}${res && !x.out && x.pts != null ? `<b>${x.pts > 0 ? '+' : ''}${x.pts}</b>` : ''}</span>`).join('');
       const mine = r.pickers.some((x) => x.p.id === C.state.me && !x.out);
       return `<li class="rc__row${mine ? ' is-mine' : ''}"><span class="rc__rk">${res ? (r.status ? esc(r.status) : r.rank ? r.rank : '–') : ''}</span>${C.avatarOf(r.ath, 'sm')}<span class="rc__sk">${C.skn(r.ath)} <b class="rc__pct">${r.n}/${N}</b></span><span class="rc__bar"><i style="width:${Math.max(r.pct, 3)}%"></i></span><span class="rc__who">${chips}</span></li>`;
     }).join('')}</ol>` : '<p class="hint">Aucun choix pour cette course.</p>';
     const pod = podium.length ? `<p class="rc__pod"><b>Podium</b> ${podium.map((e) => `${e.rank}. ${esc(C.nameOf(e.ath))}`).join(' · ')}</p>` : '';
     const note = res ? '' : '<p class="hint">Résultat pas encore saisi.</p>';
-    return `${head}${note}${res ? fullHtml(race) : ''}${res ? '' : pod}${res ? '' : body}<div class="rc__act"><button type="button" class="btn" data-rc-copy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-jpg="${race.id}">Image JPG</button></div>${res ? `<p class="rf__sub">Classement général des joueurs (mise à jour)</p><div class="rc__act"><button type="button" class="btn" data-rc-gcopy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-gjpg="${race.id}">Image JPG</button></div>` : ''}<p class="auth__err" id="rc-msg" role="status"></p>`;
+    const dn = drawNotes(all, true).map((t, i) => `<p class="rc__draw${t.startsWith('⏳') ? ' rc__draw--wait' : ''}">${esc(t)}</p>`).join('');
+    return `${head}${note}${res ? fullHtml(race) : ''}${res ? '' : pod}${res ? '' : body}${dn}<div class="rc__act"><button type="button" class="btn" data-rc-copy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-jpg="${race.id}">Image JPG</button></div>${res ? `<p class="rf__sub">Classement général des joueurs (mise à jour)</p><div class="rc__act"><button type="button" class="btn" data-rc-gcopy="${race.id}">Copier le message</button><button type="button" class="btn btn--ghost" data-rc-gjpg="${race.id}">Image JPG</button></div>` : ''}<p class="auth__err" id="rc-msg" role="status"></p>`;
   }
 
   /* ---------- Résultat complet : classement des joueurs + classement des skieurs (temps) ---------- */
@@ -177,9 +189,11 @@
       const lines = wrap(ctx0, txt, whoW);
       return { r, lines, h: Math.max(84, 28 + lines.length * 36) };
     });
+    const dnotes = drawNotes(all, false).map((t) => wrap(ctx0, t, W - 2 * padX)).reduce((a, b) => a.concat(b), []);
+    const noteH = dnotes.length ? 24 + dnotes.length * 38 : 0;
     const headH = all.podium.length ? 290 : 250, footH = 90;
     let bodyH = lay.reduce((s, l) => s + l.h, 0);
-    const H = Math.min(Math.max(headH + bodyH + footH, 1080), 2400);
+    const H = Math.min(Math.max(headH + bodyH + noteH + footH, 1080), 2400);
     const K = TH[document.documentElement.getAttribute('data-skin') || document.documentElement.getAttribute('data-theme')] || TH.sapin;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     g.fillStyle = K.bg; g.fillRect(0, 0, W, H);
@@ -198,7 +212,7 @@
     if (all.podium.length) { g.font = `600 26px ${F}`; g.fillStyle = K.sub; g.fillText('Podium : ' + all.podium.map((e) => `${e.rank}. ${C.nameOf(e.ath)}`).join('  ·  '), padX, 250); }
     let y = headH;
     const imgs = await Promise.all(lay.map((l) => loadImg(`img/athletes/${l.r.ath}.jpg`)));
-    const extra = H - (headH + bodyH + footH); const gap = extra > 0 ? Math.min(extra / (lay.length + 1), 18) : 0; y += gap;
+    const extra = H - (headH + bodyH + noteH + footH); const gap = extra > 0 ? Math.min(extra / (lay.length + 1), 18) : 0; y += gap;
     lay.forEach((l, i) => {
       const r = l.r, h = l.h, cy = y + h / 2;
       if (i % 2) { g.fillStyle = K.band; g.fillRect(0, y, W, h); }
@@ -216,6 +230,7 @@
       l.lines.forEach((s, k) => g.fillText(s, whoX, cy + 10 - ((l.lines.length - 1) * 18) + k * 36));
       y += h;
     });
+    if (dnotes.length) { g.fillStyle = K.ink; g.font = `italic 600 27px ${F}`; dnotes.forEach((t, k) => g.fillText(t, padX, H - footH - noteH + 40 + k * 38)); }
     g.fillStyle = K.foot; g.fillRect(0, H - footH, W, footH);
     g.fillStyle = K.footT; g.font = `600 26px ${F}`; g.textAlign = 'center'; g.fillText('skigame-2627.vercel.app', W / 2, H - footH / 2 + 9); g.textAlign = 'left';
     return cv;
