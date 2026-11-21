@@ -143,14 +143,19 @@
       const sl = startListOf(r); if (!sl) return;
       meta[r.id] = { pre: true, start: sl.rows.filter((x) => x.ath).map((x) => ({ bib: x.bib, ath: x.ath })) };
     });
-    state.draws = G.autoDraws(res, meta, picks, { legacy30: ['W03'], players: state.players.map((p) => p.id), locked: (rid) => state.picksReady && lockedRace(G.raceOf(rid)) }); // tirages au sort : fonction pure des données publiques, donc vérifiables
+    // Un joueur n'est tiré au sort que pour les courses clôturées APRÈS son premier choix : un nouvel inscrit ne reçoit pas de tirages rétroactifs
+    const tsOf = (v) => (typeof v === 'number' ? v : v && typeof v.toMillis === 'function' ? v.toMillis() : v && typeof v.seconds === 'number' ? v.seconds * 1000 : 0);
+    const firstPick = {};
+    Object.entries(state.raw.picks || {}).forEach(([uid, m]) => Object.values(m || {}).forEach((p) => { if (p && typeof p === 'object' && p.a) { const t = tsOf(p.ts); firstPick[uid] = firstPick[uid] === undefined ? t : Math.min(firstPick[uid], t); } }));
+    const eligible = (pid, rid) => { const r = G.raceOf(rid); return firstPick[pid] !== undefined && !!r && firstPick[pid] < G.raceLockTime(r).getTime(); };
+    state.draws = G.autoDraws(res, meta, picks, { eligible, legacy30: ['W03'], players: state.players.map((p) => p.id), locked: (rid) => state.picksReady && lockedRace(G.raceOf(rid)) }); // tirages au sort : fonction pure des données publiques, donc vérifiables
     // Tirages figés (config/draws) : ils l'emportent sur le calcul, pour qu'un tirage déjà annoncé ne bouge plus jamais
     const SD = state.storedDraws || {};
     Object.entries(SD).forEach(([rid, by]) => Object.entries(by || {}).forEach(([pid, st]) => {
       if (!st || !st.ath) return;
       const cur = (state.draws[rid] || {})[pid];
       if (cur) { cur.ath = st.ath; cur.stored = true; }
-      else if (st.kind === 'nopick' && state.picksReady && !(((picks[pid] || {})[rid]) || {}).a) (state.draws[rid] = state.draws[rid] || {})[pid] = { ath: st.ath, kind: 'nopick', n: st.n, stored: true };
+      else if (st.kind === 'nopick' && state.picksReady && eligible(pid, rid) && !(((picks[pid] || {})[rid]) || {}).a) (state.draws[rid] = state.draws[rid] || {})[pid] = { ath: st.ath, kind: 'nopick', n: st.n, stored: true };
     }));
     Object.entries(state.draws).forEach(([rid, byPlayer]) => Object.entries(byPlayer).forEach(([pid, d]) => {
       picks[pid] = picks[pid] || {};

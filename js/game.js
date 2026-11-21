@@ -124,6 +124,7 @@
         (o.players || []).forEach((pid) => {
           const pk = (work[pid] || {})[raceId];
           if (pk && pk.a) return;
+          if (o.eligible && !o.eligible(pid, raceId)) return;   // inscrit après la clôture de cette course : pas de tirage
           const burnt = usedInDesk(deskIdOf(raceId), race.gender, work[pid], raceId, results);
           const cands = ids(m).map((x) => x.ath).filter((id) => id && !burnt.has(id) && !(results && results[raceId] && isDNS(results, raceId, id)));
           const sig = ids(m).map((x) => x.ath || '?').join(',');

@@ -174,3 +174,10 @@ console.log('Tous les tests passent.');
   assert.strictEqual(d.u1.n, 4, 'le skieur déjà grillé dans le desk est exclu');
   assert.strictEqual(d.u1.ath, G.autoDraws({}, meta, picks, { players: ['u1'], locked: () => true }).W03.u1.ath, 'reproductible');
 }
+
+/* Un nouvel inscrit n'est pas tiré au sort pour des courses clôturées avant son premier choix */
+{
+  const start = [1, 2, 3, 4, 5].map((i) => ({ bib: i, ath: 'w-a' + i }));
+  const d = G.autoDraws({}, { W03: { pre: true, start } }, {}, { players: ['ancien', 'nouveau'], locked: () => true, eligible: (p) => p === 'ancien' }).W03;
+  assert.deepStrictEqual(Object.keys(d), ['ancien']);
+}
