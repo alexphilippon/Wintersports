@@ -144,10 +144,28 @@
       meta[r.id] = { pre: true, start: sl.rows.filter((x) => x.ath).map((x) => ({ bib: x.bib, ath: x.ath })) };
     });
     state.draws = G.autoDraws(res, meta, picks, { legacy30: ['W03'], players: state.players.map((p) => p.id), locked: (rid) => state.picksReady && lockedRace(G.raceOf(rid)) }); // tirages au sort : fonction pure des données publiques, donc vérifiables
+    // Tirages figés (config/draws) : ils l'emportent sur le calcul, pour qu'un tirage déjà annoncé ne bouge plus jamais
+    const SD = state.storedDraws || {};
+    Object.entries(SD).forEach(([rid, by]) => Object.entries(by || {}).forEach(([pid, st]) => {
+      if (!st || !st.ath) return;
+      const cur = (state.draws[rid] || {})[pid];
+      if (cur) { cur.ath = st.ath; cur.stored = true; }
+      else if (st.kind === 'nopick' && state.picksReady && !(((picks[pid] || {})[rid]) || {}).a) (state.draws[rid] = state.draws[rid] || {})[pid] = { ath: st.ath, kind: 'nopick', n: st.n, stored: true };
+    }));
     Object.entries(state.draws).forEach(([rid, byPlayer]) => Object.entries(byPlayer).forEach(([pid, d]) => {
       picks[pid] = picks[pid] || {};
       picks[pid][rid] = d.kind === 'nopick' ? { a: d.ath, auto: true, tas: true } : Object.assign({}, picks[pid][rid], { d: d.ath, auto: true });
     }));
+    // Le compte admin fige chaque nouveau tirage dès qu'il est fait (une seule écriture par tirage)
+    if (isAdmin() && store.mode === 'firebase' && state.drawsLoaded && state.picksReady) {
+      const out = {}; state.drawSent = state.drawSent || {};
+      Object.entries(state.draws).forEach(([rid, by]) => Object.entries(by).forEach(([pid, d]) => {
+        const key = rid + '|' + pid; if (d.stored || state.drawSent[key]) return;
+        state.drawSent[key] = 1;
+        (out[rid] = out[rid] || {})[pid] = { ath: d.ath, kind: d.kind || 'dns', n: d.n || 0, seed: d.seed || '', ts: Date.now() };
+      }));
+      if (Object.keys(out).length) store.saveDraws(out).catch(() => { Object.entries(out).forEach(([rid, by]) => Object.keys(by).forEach((pid) => { delete state.drawSent[rid + '|' + pid]; })); });
+    }
     state.picks = picks;
     scheduleRender();
   }
@@ -162,6 +180,7 @@
       error: () => { state.syncErr = true; scheduleRender(); },
       results: (m) => { state.raw.results = m; recompute(); },
       overrides: (m) => { state.overrides = m; recompute(); },
+      draws: (m) => { state.storedDraws = m || {}; state.drawsLoaded = true; recompute(); },
       aliases: (m) => { state.aliases = m; recompute(); },
       athletes: (list) => { state.extra = list.filter((x) => x.gender === 'M' || x.gender === 'W'); recompute(); },
     };

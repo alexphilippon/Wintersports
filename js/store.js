@@ -12,7 +12,7 @@
   /* ======================= Local ======================= */
   function localStore(opts) {
     const KEY = (opts && opts.key) || 'skigame.local.v2';
-    let db = { users: [], players: {}, picks: {}, results: {}, overrides: {}, athletes: {}, aliases: {} };
+    let db = { users: [], players: {}, picks: {}, results: {}, overrides: {}, athletes: {}, aliases: {}, draws: {} };
     try { const raw = localStorage.getItem(KEY); if (raw) db = Object.assign(db, JSON.parse(raw)); } catch (e) { /* stockage indisponible */ }
     let uid = db.session || null; const authCbs = [], handlers = {};
     const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignoré */ } };
@@ -42,6 +42,7 @@
       async setPick(u, raceId, pick) { const p = db.picks[u] || (db.picks[u] = {}); if (pick) p[raceId] = Object.assign({}, pick, { ts: Date.now() }); else delete p[raceId]; persist(); emit('picks'); },
       async setResult(raceId, entries) { if (entries && entries.length) db.results[raceId] = entries; else delete db.results[raceId]; persist(); emit('results'); },
       async setOverride(raceId, o) { if (o) db.overrides[raceId] = o; else delete db.overrides[raceId]; persist(); emit('overrides'); },
+      async saveDraws() { /* mode local : les tirages restent calculés, rien à figer */ },
       async addAthlete(a) { db.athletes[a.id] = Object.assign({}, a); delete db.athletes[a.id].id; persist(); emit('athletes'); },
       async updateAthlete(id, patch) { db.athletes[id] = Object.assign({}, db.athletes[id], patch); persist(); emit('athletes'); },
       async setAlias(from, to) { if (to) db.aliases[from] = to; else delete db.aliases[from]; persist(); emit('aliases'); },
@@ -125,6 +126,7 @@
           if (h.picks) sub(db.collection('picks'), (s) => { const o = {}; s.docs.forEach((d) => { const m = d.data(); Object.keys(m).forEach((k) => { if (m[k] && m[k].ts) m[k] = Object.assign({}, m[k], { ts: ms(m[k].ts) }); }); o[d.id] = m; }); h.picks(o); });
           if (h.results) sub(db.collection('results'), (s) => { const o = {}; s.docs.forEach((d) => { o[d.id] = d.data().entries || []; }); h.results(o); });
           if (h.overrides) sub(db.doc('config/overrides'), (d) => h.overrides(d.exists ? d.data() : {}));
+          if (h.draws) sub(db.doc('config/draws'), (d) => h.draws(d.exists ? d.data() : {}));
           if (h.aliases) sub(db.doc('config/aliases'), (d) => h.aliases(d.exists ? d.data() : {}));
           if (h.athletes) sub(db.collection('athletes'), (s) => h.athletes(s.docs.map((d) => Object.assign({ id: d.id }, d.data()))));
         });
@@ -133,6 +135,8 @@
       async setPick(uid, raceId, pick) { await ready; await setField('picks/' + uid, raceId, pick ? Object.assign({}, pick, { ts: FV.serverTimestamp() }) : null); },
       async setResult(raceId, entries) { await ready; if (entries && entries.length) await db.doc('results/' + raceId).set({ entries }); else await db.doc('results/' + raceId).delete(); },
       async setOverride(raceId, o) { await ready; await setField('config/overrides', raceId, o); },
+      /** Tirages au sort figés (écrits par le compte admin dès qu'ils sont faits) : { raceId: { playerId: { ath, kind, n, seed, ts } } }. */
+      async saveDraws(obj) { await ready; await db.doc('config/draws').set(obj, { merge: true }); },
       async addAthlete(a) { await ready; const d = Object.assign({}, a); delete d.id; await db.doc('athletes/' + a.id).set(d); },
       async updateAthlete(id, patch) { await ready; await db.doc('athletes/' + id).set(patch, { merge: true }); },
       async setAlias(from, to) { await ready; await setField('config/aliases', from, to || null); },
