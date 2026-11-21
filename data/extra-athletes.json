@@ -43,7 +43,8 @@
   { "id": "henry-heaydon", "name": "Henry Heaydon", "fis": "HEAYDON Henry", "nat": "AUS", "rank": null, "code": "40676", "from": "M02" },
   { "id": "turo-torvinen", "name": "Turo Torvinen", "fis": "TORVINEN Turo", "nat": "FIN", "rank": null, "code": "180864", "from": "M02" },
   { "id": "erik-saravuo", "name": "Erik Saravuo", "fis": "SARAVUO Erik", "nat": "FIN", "rank": null, "code": "180917", "from": "M02" },
-  { "id": "jesperi-kemppainen", "name": "Jesperi Kemppainen", "fis": "KEMPPAINEN Jesperi", "nat": "FIN", "rank": null, "code": "180924", "from": "M02" }
+  { "id": "jesperi-kemppainen", "name": "Jesperi Kemppainen", "fis": "KEMPPAINEN Jesperi", "nat": "FIN", "rank": null, "code": "180924", "from": "M02" },
+  { "id": "fabian-himmelsbach", "name": "Fabian Himmelsbach", "fis": "HIMMELSBACH Fabian", "nat": "GER", "rank": null, "code": "202908", "from": "M03" }
  ],
  "W": [
   { "id": "petra-vlhova", "name": "Petra Vlhová", "fis": "VLHOVA Petra", "nat": "SVK", "rank": null, "code": "705423", "from": "W01" },
