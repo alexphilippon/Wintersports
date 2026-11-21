@@ -143,7 +143,7 @@
       const sl = startListOf(r); if (!sl) return;
       meta[r.id] = { pre: true, start: sl.rows.filter((x) => x.ath).map((x) => ({ bib: x.bib, ath: x.ath })) };
     });
-    state.draws = G.autoDraws(res, meta, picks, { players: state.players.map((p) => p.id), locked: (rid) => state.picksReady && lockedRace(G.raceOf(rid)) }); // tirages au sort : fonction pure des données publiques, donc vérifiables
+    state.draws = G.autoDraws(res, meta, picks, { legacy30: ['W03'], players: state.players.map((p) => p.id), locked: (rid) => state.picksReady && lockedRace(G.raceOf(rid)) }); // tirages au sort : fonction pure des données publiques, donc vérifiables
     Object.entries(state.draws).forEach(([rid, byPlayer]) => Object.entries(byPlayer).forEach(([pid, d]) => {
       picks[pid] = picks[pid] || {};
       picks[pid][rid] = d.kind === 'nopick' ? { a: d.ath, auto: true, tas: true } : Object.assign({}, picks[pid][rid], { d: d.ath, auto: true });

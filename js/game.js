@@ -128,8 +128,16 @@
           const cands = ids(m).map((x) => x.ath).filter((id) => id && !burnt.has(id) && !(results && results[raceId] && isDNS(results, raceId, id)));
           const sig = ids(m).map((x) => x.ath || '?').join(',');
           const seed = `${raceId}|${pid}|sans-choix|${sig}`;
-          const d = drawSkier(seed, cands);
-          if (d) { (out[raceId] = out[raceId] || {})[pid] = Object.assign({ seed, candidates: cands, kind: 'nopick' }, d); work[pid][raceId] = { a: d.ath, auto: true }; }
+          let d = drawSkier(seed, cands), sd = seed, cd = cands;
+          // Courses tirées avant le passage de 30 à 20 dossards : on garde l'ancien tirage s'il est toujours dans les 20 premiers dossards
+          if ((o.legacy30 || []).includes(raceId)) {
+            const l30 = m.start.slice().sort((x, y) => x.bib - y.bib).slice(0, 30);
+            const c30 = l30.map((x) => x.ath).filter((id) => id && !burnt.has(id));
+            const s30 = `${raceId}|${pid}|sans-choix|${l30.map((x) => x.ath || '?').join(',')}`;
+            const d30 = drawSkier(s30, c30), top20 = new Set(ids(m).map((x) => x.ath));
+            if (d30 && top20.has(d30.ath)) { d = d30; sd = s30; cd = c30; }
+          }
+          if (d) { (out[raceId] = out[raceId] || {})[pid] = Object.assign({ seed: sd, candidates: cd, kind: 'nopick' }, d); work[pid][raceId] = { a: d.ath, auto: true }; }
         });
       }
       // 2) Titulaire ET remplaçant non-partants (DNS confirmés)
