@@ -137,13 +137,19 @@
     Object.entries(state.raw.results).forEach(([rid, entries]) => { res[rid] = (entries || []).map((e) => Object.assign({}, e, { ath: canon(e.ath) })); delete meta[rid]; });
     state.results = res;
     Object.values(res).forEach((l) => l.forEach((e) => { if (e.name && !ATH[e.ath]) RESNAMES[e.ath] = prettyFis(e.name); }));
-    // Courses verrouillées dont la liste de départ est publiée : permet le tirage au sort des joueurs sans choix (sans attendre les résultats)
+    // Liste servant au tirage des joueurs sans choix, figée à la clôture : la start list de la course si elle était publiée avant la clôture,
+    // sinon celle de la dernière course de même discipline et même genre (le seeding des 30 premiers dossards est quasi identique).
+    const pool = {};
     Object.values(D.RACES).forEach((r) => {
-      if (meta[r.id] || r.cancelled || !lockedRace(r)) return;
-      const sl = startListOf(r); if (!sl) return;
-      meta[r.id] = { pre: true, start: sl.rows.filter((x) => x.ath).map((x) => ({ bib: x.bib, ath: x.ath })) };
+      if (r.cancelled || !lockedRace(r)) return;
+      const rows = (sl) => sl.rows.filter((x) => x.ath).map((x) => ({ bib: x.bib, ath: x.ath }));
+      const own = startListOf(r), lockT = G.raceLockTime(r).getTime();
+      if (own && own.fetched && new Date(own.fetched).getTime() <= lockT) { pool[r.id] = rows(own); return; }
+      const refs = Object.values(D.RACES).filter((x) => x.gender === r.gender && x.disc === r.disc && x.id !== r.id && G.raceStart(x) < G.raceStart(r) && !x.cancelled)
+        .sort((x, y) => G.raceStart(y) - G.raceStart(x));
+      for (const x of refs) { const sl = startListOf(x); if (sl && sl.rows.some((q) => q.ath)) { pool[r.id] = rows(sl); return; } }
     });
-    state.draws = G.autoDraws(res, meta, picks, { players: state.players.map((p) => p.id), locked: (rid) => state.picksReady && lockedRace(G.raceOf(rid)) }); // tirages au sort : fonction pure des données publiques, donc vérifiables
+    state.draws = G.autoDraws(res, meta, picks, { pool, players: state.players.map((p) => p.id), locked: (rid) => state.picksReady && lockedRace(G.raceOf(rid)) }); // tirages au sort : fonction pure des données publiques, donc vérifiables
     Object.entries(state.draws).forEach(([rid, byPlayer]) => Object.entries(byPlayer).forEach(([pid, d]) => {
       picks[pid] = picks[pid] || {};
       picks[pid][rid] = d.kind === 'nopick' ? { a: d.ath, auto: true, tas: true } : Object.assign({}, picks[pid][rid], { d: d.ath, auto: true });
