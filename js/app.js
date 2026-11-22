@@ -147,7 +147,9 @@
     const tsOf = (v) => (typeof v === 'number' ? v : v && typeof v.toMillis === 'function' ? v.toMillis() : v && typeof v.seconds === 'number' ? v.seconds * 1000 : 0);
     const firstPick = {};
     Object.entries(state.raw.picks || {}).forEach(([uid, m]) => Object.values(m || {}).forEach((p) => { if (p && typeof p === 'object' && p.a) { const t = tsOf(p.ts); firstPick[uid] = firstPick[uid] === undefined ? t : Math.min(firstPick[uid], t); } }));
-    const eligible = (pid, rid) => { const r = G.raceOf(rid); return firstPick[pid] !== undefined && !!r && firstPick[pid] < G.raceLockTime(r).getTime(); };
+    // Joueur sans aucun choix enregistré : tiré à partir de M03 (22/11/2026) ; avant, jamais de tirage rétroactif
+    const NOPICK_FROM = Date.UTC(2026, 10, 21, 23, 0);
+    const eligible = (pid, rid) => { const r = G.raceOf(rid); if (!r) return false; const lk = G.raceLockTime(r).getTime(); return firstPick[pid] !== undefined ? firstPick[pid] < lk : lk >= NOPICK_FROM; };
     state.draws = G.autoDraws(res, meta, picks, { eligible, legacy30: ['W03'], players: state.players.map((p) => p.id), locked: (rid) => state.picksReady && lockedRace(G.raceOf(rid)) }); // tirages au sort : fonction pure des données publiques, donc vérifiables
     // Tirages figés (config/draws) : ils l'emportent sur le calcul, pour qu'un tirage déjà annoncé ne bouge plus jamais
     const SD = state.storedDraws || {};
@@ -404,7 +406,7 @@
     </div>`;
   }
   /** Course verrouillée où le joueur n'a rien validé et dont le tirage au sort n'a pas encore eu lieu (start list pas publiée). */
-  const waitingDraw = (playerId, race) => !race.cancelled && lockedRace(race) && !((state.picks[playerId] || {})[race.id] || {}).a;
+  const waitingDraw = (playerId, race) => !race.cancelled && lockedRace(race) && !startListOf(race) && !state.results[race.id] && !((state.picks[playerId] || {})[race.id] || {}).a;
   const WAIT_HTML = '<span class="draw draw--wait">⏳ En attente de tirage au sort</span><span class="sub">Aucun choix à la clôture : tirage dès la start list publiée</span>';
   function pickSummary(playerId, race) {
     const p = (state.picks[playerId] || {})[race.id];
