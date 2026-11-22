@@ -147,8 +147,8 @@
     const tsOf = (v) => (typeof v === 'number' ? v : v && typeof v.toMillis === 'function' ? v.toMillis() : v && typeof v.seconds === 'number' ? v.seconds * 1000 : 0);
     const firstPick = {};
     Object.entries(state.raw.picks || {}).forEach(([uid, m]) => Object.values(m || {}).forEach((p) => { if (p && typeof p === 'object' && p.a) { const t = tsOf(p.ts); firstPick[uid] = firstPick[uid] === undefined ? t : Math.min(firstPick[uid], t); } }));
-    // Joueur sans aucun choix enregistré : tiré à partir de M03 (22/11/2026) ; avant, jamais de tirage rétroactif
-    const NOPICK_FROM = Date.UTC(2026, 10, 21, 23, 0);
+    // Joueur sans aucun choix enregistré : tiré à partir de W03 (Gurgl, 21/11/2026) ; pas pour Sölden ni Levi, jamais de tirage rétroactif
+    const NOPICK_FROM = Date.UTC(2026, 10, 21, 0, 0);
     const eligible = (pid, rid) => { const r = G.raceOf(rid); if (!r) return false; const lk = G.raceLockTime(r).getTime(); return firstPick[pid] !== undefined ? firstPick[pid] < lk : lk >= NOPICK_FROM; };
     state.draws = G.autoDraws(res, meta, picks, { eligible, legacy30: ['W03'], players: state.players.map((p) => p.id), locked: (rid) => state.picksReady && lockedRace(G.raceOf(rid)) }); // tirages au sort : fonction pure des données publiques, donc vérifiables
     // Tirages figés (config/draws) : ils l'emportent sur le calcul, pour qu'un tirage déjà annoncé ne bouge plus jamais
