@@ -15,6 +15,18 @@ const ov = fs.existsSync(ovF) ? JSON.parse(fs.readFileSync(ovF, 'utf8')) : { rac
 const MON = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, Oct: 10, Nov: 11, Dec: 12 };
 const decode = (s) => s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
 const flat = (h) => decode(h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, '|')).replace(/[\s|]*\|[\s|]*/g, '|');
+/* La page FIS donne l'heure LOCALE de la station ; le jeu raisonne en heure de Paris. Stations hors Europe/Paris : fuseau à convertir. */
+const PLACE_TZ = { 'Copper Mountain': 'America/Denver', 'Beaver Creek': 'America/Denver', 'Sun Valley': 'America/Boise', 'Killington': 'America/New_York', 'Tremblant': 'America/Toronto' };
+const parts = (ms, tz) => Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(ms)).map((p) => [p.type, p.value]));
+/** Heure locale (jour mo/day, hh:mm) dans tz → { day, mo, time } en heure de Paris. */
+function toParis(year, mo, day, time, tz) {
+  if (!tz) return { day, mo, time };
+  const [h, mi] = time.split(':').map(Number), asUtc = Date.UTC(year, mo - 1, day, h, mi);
+  let inst = asUtc;
+  for (let i = 0; i < 2; i++) { const q = parts(inst, tz); inst -= Date.UTC(+q.year, +q.month - 1, +q.day, +q.hour, +q.minute) - asUtc; }
+  const q = parts(inst, 'Europe/Paris');
+  return { day: +q.day, mo: +q.month, time: q.hour + ':' + q.minute };
+}
 const now = new Date();
 const mine = Object.values(D.RACES).filter((r) => fis[r.id] && !r.cancelled && G.raceStart(r) > now && G.raceStart(r) - now < hours * 3600e3 * 4);
 const events = [...new Set(mine.map((r) => fis[r.id].eventid))];
@@ -25,8 +37,9 @@ const events = [...new Set(mine.map((r) => fis[r.id].eventid))];
     const t = flat(html), rows = {};
     for (const m of t.matchAll(/\|(\d{1,2}) ([A-Z][a-z]{2})\|(\d\d:\d\d)\|(\d{4})\|/g)) rows[m[4]] = { day: +m[1], mo: MON[m[2]], time: m[3] };
     mine.filter((r) => String(fis[r.id].eventid) === String(ev)).forEach((r) => {
-      const f = rows[fis[r.id].codex]; if (!f) return;
-      const [, mo, day] = r.date.split('-').map(Number);
+      const raw = rows[fis[r.id].codex]; if (!raw) return;
+      const [yr, mo, day] = r.date.split('-').map(Number);
+      const f = toParis(yr, raw.mo, raw.day, raw.time, PLACE_TZ[r.place]);
       const cur = (ov.races[r.id] && ov.races[r.id].time) || r.time;
       if (f.day !== day || f.mo !== mo) diffs.push({ id: r.id, why: `date FIS ${f.day}/${f.mo} ≠ ${day}/${mo} (à traiter à la main)` });
       else if (f.time !== cur) diffs.push({ id: r.id, from: cur, to: f.time });
